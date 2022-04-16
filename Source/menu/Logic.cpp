@@ -1,38 +1,8 @@
+#include "Logic.h"
 #include "Input.h"
 #include "Hitbox.h"
 #include "Box.h"
 #include "Action.h"
-#include "RingBuffer.h"
-#include "Logic.h"
-
-template<class T>
-RingBuffer<T>::RingBuffer(int size) {
-  n = size;
-  v = new T[n];
-  start = 0;
-  end = 0;
-}
-
-template<class T>
-RingBuffer<T>::RingBuffer(): RingBuffer(10) {}
-
-template<class T>
-void RingBuffer<T>::push(const T& x) {
-  end = (end+1) % n;
-  v[end] = x;
-  if (end == start)
-    start = (start+1) % n;
-}
-
-template<class T>
-const T& RingBuffer<T>::last() {
-  return v[end];
-}
-
-template<class T>
-RingBuffer<T>::~RingBuffer() {
-  delete[] v;
-}
 
 void Input::buttonPressed(const enum Button& button) {
 
@@ -79,6 +49,28 @@ int HAction::lockedFrames(const std::vector<Action>& a) {
   return a[_h].lockedFrames;
 }
 
+void RingBuffer::reserve(int size) {
+  n = size;
+  v = new Frame[n];
+  start = 0;
+  end = 0;
+}
+
+void RingBuffer::push(const Frame& x) {
+  end = (end+1) % n;
+  v[end] = x;
+  if (end == start)
+    start = (start+1) % n;
+}
+
+const Frame& RingBuffer::last() {
+  return v[end];
+}
+
+RingBuffer::~RingBuffer() {
+  delete[] v;
+}
+
 // Sets default values for this component's properties
 ALogic::ALogic(): frame(0)
 {
@@ -87,7 +79,7 @@ ALogic::ALogic(): frame(0)
   PrimaryActorTick.bCanEverTick = true;
   PrimaryActorTick.TickGroup = TG_PrePhysics;
 
-  frames = RingBuffer<Frame>(maxRollback);
+  frames.reserve(maxRollback);
 }
 
 // Called when the game starts or when spawned
@@ -127,4 +119,7 @@ void ALogic::Tick(float DeltaTime)
   // and stuff
 
   frames.push(newFrame);
+
+  // just demonstrating ability to move a character from this class
+  character1->SetActorLocation(FVector(0.0, (double) ((frame)%500), 0.0), false, nullptr, ETeleportType::None);
 }
