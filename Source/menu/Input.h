@@ -13,11 +13,9 @@ enum class Button {LP, HP, LK, HK, LEFT, RIGHT, UP, DOWN};
 // time.
 class Input {
 public:
-  // needs fields
-  
-  void buttonPressed(const enum Button& button);
+  void buttonPressed(HAction currentAction, const enum Button& button);
 
-  void buttonReleased(const enum Button& button);
+  void buttonReleased(HAction currentAction, const enum Button& button);
 
   // Returns the currently decoded action
   std::optional<HAction> action();

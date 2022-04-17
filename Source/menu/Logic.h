@@ -9,18 +9,26 @@
 #include "Input.h"
 #include "Logic.generated.h"
 
-typedef struct Player {
-  float pos;
+class Player {
+public:
+  FVector pos;
   Input input;
   HAction action;
   int actionStart;
   int health;
-} Player;
 
-typedef struct Frame {
+  Player(FVector pos, HAction action): pos(pos), action(action), actionStart(0), health(100) {};
+  void buttonPressed(const enum Button& button);
+  void buttonReleased(const enum Button& button);
+};
+
+class Frame {
+public:
   Player p1;
   Player p2;
-} Frame;
+
+  Frame(Player p1, Player p2): p1(p1), p2(p2) {};
+};
 
 class RingBuffer {
 private:
@@ -60,17 +68,17 @@ public:
         // Invisible objects at the ends of the stages. We will use
         // these just to grab their coordinates and not let players
         // move past them.
-        UPROPERTY(EditAnywhere)
-        AActor* stageBoundLeft;
-        UPROPERTY(EditAnywhere)
-        AActor* stageBoundRight;
+        UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
+        FVector stageBoundLeft;
+        UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
+        FVector stageBoundRight;
 
         // Starting positions of the characters in the stage. We again
         // use these just for their coordinates.
-        UPROPERTY(EditAnywhere)
-        AActor* leftStart;
-        UPROPERTY(EditAnywhere)
-        AActor* rightStart;
+        UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
+        FVector leftStart;
+        UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
+        FVector rightStart;
 
         int maxRollback = 10; // keep around 10 frames or so for rollback
         RingBuffer frames;

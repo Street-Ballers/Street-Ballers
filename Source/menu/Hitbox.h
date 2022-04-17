@@ -11,6 +11,8 @@ public:
   // frame, hitboxes).
   std::vector<std::pair<int, std::vector<Box>>> boxes;
 
+  Hitbox(std::vector<std::pair<int, std::vector<Box>>> boxes): boxes(boxes) {};
+
   std::vector<Box> at(int frame);
 
   // - b: other hitbox we are checking for collision with

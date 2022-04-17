@@ -4,11 +4,11 @@
 #include "Box.h"
 #include "Action.h"
 
-void Input::buttonPressed(const enum Button& button) {
+void Input::buttonPressed(HAction currentAction, const enum Button& button) {
 
 }
 
-void Input::buttonReleased(const enum Button& button) {
+void Input::buttonReleased(HAction currentAction, const enum Button& button) {
 
 }
 
@@ -34,24 +34,42 @@ bool Hitbox::collides(const Hitbox& b, int aframe, int bframe) {
   return false;
 }
 
-HAction::HAction(int h): _h(h) {};
+HAction::HAction(int h): h(h) {};
 HAction::HAction(): HAction(-1) {};
 
-const Hitbox& HAction::hitbox(const std::vector<Action>& a) {
-  return a[_h].hitbox;
+const Action HAction::actions[] = {
+  [HActionIdleI] = Action(Hitbox({}), Hitbox({}), 0),
+  [HActionWalkForwardI] = Action(Hitbox({}), Hitbox({}), 0, FVector(0.0, 4.0, 0.0)),
+  [HActionStPI] = Action(Hitbox({}), Hitbox({}), 0),
+};
+
+const Hitbox& HAction::hitbox() {
+  return actions[h].hitbox;
 }
 
-const Hitbox& HAction::hurtbox(const std::vector<Action>& a) {
-  return a[_h].hurtbox;
+const Hitbox& HAction::hurtbox() {
+  return actions[h].hurtbox;
 }
 
-int HAction::lockedFrames(const std::vector<Action>& a) {
-  return a[_h].lockedFrames;
+int HAction::lockedFrames() {
+  return actions[h].lockedFrames;
+}
+
+FVector HAction::velocity() {
+  return actions[h].velocity;
+}
+
+void Player::buttonPressed(const enum Button& button) {
+  input.buttonPressed(action, button);
+}
+
+void Player::buttonReleased(const enum Button& button) {
+  input.buttonReleased(action, button);
 }
 
 void RingBuffer::reserve(int size) {
   n = size;
-  v = new Frame[n];
+  v = (Frame*) malloc(n*sizeof(Frame));
   start = 0;
   end = 0;
 }
@@ -68,14 +86,15 @@ const Frame& RingBuffer::last() {
 }
 
 RingBuffer::~RingBuffer() {
-  delete[] v;
+  free(v);
 }
 
 // Sets default values for this component's properties
 ALogic::ALogic(): frame(0)
 {
-  // Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-  // off to improve performance if you don't need them.
+  // Set this component to be initialized when the game starts, and to
+  // be ticked every frame. You can turn these features off to improve
+  // performance if you don't need them.
   PrimaryActorTick.bCanEverTick = true;
   PrimaryActorTick.TickGroup = TG_PrePhysics;
 
@@ -86,6 +105,10 @@ ALogic::ALogic(): frame(0)
 void ALogic::BeginPlay()
 {
   Super::BeginPlay();
+
+  // construct initial frame
+  Frame f (Player(leftStart, HActionWalkForward), Player(rightStart, HActionIdle));
+  frames.push(f);
 }
 
 // Called every frame
@@ -98,6 +121,7 @@ void ALogic::Tick(float DeltaTime)
   // make a copy of the most recent frame. we will update the values
   // in this newFrame and keep the last one.
   Frame newFrame (lastFrame);
+
   // if a button was pressed or released, send it to p1Input/p2Input
 
   // If the player can act and there is a new action waiting, then
@@ -111,15 +135,22 @@ void ALogic::Tick(float DeltaTime)
   // compute player positions (if they are in a moving action). This
   // includes checking collision boxes and not letting players walk
   // out of bounds.
+  int p1Direction = (newFrame.p1.pos.Y > newFrame.p2.pos.Y) ? -1 : 1;
+  int p2Direction = -1*p1Direction;
+  newFrame.p1.pos += p1Direction*newFrame.p1.action.velocity();
+  newFrame.p2.pos += p2Direction*newFrame.p2.action.velocity();
+  p1Direction = (newFrame.p1.pos.Y > newFrame.p2.pos.Y) ? -1 : 1;
+  p2Direction = -1*p1Direction;
 
-  // check hitboxes, compute damage (if anyone is in an attacking
-  // action). Don't forget the case of ties.
+  // check hitboxes, compute damage. Don't forget the case of ties.
 
-  // check if anyone died, and if so, start new round or end game
-  // and stuff
+  // check if anyone died, and if so, start new round or end game and
+  // stuff. when in online multiplayer, this should also wait for both
+  // clients to be at a consistent state.
 
   frames.push(newFrame);
 
   // just demonstrating ability to move a character from this class
-  character1->SetActorLocation(FVector(0.0, (double) ((frame)%500), 0.0), false, nullptr, ETeleportType::None);
+  character1->SetActorLocation(newFrame.p1.pos, false, nullptr, ETeleportType::None);
+  character2->SetActorLocation(newFrame.p2.pos, false, nullptr, ETeleportType::None);
 }
