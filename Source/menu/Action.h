@@ -15,10 +15,10 @@ public:
   int lockedFrames; // number of frames that the player is locked into
                     // this action
   FVector velocity;
+  bool isWalkOrIdle;
 
-  Action(Hitbox hitbox, Hitbox hurtbox, int lockedFrames, FVector velocity): hitbox(hitbox), hurtbox(hurtbox), lockedFrames(lockedFrames), velocity(velocity) {};
+  Action(Hitbox hitbox, Hitbox hurtbox, int lockedFrames, bool isWalkOrIdle = false, FVector velocity = FVector(0.0, 0.0, 0.0)): hitbox(hitbox), hurtbox(hurtbox), lockedFrames(lockedFrames), velocity(velocity), isWalkOrIdle(isWalkOrIdle) {};
 
-  Action(Hitbox hitbox, Hitbox hurtbox, int lockedFrames): Action(hitbox, hurtbox, lockedFrames, FVector(0.0, 0.0, 0.0)) {};
 };
 
 // handle to an action because references and pointers are bad
@@ -35,6 +35,10 @@ public:
   const Hitbox& hurtbox();
   int lockedFrames();
   FVector velocity();
+  bool isWalkOrIdle();
+
+  bool operator==(const HAction& b) const;
+  bool operator!=(const HAction& b) const;
 };
 
 enum HActionI {

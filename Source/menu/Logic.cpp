@@ -4,17 +4,124 @@
 #include "Box.h"
 #include "Action.h"
 
-void Input::buttonPressed(HAction currentAction, const enum Button& button) {
-
+void RingBuffer::reserve(int size) {
+  n = size;
+  if (n>0)
+    v = (Frame*) malloc(n*sizeof(Frame));
+  start = 0;
+  end = 0;
 }
 
-void Input::buttonReleased(HAction currentAction, const enum Button& button) {
-
+void RingBuffer::push(const Frame& x) {
+  end = (end+1) % n;
+  v[end] = x;
+  if (end == start)
+    start = (start+1) % n;
 }
 
-// Returns the currently decoded action
-std::optional<HAction> Input::action() {
-  return {};
+const Frame& RingBuffer::last() {
+  return v[end];
+}
+
+RingBuffer::~RingBuffer() {
+  if (v) free(v);
+}
+
+void ButtonRingBuffer::reserve(int size) {
+  n = size;
+  v.reserve(n);
+  start = 0;
+  end = 0;
+}
+
+void ButtonRingBuffer::push(const std::optional<enum Button>& x) {
+  end = (end+1) % n;
+  v[end] = x;
+  if (end == start)
+    start = (start+1) % n;
+}
+
+std::optional<enum Button>& ButtonRingBuffer::last() {
+  return v[end];
+}
+
+std::optional<enum Button>& ButtonRingBuffer::nthlast(int i) {
+  return v[end-i];
+}
+
+bool Input::is_button(const enum Button& b) {
+  switch (b) {
+  case Button::LP:
+  case Button::HP:
+  case Button::LK:
+  case Button::HK:
+    return true;
+  default:
+    return false;
+  }
+}
+
+// bool Input::is_none(const Button& b) {
+//   return b == Button::NONE;
+// }
+
+void Input::init(int _maxRollback, int _buffer, int _delay) {
+  buffer = _buffer;
+  delay = _delay;
+  n = _maxRollback+buffer;
+  buttonHistory.reserve(n);
+  directionHistory.reserve(n);
+  buttonHistory.push({});
+  directionHistory.push({});
+};
+
+void Input::buttonsPressed(const std::vector<const enum Button>& buttons) {
+  buttonHistory.push({});
+  directionHistory.push(directionHistory.last());
+  if (!buttons.empty()) {
+    for (auto b : buttons) {
+      if (is_button(b))
+        buttonHistory.last() = std::make_optional(b);
+      if (!is_button(b))
+        directionHistory.last() = std::make_optional(b);
+    }
+  }
+}
+
+void Input::buttonsReleased(const std::vector<const enum Button>& buttons) {
+  if (!buttons.empty()) {
+    for (auto b : buttons) {
+      if (!is_button(b) && (directionHistory.last() == b))
+        directionHistory.last() = {};
+    }
+  }
+}
+
+HAction Input::_action(HAction currentAction, int frame) {
+  // for now, if there was a button, output the corresponding attack.
+  // If no button, then walk/idle based on directional input.
+  if (buttonHistory.nthlast(frame).has_value()) {
+    enum Button button = buttonHistory.nthlast(frame).value();
+    if (button == Button::LP)
+      return HActionStP;
+  }
+  if (directionHistory.nthlast(frame).has_value()) {
+    enum Button button = directionHistory.nthlast(frame).value();
+    if (button == Button::FORWARD)
+      return HActionWalkForward;
+  }
+  return HActionIdle;
+}
+
+HAction Input::action(HAction currentAction) {
+  int frame = delay;
+  HAction action = _action(currentAction, frame);
+  while ((++frame < n) && (frame < buffer)) {
+    HAction a = _action(currentAction, frame);
+    if (!a.isWalkOrIdle())
+      action = a;
+  }
+  return action;
 }
 
 bool Box::collides(const Box& b) {
@@ -38,8 +145,8 @@ HAction::HAction(int h): h(h) {};
 HAction::HAction(): HAction(-1) {};
 
 const Action HAction::actions[] = {
-  [HActionIdleI] = Action(Hitbox({}), Hitbox({}), 0),
-  [HActionWalkForwardI] = Action(Hitbox({}), Hitbox({}), 0, FVector(0.0, 4.0, 0.0)),
+  [HActionIdleI] = Action(Hitbox({}), Hitbox({}), 0, true),
+  [HActionWalkForwardI] = Action(Hitbox({}), Hitbox({}), 0, true, FVector(0.0, 4.0, 0.0)),
   [HActionStPI] = Action(Hitbox({}), Hitbox({}), 0),
 };
 
@@ -59,34 +166,16 @@ FVector HAction::velocity() {
   return actions[h].velocity;
 }
 
-void Player::buttonPressed(const enum Button& button) {
-  input.buttonPressed(action, button);
+bool HAction::isWalkOrIdle() {
+  return actions[h].isWalkOrIdle;
 }
 
-void Player::buttonReleased(const enum Button& button) {
-  input.buttonReleased(action, button);
+bool HAction::operator==(const HAction& b) const {
+  return h == b.h;
 }
 
-void RingBuffer::reserve(int size) {
-  n = size;
-  v = (Frame*) malloc(n*sizeof(Frame));
-  start = 0;
-  end = 0;
-}
-
-void RingBuffer::push(const Frame& x) {
-  end = (end+1) % n;
-  v[end] = x;
-  if (end == start)
-    start = (start+1) % n;
-}
-
-const Frame& RingBuffer::last() {
-  return v[end];
-}
-
-RingBuffer::~RingBuffer() {
-  free(v);
+bool HAction::operator!=(const HAction& b) const {
+  return !(*this == b);
 }
 
 // Sets default values for this component's properties
@@ -99,6 +188,8 @@ ALogic::ALogic(): frame(0)
   PrimaryActorTick.TickGroup = TG_PrePhysics;
 
   frames.reserve(maxRollback);
+  p1Input.init(maxRollback, 2, 2);
+  p2Input.init(maxRollback, 2, 2);
 }
 
 // Called when the game starts or when spawned
@@ -107,7 +198,7 @@ void ALogic::BeginPlay()
   Super::BeginPlay();
 
   // construct initial frame
-  Frame f (Player(leftStart, HActionWalkForward), Player(rightStart, HActionIdle));
+  Frame f (Player(leftStart, HActionIdle), Player(rightStart, HActionIdle));
   frames.push(f);
 }
 
@@ -124,13 +215,20 @@ void ALogic::Tick(float DeltaTime)
 
   // if a button was pressed or released, send it to p1Input/p2Input
 
+  // for now, just simulate FORWARD being pressed on p1
+  p1Input.buttonsPressed({Button::FORWARD});
+  p2Input.buttonsPressed({});
+
   // If the player can act and there is a new action waiting, then
   // start the new action
-  // if (frame - lastFrame.p1.actionStart >= lastFrame.p1.action.lockedFrames({})) {
-  //   // if p1Input.action() != none, then newFrame.p1Action =
-  //   // p2Input.action() and newFrame.p1ActionStart = frame
-  // }
-  // same for p2
+  if (frame - newFrame.p1.actionStart >= newFrame.p1.action.lockedFrames()) {
+    std::optional<HAction> newAction = p1Input.action(newFrame.p1.action);
+    if (newAction.has_value()) {
+      newFrame.p1.action = newAction.value();
+      newFrame.p1.actionStart = frame;
+    }
+  }
+  // same for p2. maybe move this logic to a Player method?
 
   // compute player positions (if they are in a moving action). This
   // includes checking collision boxes and not letting players walk
@@ -150,7 +248,7 @@ void ALogic::Tick(float DeltaTime)
 
   frames.push(newFrame);
 
-  // just demonstrating ability to move a character from this class
+  // update other actors
   character1->SetActorLocation(newFrame.p1.pos, false, nullptr, ETeleportType::None);
   character2->SetActorLocation(newFrame.p2.pos, false, nullptr, ETeleportType::None);
 }

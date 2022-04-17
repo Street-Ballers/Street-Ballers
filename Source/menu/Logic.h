@@ -12,14 +12,11 @@
 class Player {
 public:
   FVector pos;
-  Input input;
   HAction action;
   int actionStart;
   int health;
 
   Player(FVector pos, HAction action): pos(pos), action(action), actionStart(0), health(100) {};
-  void buttonPressed(const enum Button& button);
-  void buttonReleased(const enum Button& button);
 };
 
 class Frame {
@@ -32,7 +29,7 @@ public:
 
 class RingBuffer {
 private:
-  Frame* v;
+  Frame* v = nullptr;
   int n;
   int start;
   int end;
@@ -82,6 +79,8 @@ public:
 
         int maxRollback = 10; // keep around 10 frames or so for rollback
         RingBuffer frames;
+        Input p1Input;
+        Input p2Input;
         int frame;
 
 	// Sets default values for this actor's properties
