@@ -213,10 +213,9 @@ void ALogic::Tick(float DeltaTime)
   // in this newFrame and keep the last one.
   Frame newFrame (lastFrame);
 
-  // if a button was pressed or released, send it to p1Input/p2Input
-
-  // for now, just simulate FORWARD being pressed on p1
-  p1Input.buttonsPressed({Button::FORWARD});
+  // input will be sent to p1Input/p2Input by LogicPlayerController.
+  // When there is only one player, we need to send empty inputs to
+  // p2Input.
   p2Input.buttonsPressed({});
 
   // If the player can act and there is a new action waiting, then

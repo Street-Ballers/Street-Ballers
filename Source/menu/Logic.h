@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "EngineUtils.h"
 #include "Action.h"
 #include "Input.h"
 #include "Logic.generated.h"
@@ -46,6 +47,7 @@ public:
   ~RingBuffer();
 };
 
+// TODO: make this a subclass of AInfo instead
 UCLASS()
 class MENU_API ALogic : public AActor
 {
@@ -95,3 +97,15 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 };
+
+static inline ALogic* FindLogic(UWorld *world) {
+  TActorIterator<ALogic> i (world);
+  ALogic *l = Cast<ALogic>(*i);
+  if (l) {
+    UE_LOG(LogTemp, Warning, TEXT("ALogic found!"));
+  }
+  else {
+    UE_LOG(LogTemp, Warning, TEXT("ALogic NOT found!"));
+  }
+  return l;
+}
