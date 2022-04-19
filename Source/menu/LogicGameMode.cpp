@@ -9,13 +9,14 @@ ALogicGameMode::ALogicGameMode() {
   PlayerControllerClass = ALogicPlayerController::StaticClass();
   DefaultPawnClass = nullptr;
   SpectatorClass = nullptr;
-  PlayerStateClass = nullptr;
+  // setting this to null just causes it to fall back to APlayerState
+  // PlayerStateClass = nullptr;
 }
 
 void ALogicGameMode::PreLogin(const FString& Options,
-                                  const FString& Address,
-                                  const FUniqueNetIdRepl& UniqueId,
-                                  FString& ErrorMessage) {
+                              const FString& Address,
+                              const FUniqueNetIdRepl& UniqueId,
+                              FString& ErrorMessage) {
   if (GetNumPlayers() > 1) {
     ErrorMessage = "Server is full";
   }

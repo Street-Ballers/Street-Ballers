@@ -17,8 +17,8 @@ void ALogicPlayerController::PostLogin(int playerNumber_) {
 
   ALogic *l = FindLogic(GetWorld());
   switch (playerNumber) {
-  case 1: input = &(l->p1Input); break;
-  case 2: input = &(l->p2Input); break;
+  case 0: input = &(l->p1Input); break;
+  case 1: input = &(l->p2Input); break;
   }
 
   l->AddTickPrerequisiteActor(this);
@@ -27,8 +27,13 @@ void ALogicPlayerController::PostLogin(int playerNumber_) {
 void ALogicPlayerController::Tick(float deltaSeconds) {
   // for now, just simulate player 1 walking forward, and player 2
   // standing still
-  if (playerNumber == 1)
-    input->buttonsPressed({Button::FORWARD});
-  else
-    input->buttonsPressed({});
+  if (input) {
+    if (playerNumber == 0)
+      input->buttonsPressed({Button::FORWARD});
+    else
+      input->buttonsPressed({});
+  }
+  else {
+    UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: INPUT IS NULL!"));
+  }
 }
