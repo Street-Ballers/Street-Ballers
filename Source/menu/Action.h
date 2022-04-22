@@ -31,11 +31,11 @@ public:
   HAction(int h);
   HAction();
 
-  const Hitbox& hitbox();
-  const Hitbox& hurtbox();
-  int lockedFrames();
-  FVector velocity();
-  bool isWalkOrIdle();
+  const Hitbox& hitbox() const;
+  const Hitbox& hurtbox() const;
+  int lockedFrames() const;
+  FVector velocity() const;
+  bool isWalkOrIdle() const;
 
   bool operator==(const HAction& b) const;
   bool operator!=(const HAction& b) const;

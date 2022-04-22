@@ -124,20 +124,47 @@ HAction Input::action(HAction currentAction) {
   return action;
 }
 
-bool Box::collides(const Box& b) {
-  return false;
+bool Box::collides(const Box& b, float offsetax, float offsetay, float offsetbx, float offsetby) const {
+  return
+    !(((x+offsetax) < (b.x+offsetbx)) &&
+      ((xend+offsetax) < (b.x+offsetbx))) &&
+    !(((x+offsetax) > (b.xend+offsetbx)) &&
+      ((xend+offsetax) > (b.xend+offsetbx))) &&
+    !(((y+offsetay) < (b.y+offsetby)) &&
+      ((yend+offsetay) < (b.y+offsetby))) &&
+    !(((y+offsetay) > (b.yend+offsetby)) &&
+      ((yend+offsetay) > (b.yend+offsetby)));
 }
 
-std::vector<Box> Hitbox::at(int frame) {
+const std::vector<Box>* Hitbox::at(int frame) const {
   // scan through boxes for the last pair that starts at or before
   // frame, and return the corresponding vector
-  return {};
+  auto i =
+    find_if(boxes.begin(),
+            boxes.end(),
+            [frame](std::pair<int, std::vector<Box>> x){
+              return x.first >= frame;
+            });
+  if (i == boxes.end())
+    return nullptr;
+  else
+    return &(i->second);
 }
 
 // - b: other hitbox we are checking for collision with
 // - aframe: frame of our hitboxes to check for collision
 // - bframe: frame of b's hitboxes to check for collision
-bool Hitbox::collides(const Hitbox& b, int aframe, int bframe) {
+bool Hitbox::collides(const Hitbox& b, int aframe, int bframe, float offsetax, float offsetay, float offsetbx, float offsetby) const {
+  const std::vector<Box>* aboxes = at(aframe);
+  const std::vector<Box>* bboxes = b.at(bframe);
+  if (!(aboxes && bboxes)) // at least one box is empty; no collision
+    return false;
+  for (auto& abox: *aboxes) {
+    for (auto& bbox: *bboxes) {
+      if (abox.collides(bbox, offsetax, offsetay, offsetbx, offsetby))
+        return true;
+    }
+  }
   return false;
 }
 
@@ -150,23 +177,23 @@ const Action HAction::actions[] = {
   [HActionStPI] = Action(Hitbox({}), Hitbox({}), 0),
 };
 
-const Hitbox& HAction::hitbox() {
+const Hitbox& HAction::hitbox() const {
   return actions[h].hitbox;
 }
 
-const Hitbox& HAction::hurtbox() {
+const Hitbox& HAction::hurtbox() const {
   return actions[h].hurtbox;
 }
 
-int HAction::lockedFrames() {
+int HAction::lockedFrames() const {
   return actions[h].lockedFrames;
 }
 
-FVector HAction::velocity() {
+FVector HAction::velocity() const {
   return actions[h].velocity;
 }
 
-bool HAction::isWalkOrIdle() {
+bool HAction::isWalkOrIdle() const {
   return actions[h].isWalkOrIdle;
 }
 
@@ -240,6 +267,12 @@ void ALogic::Tick(float DeltaTime)
   p2Direction = -1*p1Direction;
 
   // check hitboxes, compute damage. Don't forget the case of ties.
+  if (newFrame.p1.action.hitbox().collides(newFrame.p2.action.hurtbox(), frame - newFrame.p1.actionStart, frame - newFrame.p2.actionStart, newFrame.p1.pos.X, newFrame.p1.pos.Y, newFrame.p2.pos.X, newFrame.p2.pos.Y)) {
+    // hit p2
+  }
+  if (newFrame.p1.action.hurtbox().collides(newFrame.p2.action.hitbox(), frame - newFrame.p1.actionStart, frame - newFrame.p2.actionStart, newFrame.p1.pos.X, newFrame.p1.pos.Y, newFrame.p2.pos.X, newFrame.p2.pos.Y)) {
+    // hit p1
+  }
 
   // check if anyone died, and if so, start new round or end game and
   // stuff. when in online multiplayer, this should also wait for both
