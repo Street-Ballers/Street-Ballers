@@ -7,6 +7,7 @@
 
 AFightCameraActor::AFightCameraActor() {
   PrimaryActorTick.bCanEverTick = true;
+  PrimaryActorTick.TickGroup = TG_PostPhysics;
 }
 
 void AFightCameraActor::BeginPlay() {
