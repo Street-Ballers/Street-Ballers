@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "EngineUtils.h"
 #include "Action.h"
@@ -96,6 +95,9 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+        // Getters to get values for updating other actors
+        const Player& getPlayer1();
+        const Player& getPlayer2();
 };
 
 static inline ALogic* FindLogic(UWorld *world) {

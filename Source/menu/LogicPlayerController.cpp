@@ -3,13 +3,21 @@
 
 #include "LogicPlayerController.h"
 
-#include "LogicPlayerCameraManager.h"
 #include "Logic.h"
 #include "Input.h"
+#include "Fighter.h"
+#include "FightCameraActor.h"
+#include "EngineUtils.h"
+#include "GameFramework/Actor.h"
 
 ALogicPlayerController::ALogicPlayerController()
 {
-  PlayerCameraManagerClass = ALogicPlayerCameraManager::StaticClass();
+
+}
+
+void ALogicPlayerController::BeginPlay()
+{
+
 }
 
 void ALogicPlayerController::PostLogin(int playerNumber_) {

@@ -279,8 +279,12 @@ void ALogic::Tick(float DeltaTime)
   // clients to be at a consistent state.
 
   frames.push(newFrame);
+}
 
-  // update other actors
-  character1->SetActorLocation(newFrame.p1.pos, false, nullptr, ETeleportType::None);
-  character2->SetActorLocation(newFrame.p2.pos, false, nullptr, ETeleportType::None);
+const Player& ALogic::getPlayer1() {
+  return frames.last().p1;
+}
+
+const Player& ALogic::getPlayer2() {
+  return frames.last().p2;
 }

@@ -5,7 +5,7 @@
 
 // "Button" here includes directional input. They are relative to the
 // character's orientation.
-enum class Button {LP, HP, LK, HK, FORWARD, BACK, UP, DOWN};
+enum class Button {LP, HP, LK, HK, FORWARD, BACK, UP, DOWN, LEFT, RIGHT};
 
 // ideally we'd only have one RingBuffer<T> class but unreal doesn't
 // like templates and I don't want to figure out how to build it as an

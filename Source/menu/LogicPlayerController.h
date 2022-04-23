@@ -20,6 +20,6 @@ public:
   ALogicPlayerController();
 
   void PostLogin(int playerNumber_);
-
+  void BeginPlay();
   void Tick(float deltaSeconds);
 };
