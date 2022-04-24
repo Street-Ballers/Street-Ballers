@@ -2,7 +2,7 @@
 
 
 #include "LogicGameMode.h"
-
+#include "Logic.h"
 
 ALogicGameMode::ALogicGameMode() {
   // use our custom PlayerController class
@@ -30,4 +30,6 @@ void ALogicGameMode::PostLogin(APlayerController* NewPlayer) {
   UE_LOG(LogTemp, Warning, TEXT("ALogicGameMode: POSTLOGIN"));
   ALogicPlayerController* c = Cast<ALogicPlayerController>(NewPlayer);
   c->PostLogin(1);
+  ALogic* l = FindLogic(GetWorld());
+  l->beginFight();
 }

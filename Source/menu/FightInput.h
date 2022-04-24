@@ -1,7 +1,13 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
 #pragma once
 
+#include "CoreMinimal.h"
+#include "GameFramework/Info.h"
 #include "Action.h"
 #include <optional>
+#include <vector>
+#include "FightInput.generated.h"
 
 // "Button" here includes directional input. They are relative to the
 // character's orientation.
@@ -13,12 +19,11 @@ enum class Button {LP, HP, LK, HK, FORWARD, BACK, UP, DOWN, LEFT, RIGHT};
 // just yet.
 class ButtonRingBuffer {
 private:
-  std::vector<std::optional<enum Button>> v;
   int n;
-  int start;
   int end;
 
 public:
+  std::vector<std::optional<enum Button>> v;
   void reserve(int size);
 
   void push(const std::optional<enum Button>& x);
@@ -33,8 +38,11 @@ public:
 // single button press, this is simply mapping the most recent button
 // to a move. In the case of chorded moves or motion commands, we have
 // to keep track of all buttons pressed over time.
-class Input {
+UCLASS()
+class MENU_API AFightInput : public AInfo {
+  GENERATED_BODY()
 private:
+  int maxRollback;
   int n;
 
   // number of frames to "buffer" inputs. if there are no actions in
@@ -47,6 +55,9 @@ private:
   // the inputs `delay` frames ago.
   int delay;
 
+  int currentFrame;
+  int needsRollbackToFrame;
+
   // for now, just allow one button and direction at a time
   ButtonRingBuffer buttonHistory;
   ButtonRingBuffer directionHistory;
@@ -54,23 +65,33 @@ private:
   bool is_button(const enum Button& b);
   // bool is_none(const Button& b);
 
+  // Make sure that AFightInput has some data for the new frame. We
+  // will either do nothing or "predict" the input (assume nothing was
+  // pressed or released).
+  void ensureFrame(int targetFrame);
+
   // return action using input `frame` frames ago as latest input
   HAction _action(HAction currentAction, int frame, bool isFacingRight);
 
 public:
-  Input(): n(0), buffer(0), delay(0) {};
+  bool beginFight = false;
 
+  // initialize all member variables
   void init(int _maxRollback, int _buffer, int _delay);
 
-  // When no button is pressed in a frame, this will be called with
-  // an empty vector
-  void buttonsPressed(const std::vector<const enum Button>& buttons);
+  // The player controller will call this function to say which
+  // buttons were pressed and released on the given frame. frame is
+  // the frame that the inputs should first appear. It is 1+ the frame
+  // number stored in ALogic at the time that this function is called
+  // by the player controller.
+  void buttons(const std::vector<const enum Button>& buttonsPressed, const std::vector<const enum Button>& buttonsReleased, int targetFrame);
 
-  // this should probably just ignore everything except directional
-  // inputs. we don't have to care when a button is released, except
-  // when its a directional input.
-  void buttonsReleased(const std::vector<const enum Button>& buttons);
 
-  // Returns the currently decoded action
-  HAction action(HAction currentAction, bool isFacingRight);
+  // Returns the decoded action for the given targetFrame.
+  HAction action(HAction currentAction, bool isFacingRight, int targetFrame);
+
+  int getCurrentFrame();
+  bool needsRollback();
+  int getNeedsRollbackToFrame();
+  void clearRollbackFlags();
 };

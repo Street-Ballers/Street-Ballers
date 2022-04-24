@@ -4,7 +4,7 @@
 #include "LogicPlayerController.h"
 
 #include "Logic.h"
-#include "Input.h"
+#include "FightInput.h"
 #include "Fighter.h"
 #include "FightCameraActor.h"
 #include "EngineUtils.h"
@@ -31,8 +31,8 @@ void ALogicPlayerController::PostLogin(int playerNumber_) {
 
   ALogic *l = FindLogic(GetWorld());
   switch (playerNumber) {
-  case 0: input = &(l->p1Input); break;
-  case 1: input = &(l->p2Input); break;
+  case 0: input = l->p1Input; break;
+  case 1: input = l->p2Input; break;
   }
 
   UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: Logging in Player %i (%s)"), playerNumber, localPlayer ? TEXT("local player") : TEXT("networked player"));
@@ -45,15 +45,17 @@ void ALogicPlayerController::Tick(float deltaSeconds) {
   // standing still
   if (input) {
     if (playerNumber == 0) {
-      input->buttonsPressed({Button::RIGHT});
-      UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: player 0 tick"));
+      input->buttons({Button::RIGHT}, {}, input->getCurrentFrame()+1);
+      //UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: player 0 tick"));
     }
     else {
-      input->buttonsPressed({});
-      UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: player 1 tick"));
+      input->buttons({}, {}, input->getCurrentFrame()+1);
+      //UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: player 1 tick"));
     }
   }
   else {
     UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: INPUT IS NULL!"));
+    // in a networked game, for some reason, a third player controller
+    // that does not go through the login process is created
   }
 }

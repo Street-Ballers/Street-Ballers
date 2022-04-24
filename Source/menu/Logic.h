@@ -6,7 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "EngineUtils.h"
 #include "Action.h"
-#include "Input.h"
+#include "FightInput.h"
 #include "Logic.generated.h"
 
 class Player {
@@ -18,7 +18,7 @@ public:
 
   Player(FVector pos, HAction action): pos(pos), action(action), actionStart(0), health(100) {};
 
-  void TryStartingNewAction(int frame, Input& input, bool isFacingRight);
+  void TryStartingNewAction(int frame, AFightInput& input, bool isFacingRight);
 };
 
 class Frame {
@@ -44,6 +44,9 @@ public:
   void push(const Frame& x);
 
   const Frame& last();
+
+  // pop the m last elements
+  void popn(int m);
 
   ~RingBuffer();
 };
@@ -82,20 +85,27 @@ public:
 
         int maxRollback = 10; // keep around 10 frames or so for rollback
         RingBuffer frames;
-        Input p1Input;
-        Input p2Input;
+        UPROPERTY(EditAnywhere)
+        AFightInput* p1Input;
+        UPROPERTY(EditAnywhere)
+        AFightInput* p2Input;
         int frame;
 
 	// Sets default values for this actor's properties
 	ALogic();
 
+private:
+        bool _beginFight = false;
+
         bool IsP1FacingRight(const Player& p1, const Player& p2);
+        void computeFrame(int targetFrame);
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
+public:
+        void beginFight();
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
