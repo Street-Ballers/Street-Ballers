@@ -17,6 +17,8 @@ public:
   int health;
 
   Player(FVector pos, HAction action): pos(pos), action(action), actionStart(0), health(100) {};
+
+  void TryStartingNewAction(int frame, Input& input, bool isFacingRight);
 };
 
 class Frame {
@@ -86,6 +88,8 @@ public:
 
 	// Sets default values for this actor's properties
 	ALogic();
+
+        bool IsP1FacingRight(const Player& p1, const Player& p2);
 
 protected:
 	// Called when the game starts or when spawned

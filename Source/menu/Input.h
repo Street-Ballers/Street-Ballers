@@ -55,7 +55,7 @@ private:
   // bool is_none(const Button& b);
 
   // return action using input `frame` frames ago as latest input
-  HAction _action(HAction currentAction, int frame);
+  HAction _action(HAction currentAction, int frame, bool isFacingRight);
 
 public:
   Input(): n(0), buffer(0), delay(0) {};
@@ -72,5 +72,5 @@ public:
   void buttonsReleased(const std::vector<const enum Button>& buttons);
 
   // Returns the currently decoded action
-  HAction action(HAction currentAction);
+  HAction action(HAction currentAction, bool isFacingRight);
 };

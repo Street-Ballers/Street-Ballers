@@ -97,7 +97,7 @@ void Input::buttonsReleased(const std::vector<const enum Button>& buttons) {
   }
 }
 
-HAction Input::_action(HAction currentAction, int frame) {
+HAction Input::_action(HAction currentAction, int frame, bool isFacingRight) {
   // for now, if there was a button, output the corresponding attack.
   // If no button, then walk/idle based on directional input.
   if (buttonHistory.nthlast(frame).has_value()) {
@@ -107,17 +107,25 @@ HAction Input::_action(HAction currentAction, int frame) {
   }
   if (directionHistory.nthlast(frame).has_value()) {
     enum Button button = directionHistory.nthlast(frame).value();
+    if (((button == Button::RIGHT) && isFacingRight) ||
+        ((button == Button::LEFT) && !isFacingRight))
+      button = Button::FORWARD;
+    else
+      button = Button::BACK;
+
     if (button == Button::FORWARD)
       return HActionWalkForward;
+    if (button == Button::BACK)
+      return HActionWalkBackward;
   }
   return HActionIdle;
 }
 
-HAction Input::action(HAction currentAction) {
+HAction Input::action(HAction currentAction, bool isFacingRight) {
   int frame = delay;
-  HAction action = _action(currentAction, frame);
+  HAction action = _action(currentAction, frame, isFacingRight);
   while ((++frame < n) && (frame < buffer)) {
-    HAction a = _action(currentAction, frame);
+    HAction a = _action(currentAction, frame, isFacingRight);
     if (!a.isWalkOrIdle())
       action = a;
   }
@@ -173,6 +181,7 @@ HAction::HAction(): HAction(-1) {};
 
 const Action HAction::actions[] = {
   [HActionIdleI] = Action(Hitbox({}), Hitbox({}), 0, true),
+  [HActionWalkBackwardI] = Action(Hitbox({}), Hitbox({}), 0, true, FVector(0.0, -2.0, 0.0)),
   [HActionWalkForwardI] = Action(Hitbox({}), Hitbox({}), 0, true, FVector(0.0, 4.0, 0.0)),
   [HActionStPI] = Action(Hitbox({}), Hitbox({}), 0),
 };
@@ -205,6 +214,17 @@ bool HAction::operator!=(const HAction& b) const {
   return !(*this == b);
 }
 
+void Player::TryStartingNewAction(int frame, Input& input, bool isFacingRight) {
+  if (frame - actionStart >= action.lockedFrames()) {
+    std::optional<HAction> newAction = input.action(action, isFacingRight);
+    if (newAction.has_value()) {
+      action = newAction.value();
+      actionStart = frame;
+    }
+  }
+}
+
+
 // Sets default values for this component's properties
 ALogic::ALogic(): frame(0)
 {
@@ -229,6 +249,10 @@ void ALogic::BeginPlay()
   frames.push(f);
 }
 
+bool ALogic::IsP1FacingRight(const Player& p1, const Player& p2) {
+  return p1.pos.Y <= p2.pos.Y;
+}
+
 // Called every frame
 void ALogic::Tick(float DeltaTime)
 {
@@ -243,23 +267,18 @@ void ALogic::Tick(float DeltaTime)
   // input will be sent to p1Input/p2Input by LogicPlayerController.
   // When there is only one player, we need to send empty inputs to
   // p2Input.
-  p2Input.buttonsPressed({});
+  // p2Input.buttonsPressed({});
 
   // If the player can act and there is a new action waiting, then
   // start the new action
-  if (frame - newFrame.p1.actionStart >= newFrame.p1.action.lockedFrames()) {
-    std::optional<HAction> newAction = p1Input.action(newFrame.p1.action);
-    if (newAction.has_value()) {
-      newFrame.p1.action = newAction.value();
-      newFrame.p1.actionStart = frame;
-    }
-  }
-  // same for p2. maybe move this logic to a Player method?
+  bool isP1FacingRight = IsP1FacingRight(newFrame.p1, newFrame.p2);
+  //newFrame.p1.TryStartingNewAction(frame, p1Input, isP1FacingRight);
+  //newFrame.p2.TryStartingNewAction(frame, p2Input, !isP1FacingRight);
 
   // compute player positions (if they are in a moving action). This
   // includes checking collision boxes and not letting players walk
   // out of bounds.
-  int p1Direction = (newFrame.p1.pos.Y > newFrame.p2.pos.Y) ? -1 : 1;
+  int p1Direction = IsP1FacingRight(newFrame.p1, newFrame.p2) ? 1 : -1;
   int p2Direction = -1*p1Direction;
   newFrame.p1.pos += p1Direction*newFrame.p1.action.velocity();
   newFrame.p2.pos += p2Direction*newFrame.p2.action.velocity();
@@ -279,6 +298,8 @@ void ALogic::Tick(float DeltaTime)
   // clients to be at a consistent state.
 
   frames.push(newFrame);
+
+  // UE_LOG(LogTemp, Display, TEXT("Logic: TICK!"));
 }
 
 const Player& ALogic::getPlayer1() {
