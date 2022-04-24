@@ -41,12 +41,21 @@ public:
   bool operator!=(const HAction& b) const;
 };
 
+// this is to assign integers to action names, needed for the next
+// step
 enum HActionI {
   HActionIdleI,
   HActionWalkForwardI,
+  HActionWalkBackwardI,
   HActionStPI
 };
 
+// this is to assign HActions to action names. All other code should
+// use these symbols to reference Actions
 #define HActionIdle (HAction(HActionIdleI))
 #define HActionWalkForward (HAction(HActionWalkForwardI))
+#define HActionWalkBackward (HAction(HActionWalkBackwardI))
 #define HActionStP (HAction(HActionStPI))
+
+// Actions themselves are defined in HAction::actions[] in Logic.cpp,
+// for now

@@ -2,7 +2,7 @@
 
 
 #include "LogicGameMode.h"
-
+#include "Logic.h"
 
 ALogicGameMode::ALogicGameMode() {
   // use our custom PlayerController class
@@ -19,10 +19,17 @@ void ALogicGameMode::PreLogin(const FString& Options,
                               FString& ErrorMessage) {
   if (GetNumPlayers() > 1) {
     ErrorMessage = "Server is full";
+    UE_LOG(LogTemp, Warning, TEXT("ALogicGameMode: SERVER IS FULL"));
+  }
+  else {
+    UE_LOG(LogTemp, Warning, TEXT("ALogicGameMode: PRELOGIN SUCEEDED!"));
   }
 }
 
 void ALogicGameMode::PostLogin(APlayerController* NewPlayer) {
+  UE_LOG(LogTemp, Warning, TEXT("ALogicGameMode: POSTLOGIN"));
   ALogicPlayerController* c = Cast<ALogicPlayerController>(NewPlayer);
-  c->PostLogin(GetNumPlayers());
+  c->PostLogin(1);
+  ALogic* l = FindLogic(GetWorld());
+  l->beginFight();
 }

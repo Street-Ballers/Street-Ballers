@@ -28,9 +28,8 @@ void AFightCameraActor::Tick(float DeltaTime) {
   FVector pos2 = fighter2->GetActorLocation();
 
   FVector pos = (pos1+pos2) * 0.5;
-  UE_LOG(LogTemp, Warning, TEXT("The distance is: %f"), FVector::Distance(FVector(1,0,0), FVector(0,0,0)));
 
-  // 1.732 = cot(30 degrees). 30 deg is half our FOV
+  // 1.732 = cot(30 degrees). 30 deg is half our FOV.
   pos.X = std::min(-1.732 * FVector::Distance(pos1, pos2),
                    // don't move closer than this
                    -500.0);

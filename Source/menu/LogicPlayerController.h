@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "Input.h"
+#include "FightInput.h"
 #include "LogicPlayerController.generated.h"
 
 UCLASS()
@@ -14,7 +14,7 @@ class MENU_API ALogicPlayerController : public APlayerController
 
 private:
   int playerNumber;
-  Input* input;
+  AFightInput* input;
 
 public:
   ALogicPlayerController();
