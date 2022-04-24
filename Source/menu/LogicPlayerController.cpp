@@ -38,6 +38,7 @@ void ALogicPlayerController::PostLogin(int playerNumber_) {
   UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: Logging in Player %i (%s)"), playerNumber, localPlayer ? TEXT("local player") : TEXT("networked player"));
 
   l->AddTickPrerequisiteActor(this);
+  input->SetOwner(this);
 }
 
 void ALogicPlayerController::Tick(float deltaSeconds) {

@@ -31,5 +31,11 @@ void ALogicGameMode::PostLogin(APlayerController* NewPlayer) {
   ALogicPlayerController* c = Cast<ALogicPlayerController>(NewPlayer);
   c->PostLogin(1);
   ALogic* l = FindLogic(GetWorld());
+  ULocalPlayer* localPlayer = c->GetLocalPlayer();
+  playerNumber = localPlayer ? localPlayer->GetLocalPlayerIndex() : 1;
+  switch (playerNumber) {
+  case 0: l->p1Input->SetOwner(c); break;
+  case 1: l->p2Input->SetOwner(c); break;
+  }
   l->beginFight();
 }

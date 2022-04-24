@@ -136,6 +136,14 @@ void AFightInput::buttons(const std::vector<const enum Button>& buttonsPressed, 
     UE_LOG(LogTemp, Warning, TEXT("AFightInput end of buttons(): %s WRONG!!!!"), *GetActorLabel(false));
 }
 
+void AFightInput::buttonsShortcut1(int targetFrame) {
+  buttons({Button::RIGHT}, {}, targetFrame);
+}
+
+void AFightInput::buttonsShortcut2(int targetFrame) {
+  buttons({}, {}, targetFrame);
+}
+
 HAction AFightInput::_action(HAction currentAction, int frame, bool isFacingRight) {
   // for now, if there was a button, output the corresponding attack.
   // If no button, then walk/idle based on directional input.

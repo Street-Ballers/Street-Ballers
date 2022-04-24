@@ -86,6 +86,10 @@ public:
   // by the player controller.
   void buttons(const std::vector<const enum Button>& buttonsPressed, const std::vector<const enum Button>& buttonsReleased, int targetFrame);
 
+  UFUNCTION (Client)
+  void buttonsShortcut1(int targetFrame);
+  UFUNCTION (Client)
+  void buttonsShortcut2(int targetFrame);
 
   // Returns the decoded action for the given targetFrame.
   HAction action(HAction currentAction, bool isFacingRight, int targetFrame);
