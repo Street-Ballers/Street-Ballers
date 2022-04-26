@@ -166,7 +166,7 @@ HAction HCharacter::walkForward() const {
 }
 
 HAction HCharacter::walkBackward() const {
-  return characters[h].walkForward;
+  return characters[h].walkBackward;
 }
 
 HAction HCharacter::sthp() const {
@@ -191,6 +191,61 @@ void Player::TryStartingNewAction(int frame, AFightInput& input, bool isFacingRi
   }
 }
 
+// returns the amount of correction needed to move player out of the bound
+float Player::collidesWithBoundary(int boundary, bool isRightBound, bool isFacingRight) {
+  const Box& b = action.collision();
+  int x = b.x, xend = b.xend;
+  if (!isFacingRight) {
+    x *= -1;
+    xend *= -1;
+    std::swap(x, xend);
+  }
+  x += pos.Y;
+  xend += pos.Y;
+  if (isRightBound && (xend > boundary)) {
+    return xend-boundary;
+  }
+  else if (!isRightBound && (x < boundary)) {
+    return boundary-x;
+  }
+  else {
+    return 0.0;
+  }
+}
+
+bool ALogic::collides(const Box &p1b, const Box &p2b, const Frame &f, int targetFrame) {
+  return p1b.collides(p2b,
+                      f.p1.pos.Y, f.p1.pos.Z,
+                      f.p2.pos.Y, f.p2.pos.Z,
+                      IsP1FacingRight(f));
+}
+
+bool ALogic::collides(const Hitbox &p1b, const Box &p2b, const Frame &f, int targetFrame) {
+  return p1b.collides(p2b,
+                      targetFrame - f.p1.actionStart,
+                      targetFrame - f.p2.actionStart,
+                      f.p1.pos.Y, f.p1.pos.Z,
+                      f.p2.pos.Y, f.p2.pos.Z,
+                      IsP1FacingRight(f));
+}
+
+bool ALogic::collides(const Box &p1b, const Hitbox &p2b, const Frame &f, int targetFrame) {
+  return p2b.collides(p1b,
+                      targetFrame - f.p1.actionStart,
+                      targetFrame - f.p2.actionStart,
+                      f.p1.pos.Y, f.p1.pos.Z,
+                      f.p2.pos.Y, f.p2.pos.Z,
+                      !IsP1FacingRight(f));
+}
+
+bool ALogic::collides(const Hitbox &p1b, const Hitbox &p2b, const Frame &f, int targetFrame) {
+  return p1b.collides(p2b,
+                      targetFrame - f.p1.actionStart,
+                      targetFrame - f.p2.actionStart,
+                      f.p1.pos.Y, f.p1.pos.Z,
+                      f.p2.pos.Y, f.p2.pos.Z,
+                      IsP1FacingRight(f));
+}
 
 // Sets default values for this component's properties
 ALogic::ALogic(): frame(0)
@@ -228,8 +283,8 @@ void ALogic::beginFight() {
   UE_LOG(LogTemp, Display, TEXT("ALogic: Begin fight!"));
 }
 
-bool ALogic::IsP1FacingRight(const Player& p1, const Player& p2) {
-  return p1.pos.Y <= p2.pos.Y;
+bool ALogic::IsP1FacingRight(const Frame& f) {
+  return f.p1.pos.Y <= f.p2.pos.Y;
 }
 
 // the targetFrame field is required for using the right inputs from
@@ -243,7 +298,7 @@ void ALogic::computeFrame(int targetFrame) {
 
   // If the player can act and there is a new action waiting, then
   // start the new action
-  bool isP1FacingRight = IsP1FacingRight(newFrame.p1, newFrame.p2);
+  bool isP1FacingRight = IsP1FacingRight(newFrame);
   newFrame.p1.TryStartingNewAction(targetFrame, *p1Input, isP1FacingRight);
   newFrame.p2.TryStartingNewAction(targetFrame, *p2Input, !isP1FacingRight);
 
@@ -252,40 +307,39 @@ void ALogic::computeFrame(int targetFrame) {
   // out of bounds.
   int p1Direction = isP1FacingRight ? 1 : -1;
   int p2Direction = -1*p1Direction;
-  newFrame.p1.pos += p1Direction*newFrame.p1.action.velocity();
-  newFrame.p2.pos += p2Direction*newFrame.p2.action.velocity();
-  p1Direction = (newFrame.p1.pos.Y > newFrame.p2.pos.Y) ? -1 : 1;
-  p2Direction = -1*p1Direction;
+  FVector p1v = p1Direction*newFrame.p1.action.velocity();
+  FVector p2v = p2Direction*newFrame.p2.action.velocity();
+  newFrame.p1.pos += p1v;
+  newFrame.p2.pos += p2v;
+
+  // check for player-boundary collisions with the left boundary
+  int p1LeftCollsionAdj = newFrame.p1.collidesWithBoundary(stageBoundLeft.Y, false, isP1FacingRight);
+  int p2LeftCollsionAdj = newFrame.p2.collidesWithBoundary(stageBoundLeft.Y, false, isP1FacingRight);
+  newFrame.p1.pos.Y += p1LeftCollsionAdj;
+  newFrame.p2.pos.Y += p2LeftCollsionAdj;
+  if ((p1LeftCollsionAdj != 0.0) && (p2LeftCollsionAdj == 0.0)) {
+    // if p2 collides with p1, also move p2
+    UE_LOG(LogTemp, Display, TEXT("ALogic: p1 collides with left"));
+  }
+  if ((p2LeftCollsionAdj != 0.0) && (p1LeftCollsionAdj == 0.0)) {
+    // if p1 collides with p2, also move p1
+    UE_LOG(LogTemp, Display, TEXT("ALogic: p2 collides with left"));
+  }
+  else if ((p2LeftCollsionAdj != 0.0) && (p1LeftCollsionAdj != 0.0)) {
+    // at least one player must be jumping. Let the higher player take
+    // the corner.
+    UE_LOG(LogTemp, Display, TEXT("ALogic: p1 and p2 p2 collide with left"));
+  }
 
   // check hitboxes, compute damage. Don't forget the case of ties.
-  if ((newFrame.p1.action.hitbox().collides(newFrame.p2.action.hurtbox(),
-                                            targetFrame - newFrame.p1.actionStart,
-                                            targetFrame - newFrame.p2.actionStart,
-                                            newFrame.p1.pos.Y, newFrame.p1.pos.Z,
-                                            newFrame.p2.pos.Y, newFrame.p2.pos.Z,
-                                            isP1FacingRight)) ||
-      (newFrame.p1.action.hitbox().collides(newFrame.p2.action.collision(),
-                                            targetFrame - newFrame.p1.actionStart,
-                                            targetFrame - newFrame.p2.actionStart,
-                                            newFrame.p1.pos.Y, newFrame.p1.pos.Z,
-                                            newFrame.p2.pos.Y, newFrame.p2.pos.Z,
-                                            isP1FacingRight))) {
+  if (collides(newFrame.p1.action.hitbox(), newFrame.p2.action.hurtbox(), newFrame, targetFrame) ||
+      collides(newFrame.p1.action.hitbox(), newFrame.p2.action.collision(), newFrame, targetFrame)) {
     // hit p2
     UE_LOG(LogTemp, Display, TEXT("ALogic: P2 was hit"));
     newFrame.p2.health -= 10;
   }
-  if ((newFrame.p2.action.hitbox().collides(newFrame.p1.action.hurtbox(),
-                                            targetFrame - newFrame.p2.actionStart,
-                                            targetFrame - newFrame.p1.actionStart,
-                                            newFrame.p2.pos.Y, newFrame.p2.pos.Z,
-                                            newFrame.p1.pos.Y, newFrame.p1.pos.Z,
-                                            !isP1FacingRight)) ||
-      (newFrame.p2.action.hitbox().collides(newFrame.p1.action.collision(),
-                                            targetFrame - newFrame.p2.actionStart,
-                                            targetFrame - newFrame.p1.actionStart,
-                                            newFrame.p2.pos.Y, newFrame.p2.pos.Z,
-                                            newFrame.p1.pos.Y, newFrame.p1.pos.Z,
-                                            !isP1FacingRight))) {
+  if (collides(newFrame.p1.action.hurtbox(), newFrame.p2.action.hitbox(), newFrame, targetFrame) ||
+      collides(newFrame.p1.action.collision(), newFrame.p2.action.hitbox(), newFrame, targetFrame)) {
     // hit p1
     UE_LOG(LogTemp, Display, TEXT("ALogic: P1 was hit"));
     newFrame.p1.health -= 10;

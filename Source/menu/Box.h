@@ -1,11 +1,11 @@
 #pragma once
 
 class Box {
+public:
   float x;
   float y;
   float xend;
   float yend;
-public:
   constexpr Box(float x, float y, float xend, float yend): x(x), y(y), xend(xend), yend(yend) {};
 
   // convenience function for making collision boxes, which are often

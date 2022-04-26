@@ -51,8 +51,6 @@ void AFightInput::init(int _maxRollback, int _buffer, int _delay) {
   needsRollbackToFrame = -1;
   buttonHistory = ButtonRingBuffer();
   buttonHistory.reserve(n);
-  UE_LOG(LogTemp, Warning, TEXT("AFightInput: size %i"), buttonHistory.v.size());
-  UE_LOG(LogTemp, Warning, TEXT("AFightInput: 2size %i"), buttonHistory.v.size());
   directionHistory = ButtonRingBuffer();
   directionHistory.reserve(n);
   beginFight = false;
@@ -71,13 +69,13 @@ void AFightInput::ensureFrame(int targetFrame) {
 
 void AFightInput::buttons(const std::vector<const enum Button>& buttonsPressed, const std::vector<const enum Button>& buttonsReleased, int targetFrame) {
   if (!beginFight) return;
-  UE_LOG(LogTemp,
-         Warning,
-         TEXT("AFightInput buttons(): %s (current frame %i) (target frame %i) (button: %s)"),
-         *GetActorLabel(false),
-         currentFrame,
-         targetFrame,
-         (!buttonsPressed.empty()) ? ((buttonsPressed[0]==Button::RIGHT) ? TEXT("right") : TEXT("not right")) : TEXT("none"));
+  // UE_LOG(LogTemp,
+  //        Warning,
+  //        TEXT("AFightInput buttons(): %s (current frame %i) (target frame %i) (button: %s)"),
+  //        *GetActorLabel(false),
+  //        currentFrame,
+  //        targetFrame,
+  //        (!buttonsPressed.empty()) ? ((buttonsPressed[0]==Button::RIGHT) ? TEXT("right") : TEXT("not right")) : TEXT("none"));
 
   // check if a rollback will be needed
   if (targetFrame <= currentFrame) {
@@ -129,14 +127,14 @@ void AFightInput::buttons(const std::vector<const enum Button>& buttonsPressed, 
     }
   }
 
-  UE_LOG(LogTemp, Warning, TEXT("AFightInput end of buttons(): %s (i %i) (button: %s) (buttonlast %s)"), *GetActorLabel(false), i, (dh.has_value() && (dh.value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"), (directionHistory.last().has_value() && (directionHistory.last().value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"));
+  // UE_LOG(LogTemp, Warning, TEXT("AFightInput end of buttons(): %s (i %i) (button: %s) (buttonlast %s)"), *GetActorLabel(false), i, (dh.has_value() && (dh.value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"), (directionHistory.last().has_value() && (directionHistory.last().value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"));
 }
 
 HAction AFightInput::_action(HAction currentAction, int frame, bool isFacingRight) {
   const HCharacter& c = currentAction.character();
   // for now, if there was a button, output the corresponding attack.
   // If no button, then walk/idle based on directional input.
-  UE_LOG(LogTemp, Warning, TEXT("AFightInput _action(): %s (frame %i) (button %s)"), *GetActorLabel(false), frame, directionHistory.nthlast(frame).has_value() ? ((directionHistory.nthlast(frame).value() == Button::RIGHT) ? TEXT("right") : TEXT("not right")) : TEXT("none"));
+  // UE_LOG(LogTemp, Warning, TEXT("AFightInput _action(): %s (frame %i) (button %s)"), *GetActorLabel(false), frame, directionHistory.nthlast(frame).has_value() ? ((directionHistory.nthlast(frame).value() == Button::RIGHT) ? TEXT("right") : TEXT("not right")) : TEXT("none"));
   if (buttonHistory.nthlast(frame).has_value()) {
     enum Button button = buttonHistory.nthlast(frame).value();
     if (button == Button::HP){
@@ -173,7 +171,7 @@ HAction AFightInput::action(HAction currentAction, bool isFacingRight, int targe
   // idling or walking, or we have tried all of the `input
   // buffer' frames.
   HAction mostRecentAction = _action(currentAction, frame, isFacingRight);
-  UE_LOG(LogTemp, Warning, TEXT("AFightInput action(): %s (current frame %i) (target frame %i) (action: %s)"), *GetActorLabel(false), currentFrame, targetFrame, (mostRecentAction == HActionIdle) ? TEXT("idle") : TEXT("not idle"));
+  // UE_LOG(LogTemp, Warning, TEXT("AFightInput action(): %s (current frame %i) (target frame %i) (action: %s)"), *GetActorLabel(false), currentFrame, targetFrame, (mostRecentAction == HActionIdle) ? TEXT("idle") : TEXT("not idle"));
   HAction action = mostRecentAction;
   while (action.isWalkOrIdle() && (++frame <= (delay+buffer))) {
     action = _action(currentAction, frame, isFacingRight);

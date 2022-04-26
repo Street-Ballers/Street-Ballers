@@ -19,6 +19,7 @@ public:
   Player(FVector pos, HAction action): pos(pos), action(action), actionStart(0), health(100) {};
 
   void TryStartingNewAction(int frame, AFightInput& input, bool isFacingRight);
+  float collidesWithBoundary(int boundary, bool isRightBound, bool isFacingRight);
 };
 
 class Frame {
@@ -97,7 +98,12 @@ public:
 private:
         bool _beginFight = false;
 
-        bool IsP1FacingRight(const Player& p1, const Player& p2);
+        bool collides(const Box &p1b, const Box &p2b, const Frame &f, int targetFrame);
+        bool collides(const Hitbox &p1b, const Box &p2b, const Frame &f, int targetFrame);
+        bool collides(const Box &p1b, const Hitbox &p2b, const Frame &f, int targetFrame);
+        bool collides(const Hitbox &p1b, const Hitbox &p2b, const Frame &f, int targetFrame);
+        bool IsP1FacingRight(const Frame& f);
+
         void computeFrame(int targetFrame);
 
 protected:
