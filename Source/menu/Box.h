@@ -14,5 +14,6 @@ public:
     return Box(-1*width/2, 0, width/2, height);
   }
 
-  bool collides(const Box& b, float offsetax, float offsetay, float offsetbx, float offesetby, bool aFacingRight) const;
+  bool collides(const Box& b, float offsetax, float offsetay, float offsetbx, float offesetby, bool aFacingRight, bool bFacingRight) const;
+  float collisionExtent(const Box& b, float offsetax, float offsetay, float offsetbx, float offesetby, bool aFacingRight, bool bFacingRight) const;
 };

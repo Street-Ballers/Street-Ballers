@@ -13,13 +13,14 @@ class Player {
 public:
   FVector pos;
   HAction action;
+  bool isFacingRight;
   int actionStart;
   int health;
 
   Player(FVector pos, HAction action): pos(pos), action(action), actionStart(0), health(100) {};
 
-  void TryStartingNewAction(int frame, AFightInput& input, bool isFacingRight);
-  float collidesWithBoundary(int boundary, bool isRightBound, bool isFacingRight);
+  void TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft);
+  float collidesWithBoundary(int boundary, bool isRightBound);
 };
 
 class Frame {
@@ -102,7 +103,9 @@ private:
         bool collides(const Hitbox &p1b, const Box &p2b, const Frame &f, int targetFrame);
         bool collides(const Box &p1b, const Hitbox &p2b, const Frame &f, int targetFrame);
         bool collides(const Hitbox &p1b, const Hitbox &p2b, const Frame &f, int targetFrame);
-        bool IsP1FacingRight(const Frame& f);
+        float playerCollisionExtent(const Player &p, const Player &q, int targetFrame);
+        void HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRightBoundary);
+        bool IsP1OnLeft(const Frame& f);
 
         void computeFrame(int targetFrame);
 

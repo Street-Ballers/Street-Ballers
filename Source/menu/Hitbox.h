@@ -18,10 +18,10 @@ public:
   // - b: other hitbox we are checking for collision with
   // - aframe: frame of our hitboxes to check for collision
   // - bframe: frame of b's hitboxes to check for collision
-  bool collides(const Box& b, int aframe, int bframe, float offsetax, float offsetay, float offsetbx, float offsetby, bool aFacingRight) const;
+  bool collides(const Box& b, int aframe, int bframe, float offsetax, float offsetay, float offsetbx, float offsetby, bool aFacingRight, bool bFacingRight) const;
 
   // - b: other hitbox we are checking for collision with
   // - aframe: frame of our hitboxes to check for collision
   // - bframe: frame of b's hitboxes to check for collision
-  bool collides(const Hitbox& b, int aframe, int bframe, float offsetax, float offsetay, float offsetbx, float offsetby, bool aFacingRight) const;
+  bool collides(const Hitbox& b, int aframe, int bframe, float offsetax, float offsetay, float offsetbx, float offsetby, bool aFacingRight, bool bFacingRight) const;
 };

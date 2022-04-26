@@ -37,21 +37,22 @@ RingBuffer::~RingBuffer() {
 }
 
 // if aFacingRight is true, then flip box b. Else, flip box a
-bool Box::collides(const Box& b, float offsetax, float offsetay, float offsetbx, float offsetby, bool aFacingRight) const {
+bool Box::collides(const Box& b, float offsetax, float offsetay, float offsetbx, float offsetby, bool aFacingRight, bool bFacingRight) const {
   float ax = x, axend = xend;
   float bx = b.x, bxend = b.xend;
-  if (aFacingRight) {
-    bx *= -1;
-    bxend *= -1;
-    std::swap(bx, bxend);
-  }
-  else {
+  if (!aFacingRight) {
     ax *= -1;
     axend *= -1;
     std::swap(ax, axend);
   }
+  if (!bFacingRight) {
+    bx *= -1;
+    bxend *= -1;
+    std::swap(bx, bxend);
+  }
   //UE_LOG(LogTemp, Display, TEXT("Box collides(): (x %f y %f xend %f yend %f) (x %f y %f xend %f yend %f), (offsetax %f offset ay %f offsetbx %f offsetby %f)"), ax, y, axend, yend, bx, b.y, bxend, b.yend, offsetax, offsetay, offsetbx, offsetby);
   return
+    // TODO: i think some of these can be removed since ax<axend an bx<bxend
     !(((ax+offsetax) < (bx+offsetbx)) &&
       ((axend+offsetax) < (bx+offsetbx))) &&
     !(((ax+offsetax) > (bxend+offsetbx)) &&
@@ -60,6 +61,52 @@ bool Box::collides(const Box& b, float offsetax, float offsetay, float offsetbx,
       ((yend+offsetay) < (b.y+offsetby))) &&
     !(((y+offsetay) > (b.yend+offsetby)) &&
       ((yend+offsetay) > (b.yend+offsetby)));
+}
+
+float Box::collisionExtent(const Box& b, float offsetax, float offsetay, float offsetbx, float offsetby, bool aFacingRight, bool bFacingRight) const {
+  float ax = x, axend = xend;
+  float bx = b.x, bxend = b.xend;
+  if (!aFacingRight) {
+    ax *= -1;
+    axend *= -1;
+    std::swap(ax, axend);
+  }
+  if (!bFacingRight) {
+    bx *= -1;
+    bxend *= -1;
+    std::swap(bx, bxend);
+  }
+  ax = ax+offsetax;
+  axend = axend+offsetax;
+  bx = bx+offsetbx;
+  bxend = bxend+offsetbx;
+  if (!(((y+offsetay) < (b.y+offsetby)) &&
+        ((yend+offsetay) < (b.y+offsetby))) &&
+      !(((y+offsetay) > (b.yend+offsetby)) &&
+        ((yend+offsetay) > (b.yend+offsetby)))) {
+    // boxes overlap on y axis
+    if (axend < bx) {
+      // no overlap on x axis
+      return 0.0;
+    }
+    else if (ax > bxend) {
+      // no overlap on x axis
+      return 0.0;
+    }
+    else if (ax <= bx) {
+      // A overlaps the left side of B; suggest move A left
+      return bx-axend;
+    }
+    else // (axend >= bxend)
+           {
+      // A overlaps the right side of B; suggest move A right
+      return bxend-ax;
+    }
+  }
+  else {
+    // no overlap on y axis
+    return 0.0;
+  }
 }
 
 const std::vector<Box>* Hitbox::at(int frame) const {
@@ -80,12 +127,12 @@ const std::vector<Box>* Hitbox::at(int frame) const {
 // - b: other hitbox we are checking for collision with
 // - aframe: frame of our hitboxes to check for collision
 // - bframe: frame of b's hitboxes to check for collision
-bool Hitbox::collides(const Box& b, int aframe, int bframe, float offsetax, float offsetay, float offsetbx, float offsetby, bool aFacingRight) const {
+bool Hitbox::collides(const Box& b, int aframe, int bframe, float offsetax, float offsetay, float offsetbx, float offsetby, bool aFacingRight, bool bFacingRight) const {
   const std::vector<Box>* aboxes = at(aframe);
   if (!aboxes) // at least one box is empty; no collision
     return false;
   for (auto& abox: *aboxes) {
-    if (abox.collides(b, offsetax, offsetay, offsetbx, offsetby, aFacingRight))
+    if (abox.collides(b, offsetax, offsetay, offsetbx, offsetby, aFacingRight, bFacingRight))
       return true;
   }
   return false;
@@ -94,14 +141,14 @@ bool Hitbox::collides(const Box& b, int aframe, int bframe, float offsetax, floa
 // - b: other hitbox we are checking for collision with
 // - aframe: frame of our hitboxes to check for collision
 // - bframe: frame of b's hitboxes to check for collision
-bool Hitbox::collides(const Hitbox& b, int aframe, int bframe, float offsetax, float offsetay, float offsetbx, float offsetby, bool aFacingRight) const {
+bool Hitbox::collides(const Hitbox& b, int aframe, int bframe, float offsetax, float offsetay, float offsetbx, float offsetby, bool aFacingRight, bool bFacingRight) const {
   const std::vector<Box>* aboxes = at(aframe);
   const std::vector<Box>* bboxes = b.at(bframe);
   if (!(aboxes && bboxes)) // at least one box is empty; no collision
     return false;
   for (auto& abox: *aboxes) {
     for (auto& bbox: *bboxes) {
-      if (abox.collides(bbox, offsetax, offsetay, offsetbx, offsetby, aFacingRight))
+      if (abox.collides(bbox, offsetax, offsetay, offsetbx, offsetby, aFacingRight, bFacingRight))
         return true;
     }
   }
@@ -181,18 +228,25 @@ bool HCharacter::operator!=(const HCharacter& b) const {
   return !(*this == b);
 }
 
-void Player::TryStartingNewAction(int frame, AFightInput& input, bool isFacingRight) {
+void Player::TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft) {
   if (frame - actionStart >= action.lockedFrames()) {
-    std::optional<HAction> newAction = input.action(action, isFacingRight, frame);
-    if (newAction.has_value()) {
-      action = newAction.value();
-      actionStart = frame;
+    std::optional<HAction> newActionO = input.action(action, isOnLeft, frame);
+    if (newActionO.has_value()) {
+      HAction newAction = newActionO.value();
+      // don't restart action if it is walking or idling
+      if (!(newAction.isWalkOrIdle() && (newAction == action))) {
+        action = newAction;
+        actionStart = frame;
+      }
+      // do update player direction regardless if we are merely
+      // continuing walk/idle
+      isFacingRight = isOnLeft;
     }
   }
 }
 
 // returns the amount of correction needed to move player out of the bound
-float Player::collidesWithBoundary(int boundary, bool isRightBound, bool isFacingRight) {
+float Player::collidesWithBoundary(int boundary, bool isRightBound) {
   const Box& b = action.collision();
   int x = b.x, xend = b.xend;
   if (!isFacingRight) {
@@ -203,7 +257,7 @@ float Player::collidesWithBoundary(int boundary, bool isRightBound, bool isFacin
   x += pos.Y;
   xend += pos.Y;
   if (isRightBound && (xend > boundary)) {
-    return xend-boundary;
+    return boundary-xend;
   }
   else if (!isRightBound && (x < boundary)) {
     return boundary-x;
@@ -217,7 +271,8 @@ bool ALogic::collides(const Box &p1b, const Box &p2b, const Frame &f, int target
   return p1b.collides(p2b,
                       f.p1.pos.Y, f.p1.pos.Z,
                       f.p2.pos.Y, f.p2.pos.Z,
-                      IsP1FacingRight(f));
+                      f.p1.isFacingRight,
+                      f.p2.isFacingRight);
 }
 
 bool ALogic::collides(const Hitbox &p1b, const Box &p2b, const Frame &f, int targetFrame) {
@@ -226,16 +281,18 @@ bool ALogic::collides(const Hitbox &p1b, const Box &p2b, const Frame &f, int tar
                       targetFrame - f.p2.actionStart,
                       f.p1.pos.Y, f.p1.pos.Z,
                       f.p2.pos.Y, f.p2.pos.Z,
-                      IsP1FacingRight(f));
+                      f.p1.isFacingRight,
+                      f.p2.isFacingRight);
 }
 
 bool ALogic::collides(const Box &p1b, const Hitbox &p2b, const Frame &f, int targetFrame) {
   return p2b.collides(p1b,
-                      targetFrame - f.p1.actionStart,
                       targetFrame - f.p2.actionStart,
-                      f.p1.pos.Y, f.p1.pos.Z,
+                      targetFrame - f.p1.actionStart,
                       f.p2.pos.Y, f.p2.pos.Z,
-                      !IsP1FacingRight(f));
+                      f.p1.pos.Y, f.p1.pos.Z,
+                      f.p2.isFacingRight,
+                      f.p1.isFacingRight);
 }
 
 bool ALogic::collides(const Hitbox &p1b, const Hitbox &p2b, const Frame &f, int targetFrame) {
@@ -244,7 +301,49 @@ bool ALogic::collides(const Hitbox &p1b, const Hitbox &p2b, const Frame &f, int 
                       targetFrame - f.p2.actionStart,
                       f.p1.pos.Y, f.p1.pos.Z,
                       f.p2.pos.Y, f.p2.pos.Z,
-                      IsP1FacingRight(f));
+                      f.p1.isFacingRight,
+                      f.p2.isFacingRight);
+}
+
+// returns the amount of adjustment player P needs
+float ALogic::playerCollisionExtent(const Player &p, const Player &q, int targetFrame) {
+  const Box &pb = p.action.collision();
+  const Box &qb = q.action.collision();
+  return qb.collisionExtent(pb, p.pos.Y, p.pos.Z, q.pos.Y, q.pos.Z, p.isFacingRight, q.isFacingRight);
+}
+
+void ALogic::HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRightBoundary) {
+  float stageBound = doRightBoundary ? stageBoundRight.Y : stageBoundLeft.Y;
+  int p1CollisionAdj = f.p1.collidesWithBoundary(stageBound, doRightBoundary);
+  int p2CollisionAdj = f.p2.collidesWithBoundary(stageBound, doRightBoundary);
+  f.p1.pos.Y += p1CollisionAdj;
+  f.p2.pos.Y += p2CollisionAdj;
+  if ((p1CollisionAdj != 0.0) && (p2CollisionAdj == 0.0)) {
+    // if p2 collides with p1, also move p2
+    float collisionAdj = playerCollisionExtent(f.p2, f.p1, targetFrame);
+    f.p2.pos.Y += collisionAdj;
+    UE_LOG(LogTemp, Display, TEXT("ALogic: p1 collides with %s"), doRightBoundary ? TEXT("right") : TEXT("left"));
+  }
+  if ((p2CollisionAdj != 0.0) && (p1CollisionAdj == 0.0)) {
+    // if p1 collides with p2, also move p1
+    float collisionAdj = playerCollisionExtent(f.p1, f.p2, targetFrame);
+    f.p1.pos.Y += collisionAdj;
+    UE_LOG(LogTemp, Display, TEXT("ALogic: p2 collides with %s"), doRightBoundary ? TEXT("right") : TEXT("left"));
+  }
+  else if ((p1CollisionAdj != 0.0) && (p2CollisionAdj != 0.0)) {
+    // at least one player must be jumping. Let the leftmost player
+    // take the corner
+    float collisionAdj;
+    if (doRightBoundary) {
+      collisionAdj = std::min(p1CollisionAdj, p2CollisionAdj);
+    }
+    else {
+      collisionAdj = std::max(p1CollisionAdj, p2CollisionAdj);
+    }
+    f.p1.pos.Y += collisionAdj;
+    f.p2.pos.Y += collisionAdj;
+    UE_LOG(LogTemp, Display, TEXT("ALogic: p1 and p2 collide with %s"), doRightBoundary ? TEXT("right") : TEXT("left"));
+  }
 }
 
 // Sets default values for this component's properties
@@ -271,6 +370,8 @@ void ALogic::BeginPlay()
 
   // construct initial frame
   Frame f (Player(leftStart, HActionIdle), Player(rightStart, HActionIdle));
+  f.p1.isFacingRight = true;
+  f.p2.isFacingRight = false;
   frames.push(f);
 
   UE_LOG(LogTemp, Display, TEXT("ALogic: BeginPlay"));
@@ -283,7 +384,7 @@ void ALogic::beginFight() {
   UE_LOG(LogTemp, Display, TEXT("ALogic: Begin fight!"));
 }
 
-bool ALogic::IsP1FacingRight(const Frame& f) {
+bool ALogic::IsP1OnLeft(const Frame& f) {
   return f.p1.pos.Y <= f.p2.pos.Y;
 }
 
@@ -298,38 +399,28 @@ void ALogic::computeFrame(int targetFrame) {
 
   // If the player can act and there is a new action waiting, then
   // start the new action
-  bool isP1FacingRight = IsP1FacingRight(newFrame);
-  newFrame.p1.TryStartingNewAction(targetFrame, *p1Input, isP1FacingRight);
-  newFrame.p2.TryStartingNewAction(targetFrame, *p2Input, !isP1FacingRight);
+  bool isP1OnLeft = IsP1OnLeft(newFrame);
+  newFrame.p1.TryStartingNewAction(targetFrame, *p1Input, isP1OnLeft);
+  newFrame.p2.TryStartingNewAction(targetFrame, *p2Input, !isP1OnLeft);
 
   // compute player positions (if they are in a moving action). This
   // includes checking collision boxes and not letting players walk
   // out of bounds.
-  int p1Direction = isP1FacingRight ? 1 : -1;
-  int p2Direction = -1*p1Direction;
+  int p1Direction = newFrame.p1.isFacingRight ? 1 : -1;
+  int p2Direction = newFrame.p2.isFacingRight ? 1 : -1;
   FVector p1v = p1Direction*newFrame.p1.action.velocity();
   FVector p2v = p2Direction*newFrame.p2.action.velocity();
   newFrame.p1.pos += p1v;
   newFrame.p2.pos += p2v;
+  // recompute who is on left, useful in the case of a jumping cross
+  // up
+  isP1OnLeft = IsP1OnLeft(newFrame);
 
-  // check for player-boundary collisions with the left boundary
-  int p1LeftCollsionAdj = newFrame.p1.collidesWithBoundary(stageBoundLeft.Y, false, isP1FacingRight);
-  int p2LeftCollsionAdj = newFrame.p2.collidesWithBoundary(stageBoundLeft.Y, false, isP1FacingRight);
-  newFrame.p1.pos.Y += p1LeftCollsionAdj;
-  newFrame.p2.pos.Y += p2LeftCollsionAdj;
-  if ((p1LeftCollsionAdj != 0.0) && (p2LeftCollsionAdj == 0.0)) {
-    // if p2 collides with p1, also move p2
-    UE_LOG(LogTemp, Display, TEXT("ALogic: p1 collides with left"));
-  }
-  if ((p2LeftCollsionAdj != 0.0) && (p1LeftCollsionAdj == 0.0)) {
-    // if p1 collides with p2, also move p1
-    UE_LOG(LogTemp, Display, TEXT("ALogic: p2 collides with left"));
-  }
-  else if ((p2LeftCollsionAdj != 0.0) && (p1LeftCollsionAdj != 0.0)) {
-    // at least one player must be jumping. Let the higher player take
-    // the corner.
-    UE_LOG(LogTemp, Display, TEXT("ALogic: p1 and p2 p2 collide with left"));
-  }
+  // check for player-player collisions
+
+  // check for player-boundary collisions
+  HandlePlayerBoundaryCollision(newFrame, targetFrame, false);
+  HandlePlayerBoundaryCollision(newFrame, targetFrame, true);
 
   // check hitboxes, compute damage. Don't forget the case of ties.
   if (collides(newFrame.p1.action.hitbox(), newFrame.p2.action.hurtbox(), newFrame, targetFrame) ||
@@ -360,6 +451,7 @@ void ALogic::Tick(float DeltaTime)
   int latestInputFrame = std::max(p1Input->getCurrentFrame(), p2Input->getCurrentFrame());
   int targetFrame = std::max(latestInputFrame, frame+1);
 
+  // TODO: needsRollback needs to take into account delay
   if (p1Input->needsRollback() || p2Input->needsRollback()) {
     UE_LOG(LogTemp, Warning, TEXT("ALogic: Rollback"));
     int rollbackToFrame = std::min(p1Input->getNeedsRollbackToFrame(), p2Input->getNeedsRollbackToFrame());
@@ -380,7 +472,7 @@ void ALogic::Tick(float DeltaTime)
 
   while (frame < targetFrame) {
     ++frame;
-    UE_LOG(LogTemp, Display, TEXT("Logic: TICK %i!"), frame);
+    //UE_LOG(LogTemp, Display, TEXT("Logic: TICK %i!"), frame);
     computeFrame(frame);
   }
 
