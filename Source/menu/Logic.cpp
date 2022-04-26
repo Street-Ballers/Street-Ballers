@@ -321,14 +321,14 @@ void ALogic::HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRig
   if ((p1CollisionAdj != 0.0) && (p2CollisionAdj == 0.0)) {
     // if p2 collides with p1, also move p2
     float collisionAdj = playerCollisionExtent(f.p2, f.p1, targetFrame);
-    f.p2.pos.Y += collisionAdj;
+    //f.p2.pos.Y += collisionAdj;
     UE_LOG(LogTemp, Display, TEXT("ALogic: p1 collides with %s"), doRightBoundary ? TEXT("right") : TEXT("left"));
   }
   if ((p2CollisionAdj != 0.0) && (p1CollisionAdj == 0.0)) {
     // if p1 collides with p2, also move p1
     float collisionAdj = playerCollisionExtent(f.p1, f.p2, targetFrame);
     f.p1.pos.Y += collisionAdj;
-    UE_LOG(LogTemp, Display, TEXT("ALogic: p2 collides with %s"), doRightBoundary ? TEXT("right") : TEXT("left"));
+    //UE_LOG(LogTemp, Display, TEXT("ALogic: p2 collides with %s"), doRightBoundary ? TEXT("right") : TEXT("left"));
   }
   else if ((p1CollisionAdj != 0.0) && (p2CollisionAdj != 0.0)) {
     // at least one player must be jumping. Let the leftmost player
@@ -342,7 +342,7 @@ void ALogic::HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRig
     }
     f.p1.pos.Y += collisionAdj;
     f.p2.pos.Y += collisionAdj;
-    UE_LOG(LogTemp, Display, TEXT("ALogic: p1 and p2 collide with %s"), doRightBoundary ? TEXT("right") : TEXT("left"));
+    //UE_LOG(LogTemp, Display, TEXT("ALogic: p1 and p2 collide with %s"), doRightBoundary ? TEXT("right") : TEXT("left"));
   }
 }
 
@@ -417,6 +417,26 @@ void ALogic::computeFrame(int targetFrame) {
   isP1OnLeft = IsP1OnLeft(newFrame);
 
   // check for player-player collisions
+  float collisionAdj = playerCollisionExtent(newFrame.p1, newFrame.p2, targetFrame);
+  if (collisionAdj != 0.0) {
+    float up1v = std::fabs(p1v.Y);
+    float up2v = std::fabs(p2v.Y);
+    float p1CollisionAdj = (up2v / (up1v+up2v)) * 0.5 * collisionAdj;
+    float p2CollisionAdj = -1 * (up1v / (up1v+up2v)) * 0.5 * collisionAdj;
+    newFrame.p1.pos.Y += p1CollisionAdj;
+    newFrame.p2.pos.Y += p2CollisionAdj;
+    if (!(((p1v.Y > 0) && (p2v.Y > 0)) ||
+          ((p1v.Y < 0) && (p2v.Y < 0)))) {
+      // players are moving into eachother. dampen how much they push
+      // eachother by moving them back closer to where they were on
+      // the previous frame
+      float newMean = newFrame.p1.pos.Y + newFrame.p2.pos.Y;
+      float oldMean = frames.last().p1.pos.Y + frames.last().p2.pos.Y;
+      float meanAdj = 0.25 * (oldMean-newMean);
+      newFrame.p1.pos.Y += meanAdj;
+      newFrame.p2.pos.Y += meanAdj;
+    }
+  }
 
   // check for player-boundary collisions
   HandlePlayerBoundaryCollision(newFrame, targetFrame, false);
