@@ -34,5 +34,8 @@ void AFightCameraActor::Tick(float DeltaTime) {
                    // don't move closer than this
                    -500.0);
 
+  // Adjust camera to mid level of fighters
+  pos.Z += 100.0;
+
   SetActorLocation(pos, false, nullptr, ETeleportType::None);
 }
