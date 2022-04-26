@@ -36,12 +36,26 @@ RingBuffer::~RingBuffer() {
   if (v) free(v);
 }
 
-bool Box::collides(const Box& b, float offsetax, float offsetay, float offsetbx, float offsetby) const {
+// if aFacingRight is true, then flip box b. Else, flip box a
+bool Box::collides(const Box& b, float offsetax, float offsetay, float offsetbx, float offsetby, bool aFacingRight) const {
+  float ax = x, axend = xend;
+  float bx = b.x, bxend = b.xend;
+  if (aFacingRight) {
+    bx *= -1;
+    bxend *= -1;
+    std::swap(bx, bxend);
+  }
+  else {
+    ax *= -1;
+    axend *= -1;
+    std::swap(ax, axend);
+  }
+  //UE_LOG(LogTemp, Display, TEXT("Box collides(): (x %f y %f xend %f yend %f) (x %f y %f xend %f yend %f), (offsetax %f offset ay %f offsetbx %f offsetby %f)"), ax, y, axend, yend, bx, b.y, bxend, b.yend, offsetax, offsetay, offsetbx, offsetby);
   return
-    !(((x+offsetax) < (b.x+offsetbx)) &&
-      ((xend+offsetax) < (b.x+offsetbx))) &&
-    !(((x+offsetax) > (b.xend+offsetbx)) &&
-      ((xend+offsetax) > (b.xend+offsetbx))) &&
+    !(((ax+offsetax) < (bx+offsetbx)) &&
+      ((axend+offsetax) < (bx+offsetbx))) &&
+    !(((ax+offsetax) > (bxend+offsetbx)) &&
+      ((axend+offsetax) > (bxend+offsetbx))) &&
     !(((y+offsetay) < (b.y+offsetby)) &&
       ((yend+offsetay) < (b.y+offsetby))) &&
     !(((y+offsetay) > (b.yend+offsetby)) &&
@@ -66,14 +80,28 @@ const std::vector<Box>* Hitbox::at(int frame) const {
 // - b: other hitbox we are checking for collision with
 // - aframe: frame of our hitboxes to check for collision
 // - bframe: frame of b's hitboxes to check for collision
-bool Hitbox::collides(const Hitbox& b, int aframe, int bframe, float offsetax, float offsetay, float offsetbx, float offsetby) const {
+bool Hitbox::collides(const Box& b, int aframe, int bframe, float offsetax, float offsetay, float offsetbx, float offsetby, bool aFacingRight) const {
+  const std::vector<Box>* aboxes = at(aframe);
+  if (!aboxes) // at least one box is empty; no collision
+    return false;
+  for (auto& abox: *aboxes) {
+    if (abox.collides(b, offsetax, offsetay, offsetbx, offsetby, aFacingRight))
+      return true;
+  }
+  return false;
+}
+
+// - b: other hitbox we are checking for collision with
+// - aframe: frame of our hitboxes to check for collision
+// - bframe: frame of b's hitboxes to check for collision
+bool Hitbox::collides(const Hitbox& b, int aframe, int bframe, float offsetax, float offsetay, float offsetbx, float offsetby, bool aFacingRight) const {
   const std::vector<Box>* aboxes = at(aframe);
   const std::vector<Box>* bboxes = b.at(bframe);
   if (!(aboxes && bboxes)) // at least one box is empty; no collision
     return false;
   for (auto& abox: *aboxes) {
     for (auto& bbox: *bboxes) {
-      if (abox.collides(bbox, offsetax, offsetay, offsetbx, offsetby))
+      if (abox.collides(bbox, offsetax, offsetay, offsetbx, offsetby, aFacingRight))
         return true;
     }
   }
@@ -83,12 +111,17 @@ bool Hitbox::collides(const Hitbox& b, int aframe, int bframe, float offsetax, f
 HAction::HAction(int h): h(h) {};
 HAction::HAction(): HAction(-1) {};
 
-const Action HAction::actions[] = {
-  [HActionIdleI] = Action(Hitbox({}), Hitbox({}), 0, true),
-  [HActionWalkBackwardI] = Action(Hitbox({}), Hitbox({}), 0, true, FVector(0.0, -2.0, 0.0)),
-  [HActionWalkForwardI] = Action(Hitbox({}), Hitbox({}), 0, true, FVector(0.0, 4.0, 0.0)),
-  [HActionStPI] = Action(Hitbox({}), Hitbox({}), 0),
-};
+HCharacter HAction::character() const {
+  return HCharacter(actions[h].character);
+}
+
+const Box& HAction::collision() const {
+  const std::optional<Box>& b = actions[h].collision;
+  if (b.has_value())
+    return b.value();
+  else
+    return character().collision();
+}
 
 const Hitbox& HAction::hitbox() const {
   return actions[h].hitbox;
@@ -115,6 +148,36 @@ bool HAction::operator==(const HAction& b) const {
 }
 
 bool HAction::operator!=(const HAction& b) const {
+  return !(*this == b);
+}
+
+HCharacter::HCharacter(int h): h(h) {};
+
+const Box& HCharacter::collision() const {
+  return characters[h].collision;
+}
+
+HAction HCharacter::idle() const {
+  return characters[h].idle;
+}
+
+HAction HCharacter::walkForward() const {
+  return characters[h].walkForward;
+}
+
+HAction HCharacter::walkBackward() const {
+  return characters[h].walkForward;
+}
+
+HAction HCharacter::sthp() const {
+  return characters[h].sthp;
+}
+
+bool HCharacter::operator==(const HCharacter& b) const {
+  return h == b.h;
+}
+
+bool HCharacter::operator!=(const HCharacter& b) const {
   return !(*this == b);
 }
 
@@ -187,7 +250,7 @@ void ALogic::computeFrame(int targetFrame) {
   // compute player positions (if they are in a moving action). This
   // includes checking collision boxes and not letting players walk
   // out of bounds.
-  int p1Direction = IsP1FacingRight(newFrame.p1, newFrame.p2) ? 1 : -1;
+  int p1Direction = isP1FacingRight ? 1 : -1;
   int p2Direction = -1*p1Direction;
   newFrame.p1.pos += p1Direction*newFrame.p1.action.velocity();
   newFrame.p2.pos += p2Direction*newFrame.p2.action.velocity();
@@ -195,11 +258,37 @@ void ALogic::computeFrame(int targetFrame) {
   p2Direction = -1*p1Direction;
 
   // check hitboxes, compute damage. Don't forget the case of ties.
-  if (newFrame.p1.action.hitbox().collides(newFrame.p2.action.hurtbox(), targetFrame - newFrame.p1.actionStart, targetFrame - newFrame.p2.actionStart, newFrame.p1.pos.X, newFrame.p1.pos.Y, newFrame.p2.pos.X, newFrame.p2.pos.Y)) {
+  if ((newFrame.p1.action.hitbox().collides(newFrame.p2.action.hurtbox(),
+                                            targetFrame - newFrame.p1.actionStart,
+                                            targetFrame - newFrame.p2.actionStart,
+                                            newFrame.p1.pos.Y, newFrame.p1.pos.Z,
+                                            newFrame.p2.pos.Y, newFrame.p2.pos.Z,
+                                            isP1FacingRight)) ||
+      (newFrame.p1.action.hitbox().collides(newFrame.p2.action.collision(),
+                                            targetFrame - newFrame.p1.actionStart,
+                                            targetFrame - newFrame.p2.actionStart,
+                                            newFrame.p1.pos.Y, newFrame.p1.pos.Z,
+                                            newFrame.p2.pos.Y, newFrame.p2.pos.Z,
+                                            isP1FacingRight))) {
     // hit p2
+    UE_LOG(LogTemp, Display, TEXT("ALogic: P2 was hit"));
+    newFrame.p2.health -= 10;
   }
-  if (newFrame.p1.action.hurtbox().collides(newFrame.p2.action.hitbox(), targetFrame - newFrame.p1.actionStart, targetFrame - newFrame.p2.actionStart, newFrame.p1.pos.X, newFrame.p1.pos.Y, newFrame.p2.pos.X, newFrame.p2.pos.Y)) {
+  if ((newFrame.p2.action.hitbox().collides(newFrame.p1.action.hurtbox(),
+                                            targetFrame - newFrame.p2.actionStart,
+                                            targetFrame - newFrame.p1.actionStart,
+                                            newFrame.p2.pos.Y, newFrame.p2.pos.Z,
+                                            newFrame.p1.pos.Y, newFrame.p1.pos.Z,
+                                            !isP1FacingRight)) ||
+      (newFrame.p2.action.hitbox().collides(newFrame.p1.action.collision(),
+                                            targetFrame - newFrame.p2.actionStart,
+                                            targetFrame - newFrame.p1.actionStart,
+                                            newFrame.p2.pos.Y, newFrame.p2.pos.Z,
+                                            newFrame.p1.pos.Y, newFrame.p1.pos.Z,
+                                            !isP1FacingRight))) {
     // hit p1
+    UE_LOG(LogTemp, Display, TEXT("ALogic: P1 was hit"));
+    newFrame.p1.health -= 10;
   }
 
   // check if anyone died, and if so, start new round or end game and

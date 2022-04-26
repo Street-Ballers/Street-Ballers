@@ -108,7 +108,6 @@ void AFightInput::buttons(const std::vector<const enum Button>& buttonsPressed, 
   if (!buttonsPressed.empty()) {
     for (auto b : buttonsPressed) {
       if (is_button(b)) {
-        UE_LOG(LogTemp, Warning, TEXT("AFightInput buttons(): %s SHOULD NOT BE HERE"), *GetActorLabel(false));
         bh = std::make_optional(b);
       }
       if (!is_button(b)) {
@@ -131,20 +130,19 @@ void AFightInput::buttons(const std::vector<const enum Button>& buttonsPressed, 
   }
 
   UE_LOG(LogTemp, Warning, TEXT("AFightInput end of buttons(): %s (i %i) (button: %s) (buttonlast %s)"), *GetActorLabel(false), i, (dh.has_value() && (dh.value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"), (directionHistory.last().has_value() && (directionHistory.last().value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"));
-
-  if (!std::all_of(buttonHistory.v.begin(), buttonHistory.v.end(), [](std::optional<enum Button> b){return !b.has_value();}))
-    UE_LOG(LogTemp, Warning, TEXT("AFightInput end of buttons(): %s WRONG!!!!"), *GetActorLabel(false));
 }
 
 HAction AFightInput::_action(HAction currentAction, int frame, bool isFacingRight) {
+  const HCharacter& c = currentAction.character();
   // for now, if there was a button, output the corresponding attack.
   // If no button, then walk/idle based on directional input.
   UE_LOG(LogTemp, Warning, TEXT("AFightInput _action(): %s (frame %i) (button %s)"), *GetActorLabel(false), frame, directionHistory.nthlast(frame).has_value() ? ((directionHistory.nthlast(frame).value() == Button::RIGHT) ? TEXT("right") : TEXT("not right")) : TEXT("none"));
   if (buttonHistory.nthlast(frame).has_value()) {
-    UE_LOG(LogTemp, Warning, TEXT("AFightInput _action(): %s SHOULD NOT BE HERE"), *GetActorLabel(false));
     enum Button button = buttonHistory.nthlast(frame).value();
-    if (button == Button::LP)
-      return HActionStP;
+    if (button == Button::HP){
+      UE_LOG(LogTemp, Warning, TEXT("AFightInput _action(): %s Do StHP"), *GetActorLabel(false));
+      return c.sthp();
+    }
   }
   if (directionHistory.nthlast(frame).has_value()) {
     // translate directional input based on character direction
@@ -156,11 +154,11 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isFacingRigh
       button = Button::BACK;
 
     if (button == Button::FORWARD)
-      return HActionWalkForward;
+      return c.walkForward();
     if (button == Button::BACK)
-      return HActionWalkBackward;
+      return c.walkBackward();
   }
-  return HActionIdle;
+  return c.idle();
 }
 
 HAction AFightInput::action(HAction currentAction, bool isFacingRight, int targetFrame) {
