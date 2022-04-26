@@ -41,6 +41,10 @@ void ALogicPlayerController::PostLogin(int playerNumber_) {
 }
 
 void ALogicPlayerController::Tick(float deltaSeconds) {
+  if (GetWorld()->IsPaused()) {
+      return;
+  }
+
   // for now, just simulate player 1 walking forward, and player 2
   // standing still
   if (input) {
