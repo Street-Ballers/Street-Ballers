@@ -3,6 +3,7 @@
 #include "Hitbox.h"
 #include "Box.h"
 #include "Action.h"
+#include <algorithm>
 
 void RingBuffer::reserve(int size) {
   n = size;
