@@ -12,15 +12,22 @@
 class Action {
 public:
   int character;
+
+  // TODO: Box should really be a Hitbox here. There should be a
+  // Hitbox constructor for making Hitboxes that always return the
+  // same Box so that we don't have to write code for Box-Hitbox and
+  // Hitbox-Hitbox collisions twice
   std::optional<Box> collision; // leave None to use character's default collision box
+
   Hitbox hitbox;
   Hitbox hurtbox;
+  int damage;
   int lockedFrames; // number of frames that the player is locked into
                     // this action
   FVector velocity;
   bool isWalkOrIdle;
 
-  Action(int character, std::optional<Box> collision, Hitbox hitbox, Hitbox hurtbox, int lockedFrames, bool isWalkOrIdle = false, FVector velocity = FVector(0.0, 0.0, 0.0)): hitbox(hitbox), hurtbox(hurtbox), lockedFrames(lockedFrames), velocity(velocity), isWalkOrIdle(isWalkOrIdle) {};
+  Action(int character, std::optional<Box> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int lockedFrames, bool isWalkOrIdle = false, FVector velocity = FVector(0.0, 0.0, 0.0)): hitbox(hitbox), hurtbox(hurtbox), damage(damage), lockedFrames(lockedFrames), velocity(velocity), isWalkOrIdle(isWalkOrIdle) {};
 
 };
 
@@ -40,6 +47,7 @@ public:
   const Box& collision() const;
   const Hitbox& hitbox() const;
   const Hitbox& hurtbox() const;
+  int damage() const;
   int lockedFrames() const;
   FVector velocity() const;
   bool isWalkOrIdle() const;

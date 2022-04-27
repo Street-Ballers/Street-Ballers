@@ -53,7 +53,7 @@ void ALogicPlayerController::Tick(float deltaSeconds) {
       //UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: player 0 tick"));
     }
     else {
-      input->buttons({}, {}, input->getCurrentFrame()+1);
+      input->buttons({Button::RIGHT}, {}, input->getCurrentFrame()+1);
       //UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: player 1 tick"));
     }
   }

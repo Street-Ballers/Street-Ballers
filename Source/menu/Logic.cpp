@@ -178,6 +178,10 @@ const Hitbox& HAction::hurtbox() const {
   return actions[h].hurtbox;
 }
 
+int HAction::damage() const {
+  return actions[h].damage;
+}
+
 int HAction::lockedFrames() const {
   return actions[h].lockedFrames;
 }
@@ -396,43 +400,45 @@ void ALogic::computeFrame(int targetFrame) {
   // make a copy of the most recent frame. we will update the values
   // in this newFrame and keep the last one.
   Frame newFrame (lastFrame);
+  Player& p1 = newFrame.p1;
+  Player& p2 = newFrame.p2;
 
   // If the player can act and there is a new action waiting, then
   // start the new action
   bool isP1OnLeft = IsP1OnLeft(newFrame);
-  newFrame.p1.TryStartingNewAction(targetFrame, *p1Input, isP1OnLeft);
-  newFrame.p2.TryStartingNewAction(targetFrame, *p2Input, !isP1OnLeft);
+  p1.TryStartingNewAction(targetFrame, *p1Input, isP1OnLeft);
+  p2.TryStartingNewAction(targetFrame, *p2Input, !isP1OnLeft);
 
   // compute player positions (if they are in a moving action). This
   // includes checking collision boxes and not letting players walk
   // out of bounds.
-  int p1Direction = newFrame.p1.isFacingRight ? 1 : -1;
-  int p2Direction = newFrame.p2.isFacingRight ? 1 : -1;
-  FVector p1v = p1Direction*newFrame.p1.action.velocity();
-  FVector p2v = p2Direction*newFrame.p2.action.velocity();
-  newFrame.p1.pos += p1v;
-  newFrame.p2.pos += p2v;
+  int p1Direction = p1.isFacingRight ? 1 : -1;
+  int p2Direction = p2.isFacingRight ? 1 : -1;
+  FVector p1v = p1Direction*p1.action.velocity();
+  FVector p2v = p2Direction*p2.action.velocity();
+  p1.pos += p1v;
+  p2.pos += p2v;
   // recompute who is on left, useful in the case of a jumping cross
   // up
   isP1OnLeft = IsP1OnLeft(newFrame);
 
   // check for player-player collisions
-  float collisionAdj = playerCollisionExtent(newFrame.p1, newFrame.p2, targetFrame);
+  float collisionAdj = playerCollisionExtent(p1, p2, targetFrame);
   if (collisionAdj != 0.0) {
     float p1CollisionAdj = 0.5 * collisionAdj;
     float p2CollisionAdj = -0.5 * collisionAdj;
-    newFrame.p1.pos.Y += p1CollisionAdj;
-    newFrame.p2.pos.Y += p2CollisionAdj;
+    p1.pos.Y += p1CollisionAdj;
+    p2.pos.Y += p2CollisionAdj;
     // if (!(((p1v.Y > 0) && (p2v.Y > 0)) ||
     //       ((p1v.Y < 0) && (p2v.Y < 0)))) {
     //   // players are moving into eachother. dampen how much they push
     //   // eachother by moving them back closer to where they were on
     //   // the previous frame
-    //   float newMean = newFrame.p1.pos.Y + newFrame.p2.pos.Y;
+    //   float newMean = p1.pos.Y + p2.pos.Y;
     //   float oldMean = frames.last().p1.pos.Y + frames.last().p2.pos.Y;
     //   float meanAdj = 0.25 * (oldMean-newMean);
-    //   newFrame.p1.pos.Y += meanAdj;
-    //   newFrame.p2.pos.Y += meanAdj;
+    //   p1.pos.Y += meanAdj;
+    //   p2.pos.Y += meanAdj;
     // }
   }
 
@@ -441,17 +447,17 @@ void ALogic::computeFrame(int targetFrame) {
   HandlePlayerBoundaryCollision(newFrame, targetFrame, true);
 
   // check hitboxes, compute damage. Don't forget the case of ties.
-  if (collides(newFrame.p1.action.hitbox(), newFrame.p2.action.hurtbox(), newFrame, targetFrame) ||
-      collides(newFrame.p1.action.hitbox(), newFrame.p2.action.collision(), newFrame, targetFrame)) {
+  if (collides(p1.action.hitbox(), p2.action.hurtbox(), newFrame, targetFrame) ||
+      collides(p1.action.hitbox(), p2.action.collision(), newFrame, targetFrame)) {
     // hit p2
     UE_LOG(LogTemp, Display, TEXT("ALogic: P2 was hit"));
-    newFrame.p2.health -= 10;
+    p2.health -= 10;
   }
-  if (collides(newFrame.p1.action.hurtbox(), newFrame.p2.action.hitbox(), newFrame, targetFrame) ||
-      collides(newFrame.p1.action.collision(), newFrame.p2.action.hitbox(), newFrame, targetFrame)) {
+  if (collides(p1.action.hurtbox(), p2.action.hitbox(), newFrame, targetFrame) ||
+      collides(p1.action.collision(), p2.action.hitbox(), newFrame, targetFrame)) {
     // hit p1
     UE_LOG(LogTemp, Display, TEXT("ALogic: P1 was hit"));
-    newFrame.p1.health -= 10;
+    p1.health -= 10;
   }
 
   // check if anyone died, and if so, start new round or end game and
