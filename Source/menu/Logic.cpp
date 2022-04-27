@@ -419,23 +419,21 @@ void ALogic::computeFrame(int targetFrame) {
   // check for player-player collisions
   float collisionAdj = playerCollisionExtent(newFrame.p1, newFrame.p2, targetFrame);
   if (collisionAdj != 0.0) {
-    float up1v = std::fabs(p1v.Y);
-    float up2v = std::fabs(p2v.Y);
-    float p1CollisionAdj = (up2v / (up1v+up2v)) * 0.5 * collisionAdj;
-    float p2CollisionAdj = -1 * (up1v / (up1v+up2v)) * 0.5 * collisionAdj;
+    float p1CollisionAdj = 0.5 * collisionAdj;
+    float p2CollisionAdj = -0.5 * collisionAdj;
     newFrame.p1.pos.Y += p1CollisionAdj;
     newFrame.p2.pos.Y += p2CollisionAdj;
-    if (!(((p1v.Y > 0) && (p2v.Y > 0)) ||
-          ((p1v.Y < 0) && (p2v.Y < 0)))) {
-      // players are moving into eachother. dampen how much they push
-      // eachother by moving them back closer to where they were on
-      // the previous frame
-      float newMean = newFrame.p1.pos.Y + newFrame.p2.pos.Y;
-      float oldMean = frames.last().p1.pos.Y + frames.last().p2.pos.Y;
-      float meanAdj = 0.25 * (oldMean-newMean);
-      newFrame.p1.pos.Y += meanAdj;
-      newFrame.p2.pos.Y += meanAdj;
-    }
+    // if (!(((p1v.Y > 0) && (p2v.Y > 0)) ||
+    //       ((p1v.Y < 0) && (p2v.Y < 0)))) {
+    //   // players are moving into eachother. dampen how much they push
+    //   // eachother by moving them back closer to where they were on
+    //   // the previous frame
+    //   float newMean = newFrame.p1.pos.Y + newFrame.p2.pos.Y;
+    //   float oldMean = frames.last().p1.pos.Y + frames.last().p2.pos.Y;
+    //   float meanAdj = 0.25 * (oldMean-newMean);
+    //   newFrame.p1.pos.Y += meanAdj;
+    //   newFrame.p2.pos.Y += meanAdj;
+    // }
   }
 
   // check for player-boundary collisions
