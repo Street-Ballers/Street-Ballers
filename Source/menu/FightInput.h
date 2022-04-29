@@ -71,7 +71,7 @@ private:
   void ensureFrame(int targetFrame);
 
   // return action using input `frame` frames ago as latest input
-  HAction _action(HAction currentAction, int frame, bool isFacingRight);
+  HAction _action(HAction currentAction, int frame, bool isOnLeft);
 
 public:
   bool beginFight = false;
@@ -88,7 +88,7 @@ public:
 
 
   // Returns the decoded action for the given targetFrame.
-  HAction action(HAction currentAction, bool isFacingRight, int targetFrame);
+  HAction action(HAction currentAction, bool isOnLeft, int targetFrame);
 
   int getCurrentFrame();
   bool needsRollback();

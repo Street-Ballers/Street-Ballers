@@ -51,8 +51,6 @@ void AFightInput::init(int _maxRollback, int _buffer, int _delay) {
   needsRollbackToFrame = -1;
   buttonHistory = ButtonRingBuffer();
   buttonHistory.reserve(n);
-  UE_LOG(LogTemp, Warning, TEXT("AFightInput: size %i"), buttonHistory.v.size());
-  UE_LOG(LogTemp, Warning, TEXT("AFightInput: 2size %i"), buttonHistory.v.size());
   directionHistory = ButtonRingBuffer();
   directionHistory.reserve(n);
   beginFight = false;
@@ -71,13 +69,13 @@ void AFightInput::ensureFrame(int targetFrame) {
 
 void AFightInput::buttons(const std::vector<const enum Button>& buttonsPressed, const std::vector<const enum Button>& buttonsReleased, int targetFrame) {
   if (!beginFight) return;
-  UE_LOG(LogTemp,
-         Warning,
-         TEXT("AFightInput buttons(): %s (current frame %i) (target frame %i) (button: %s)"),
-         *GetActorLabel(false),
-         currentFrame,
-         targetFrame,
-         (!buttonsPressed.empty()) ? ((buttonsPressed[0]==Button::RIGHT) ? TEXT("right") : TEXT("not right")) : TEXT("none"));
+  // UE_LOG(LogTemp,
+  //        Warning,
+  //        TEXT("AFightInput buttons(): %s (current frame %i) (target frame %i) (button: %s)"),
+  //        *GetActorLabel(false),
+  //        currentFrame,
+  //        targetFrame,
+  //        (!buttonsPressed.empty()) ? ((buttonsPressed[0]==Button::RIGHT) ? TEXT("right") : TEXT("not right")) : TEXT("none"));
 
   // check if a rollback will be needed
   if (targetFrame <= currentFrame) {
@@ -108,7 +106,6 @@ void AFightInput::buttons(const std::vector<const enum Button>& buttonsPressed, 
   if (!buttonsPressed.empty()) {
     for (auto b : buttonsPressed) {
       if (is_button(b)) {
-        UE_LOG(LogTemp, Warning, TEXT("AFightInput buttons(): %s SHOULD NOT BE HERE"), *GetActorLabel(false));
         bh = std::make_optional(b);
       }
       if (!is_button(b)) {
@@ -130,40 +127,39 @@ void AFightInput::buttons(const std::vector<const enum Button>& buttonsPressed, 
     }
   }
 
-  UE_LOG(LogTemp, Warning, TEXT("AFightInput end of buttons(): %s (i %i) (button: %s) (buttonlast %s)"), *GetActorLabel(false), i, (dh.has_value() && (dh.value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"), (directionHistory.last().has_value() && (directionHistory.last().value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"));
-
-  if (!std::all_of(buttonHistory.v.begin(), buttonHistory.v.end(), [](std::optional<enum Button> b){return !b.has_value();}))
-    UE_LOG(LogTemp, Warning, TEXT("AFightInput end of buttons(): %s WRONG!!!!"), *GetActorLabel(false));
+  // UE_LOG(LogTemp, Warning, TEXT("AFightInput end of buttons(): %s (i %i) (button: %s) (buttonlast %s)"), *GetActorLabel(false), i, (dh.has_value() && (dh.value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"), (directionHistory.last().has_value() && (directionHistory.last().value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"));
 }
 
-HAction AFightInput::_action(HAction currentAction, int frame, bool isFacingRight) {
+HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft) {
+  const HCharacter& c = currentAction.character();
   // for now, if there was a button, output the corresponding attack.
   // If no button, then walk/idle based on directional input.
-  UE_LOG(LogTemp, Warning, TEXT("AFightInput _action(): %s (frame %i) (button %s)"), *GetActorLabel(false), frame, directionHistory.nthlast(frame).has_value() ? ((directionHistory.nthlast(frame).value() == Button::RIGHT) ? TEXT("right") : TEXT("not right")) : TEXT("none"));
+  // UE_LOG(LogTemp, Warning, TEXT("AFightInput _action(): %s (frame %i) (button %s)"), *GetActorLabel(false), frame, directionHistory.nthlast(frame).has_value() ? ((directionHistory.nthlast(frame).value() == Button::RIGHT) ? TEXT("right") : TEXT("not right")) : TEXT("none"));
   if (buttonHistory.nthlast(frame).has_value()) {
-    UE_LOG(LogTemp, Warning, TEXT("AFightInput _action(): %s SHOULD NOT BE HERE"), *GetActorLabel(false));
     enum Button button = buttonHistory.nthlast(frame).value();
-    if (button == Button::LP)
-      return HActionStP;
+    if (button == Button::HP){
+      UE_LOG(LogTemp, Display, TEXT("AFightInput _action(): %s Do StHP"), *GetActorLabel(false));
+      return c.sthp();
+    }
   }
   if (directionHistory.nthlast(frame).has_value()) {
     // translate directional input based on character direction
     enum Button button = directionHistory.nthlast(frame).value();
-    if (((button == Button::RIGHT) && isFacingRight) ||
-        ((button == Button::LEFT) && !isFacingRight))
+    if (((button == Button::RIGHT) && isOnLeft) ||
+        ((button == Button::LEFT) && !isOnLeft))
       button = Button::FORWARD;
     else
       button = Button::BACK;
 
     if (button == Button::FORWARD)
-      return HActionWalkForward;
+      return c.walkForward();
     if (button == Button::BACK)
-      return HActionWalkBackward;
+      return c.walkBackward();
   }
-  return HActionIdle;
+  return c.idle();
 }
 
-HAction AFightInput::action(HAction currentAction, bool isFacingRight, int targetFrame) {
+HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFrame) {
   int frameBefore = currentFrame;
   ensureFrame(targetFrame);
   //UE_LOG(LogTemp, Warning, TEXT("AFightInput action(): %s (current frame %i) (target frame %i)"), *GetActorLabel(false), currentFrame, targetFrame);
@@ -174,11 +170,11 @@ HAction AFightInput::action(HAction currentAction, bool isFacingRight, int targe
   // one frame earlier. Repeat until we find an action that isn't
   // idling or walking, or we have tried all of the `input
   // buffer' frames.
-  HAction mostRecentAction = _action(currentAction, frame, isFacingRight);
-  UE_LOG(LogTemp, Warning, TEXT("AFightInput action(): %s (current frame %i) (target frame %i) (action: %s)"), *GetActorLabel(false), currentFrame, targetFrame, (mostRecentAction == HActionIdle) ? TEXT("idle") : TEXT("not idle"));
+  HAction mostRecentAction = _action(currentAction, frame, isOnLeft);
+  // UE_LOG(LogTemp, Warning, TEXT("AFightInput action(): %s (current frame %i) (target frame %i) (action: %s)"), *GetActorLabel(false), currentFrame, targetFrame, (mostRecentAction == HActionIdle) ? TEXT("idle") : TEXT("not idle"));
   HAction action = mostRecentAction;
   while (action.isWalkOrIdle() && (++frame <= (delay+buffer))) {
-    action = _action(currentAction, frame, isFacingRight);
+    action = _action(currentAction, frame, isOnLeft);
   }
   return action.isWalkOrIdle() ? mostRecentAction : action;
 }
