@@ -84,7 +84,7 @@ public:
   // the frame that the inputs should first appear. It is 1+ the frame
   // number stored in ALogic at the time that this function is called
   // by the player controller.
-  void buttons(const std::vector<const enum Button>& buttonsPressed, const std::vector<const enum Button>& buttonsReleased, int targetFrame);
+  void buttons(const std::vector<enum Button>& buttonsPressed, const std::vector<enum Button>& buttonsReleased, int targetFrame);
 
 
   // Returns the decoded action for the given targetFrame.

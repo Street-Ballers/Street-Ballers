@@ -67,7 +67,7 @@ void AFightInput::ensureFrame(int targetFrame) {
   }
 }
 
-void AFightInput::buttons(const std::vector<const enum Button>& buttonsPressed, const std::vector<const enum Button>& buttonsReleased, int targetFrame) {
+void AFightInput::buttons(const std::vector<enum Button>& buttonsPressed, const std::vector<enum Button>& buttonsReleased, int targetFrame) {
   if (!beginFight) return;
   // UE_LOG(LogTemp,
   //        Warning,
