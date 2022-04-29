@@ -155,9 +155,6 @@ bool Hitbox::collides(const Hitbox& b, int aframe, int bframe, float offsetax, f
   return false;
 }
 
-HAction::HAction(int h): h(h) {};
-HAction::HAction(): HAction(-1) {};
-
 HCharacter HAction::character() const {
   return HCharacter(actions[h].character);
 }
@@ -202,13 +199,12 @@ bool HAction::operator!=(const HAction& b) const {
   return !(*this == b);
 }
 
-HCharacter::HCharacter(int h): h(h) {};
-
 const Box& HCharacter::collision() const {
   return characters[h].collision;
 }
 
 HAction HCharacter::idle() const {
+  check(h == 0);
   return characters[h].idle;
 }
 

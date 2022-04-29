@@ -18,6 +18,8 @@ class MENU_API ALogicGameMode : public AGameMode
 public:
   ALogicGameMode();
 
+  void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage);
+
   void PreLogin(const FString& Options,
                 const FString& Address,
                 const FUniqueNetIdRepl& UniqueId,

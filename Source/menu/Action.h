@@ -27,8 +27,10 @@ public:
   FVector velocity;
   bool isWalkOrIdle;
 
-  Action(int character, std::optional<Box> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int lockedFrames, bool isWalkOrIdle = false, FVector velocity = FVector(0.0, 0.0, 0.0)): hitbox(hitbox), hurtbox(hurtbox), damage(damage), lockedFrames(lockedFrames), velocity(velocity), isWalkOrIdle(isWalkOrIdle) {};
+  Action(int character, std::optional<Box> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int lockedFrames, bool isWalkOrIdle = false, FVector velocity = FVector(0.0, 0.0, 0.0)): character(character), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), lockedFrames(lockedFrames), velocity(velocity), isWalkOrIdle(isWalkOrIdle) {};
 
+  // don't use this constructor
+  Action(): Action(-1, {}, Hitbox({}), Hitbox({}), 0, 0) {};
 };
 
 class HCharacter;
@@ -37,11 +39,12 @@ class HCharacter;
 class HAction {
 private:
   int h;
-  static const Action actions[];
+  static Action actions[8];
 
 public:
-  HAction(int h);
-  HAction();
+  HAction(int h): h(h) {};
+  HAction(): HAction(-1) {};
+  static void init();
 
   HCharacter character() const;
   const Box& collision() const;
@@ -59,10 +62,10 @@ public:
 // this is to assign integers to action names, needed for the next
 // step
 enum IAction {
-  IActionIdle,
-  IActionWalkForward,
-  IActionWalkBackward,
-  IActionStHP
+  IActionIdle = 0,
+  IActionWalkForward = 1,
+  IActionWalkBackward = 2,
+  IActionStHP = 3
 };
 
 // this is to assign HActions to action names. All other code should
@@ -89,15 +92,19 @@ public:
   // crlp, sthk, crlk, guarding, damaged
 
   Character(Box collision, HAction idle, HAction walkForward, HAction walkBackward, HAction sthp): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), sthp(sthp) {};
+
+  // don't use this constructor
+  Character(): Character(Box(0, 0, 0, 0), HAction(), HAction(), HAction(), HAction()) {};
 };
 
 class HCharacter {
 private:
   int h;
-  static const Character characters[];
+  static Character characters[8];
 
 public:
-  HCharacter(int h);
+  HCharacter(int h): h(h) {};
+  static void init();
   const Box& collision() const;
   HAction idle() const;
   HAction walkForward() const;
@@ -109,7 +116,11 @@ public:
 };
 
 enum ICharacter {
-  IChar1
+  IChar1 = 0
 };
 
 #define HChar1 (HCharacter(IChar1))
+
+// This function needs to be called early in the game startup to
+// populate the actions and character arrays
+void init_actions();
