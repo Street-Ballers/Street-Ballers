@@ -71,7 +71,7 @@ private:
   void ensureFrame(int targetFrame);
 
   // return action using input `frame` frames ago as latest input
-  HAction _action(HAction currentAction, int frame, bool isFacingRight);
+  HAction _action(HAction currentAction, int frame, bool isOnLeft);
 
 public:
   bool beginFight = false;
@@ -84,7 +84,7 @@ public:
   // the frame that the inputs should first appear. It is 1+ the frame
   // number stored in ALogic at the time that this function is called
   // by the player controller.
-  void buttons(const std::vector<const enum Button>& buttonsPressed, const std::vector<const enum Button>& buttonsReleased, int targetFrame);
+  void buttons(const std::vector<enum Button>& buttonsPressed, const std::vector<enum Button>& buttonsReleased, int targetFrame);
 
   UFUNCTION (Client)
   void buttonsShortcut1(int targetFrame);
@@ -92,7 +92,7 @@ public:
   void buttonsShortcut2(int targetFrame);
 
   // Returns the decoded action for the given targetFrame.
-  HAction action(HAction currentAction, bool isFacingRight, int targetFrame);
+  HAction action(HAction currentAction, bool isOnLeft, int targetFrame);
 
   int getCurrentFrame();
   bool needsRollback();

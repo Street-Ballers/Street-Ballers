@@ -3,6 +3,7 @@
 
 #include "LogicGameMode.h"
 #include "Logic.h"
+#include "Action.h"
 
 ALogicGameMode::ALogicGameMode() {
   // use our custom PlayerController class
@@ -11,6 +12,14 @@ ALogicGameMode::ALogicGameMode() {
   SpectatorClass = nullptr;
   // setting this to null just causes it to fall back to APlayerState
   // PlayerStateClass = nullptr;
+}
+
+void ALogicGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) {
+  Super::InitGame(MapName, Options, ErrorMessage);
+  HAction::init();
+  HCharacter::init();
+  check(HAction(IActionIdle).character() == HChar1);
+  check(HCharacter(IChar1).idle() == HActionIdle);
 }
 
 void ALogicGameMode::PreLogin(const FString& Options,
