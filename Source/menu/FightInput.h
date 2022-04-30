@@ -65,6 +65,10 @@ private:
 
   bool is_button(const enum Button& b);
   // bool is_none(const Button& b);
+  enum Button translateDirection(const enum Button& d, bool isOnLeft);
+  // compute how far back in our history we have to look for the input
+  // data for targetFrame
+  int computeIndex(int targetFrame);
 
   // Make sure that AFightInput has some data for the new frame. We
   // will either do nothing or "predict" the input (assume nothing was
@@ -92,6 +96,11 @@ public:
 
   // Returns the decoded action for the given targetFrame.
   HAction action(HAction currentAction, bool isOnLeft, int targetFrame);
+
+  // guarding might not depend on the action but rather the inputs
+  // (holding back or down-back), so we use a new method here. We
+  // could also add a `guard' flag to some actions.
+  bool isGuarding(bool isOnLeft, int targetFrame);
 
   int getCurrentFrame();
   bool needsRollback();

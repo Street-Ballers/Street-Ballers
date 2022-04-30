@@ -242,9 +242,9 @@ void Player::TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft) 
 }
 
 // returns the amount of correction needed to move player out of the bound
-float Player::collidesWithBoundary(int boundary, bool isRightBound) {
+float Player::collidesWithBoundary(float boundary, bool isRightBound) {
   const Box& b = action.collision();
-  int x = b.x, xend = b.xend;
+  float x = b.x, xend = b.xend;
   if (!isFacingRight) {
     x *= -1;
     xend *= -1;
@@ -310,8 +310,8 @@ float ALogic::playerCollisionExtent(const Player &p, const Player &q, int target
 
 void ALogic::HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRightBoundary) {
   float stageBound = doRightBoundary ? stageBoundRight.Y : stageBoundLeft.Y;
-  int p1CollisionAdj = f.p1.collidesWithBoundary(stageBound, doRightBoundary);
-  int p2CollisionAdj = f.p2.collidesWithBoundary(stageBound, doRightBoundary);
+  float p1CollisionAdj = f.p1.collidesWithBoundary(stageBound, doRightBoundary);
+  float p2CollisionAdj = f.p2.collidesWithBoundary(stageBound, doRightBoundary);
   f.p1.pos.Y += p1CollisionAdj;
   f.p2.pos.Y += p2CollisionAdj;
   if ((p1CollisionAdj != 0.0) && (p2CollisionAdj == 0.0)) {
@@ -359,13 +359,10 @@ void ALogic::BeginPlay()
 
   frames = RingBuffer();
   frames.reserve(maxRollback+1);
-  frame = 0;
-  _beginFight = false;
 
   p1Input->init(maxRollback, 2, 2);
   p2Input->init(maxRollback, 2, 2);
 
-  // construct initial frame
   reset(false);
 
   UE_LOG(LogTemp, Display, TEXT("ALogic: BeginPlay"));
@@ -380,6 +377,8 @@ void ALogic::reset(bool flipSpawns) {
   f.p2.isFacingRight = !IsP1OnLeft(f);
   frames.clear();
   frames.push(f);
+  frame = 0;
+  _beginFight = false;
 }
 
 void ALogic::beginFight() {
@@ -396,8 +395,12 @@ void ALogic::endFight() {
   UE_LOG(LogTemp, Display, TEXT("ALogic: End fight!"));
 }
 
+bool ALogic::IsPlayerOnLeft(const Player& p1, const Player& p2) {
+  return p1.pos.Y <= p2.pos.Y;
+}
+
 bool ALogic::IsP1OnLeft(const Frame& f) {
-  return f.p1.pos.Y <= f.p2.pos.Y;
+  return IsPlayerOnLeft(f.p1, f.p2);
 }
 
 // the targetFrame field is required for using the right inputs from
@@ -455,17 +458,43 @@ void ALogic::computeFrame(int targetFrame) {
   HandlePlayerBoundaryCollision(newFrame, targetFrame, true);
 
   // check hitboxes, compute damage. Don't forget the case of ties.
-  if (collides(p1.action.hitbox(), p2.action.hurtbox(), newFrame, targetFrame) ||
-      collides(p1.action.hitbox(), p2.action.collision(), newFrame, targetFrame)) {
-    // hit p2
-    UE_LOG(LogTemp, Display, TEXT("ALogic: P2 was hit"));
-    p2.health -= 10;
+  if (newFrame.hitstop == 0) { // only check hitboxes if we are not in hitstop
+    int damage = 0;
+    if (collides(p1.action.hitbox(), p2.action.hurtbox(), newFrame, targetFrame) ||
+        collides(p1.action.hitbox(), p2.action.collision(), newFrame, targetFrame)) {
+      // hit p2
+      UE_LOG(LogTemp, Display, TEXT("ALogic: P2 was hit"));
+      if (!p2Input->isGuarding(!isP1OnLeft, targetFrame))
+        damage = p1.action.damage();
+      p2.health -= damage;
+      newFrame.hitP1 = false;
+    }
+    if (collides(p1.action.hurtbox(), p2.action.hitbox(), newFrame, targetFrame) ||
+        collides(p1.action.collision(), p2.action.hitbox(), newFrame, targetFrame)) {
+      // hit p1
+      UE_LOG(LogTemp, Display, TEXT("ALogic: P1 was hit"));
+      if (!p1Input->isGuarding(isP1OnLeft, targetFrame))
+        damage = p2.action.damage();
+      p1.health -= damage;
+      newFrame.hitP1 = true;
+    }
+    newFrame.hitstop = damage/5;
   }
-  if (collides(p1.action.hurtbox(), p2.action.hitbox(), newFrame, targetFrame) ||
-      collides(p1.action.collision(), p2.action.hitbox(), newFrame, targetFrame)) {
-    // hit p1
-    UE_LOG(LogTemp, Display, TEXT("ALogic: P1 was hit"));
-    p1.health -= 10;
+  else { // we are in hitstop
+    // keep the attacking player frozen, do pushback, keep players in bounds
+    Player &victim = newFrame.hitP1 ? p1 : p2;
+    Player &attacker = newFrame.hitP1 ? p2 : p1;
+    // this causes the freeze on the attacker's animation
+    ++attacker.actionStart;
+    // do pushback on the victim
+    bool isVictimOnLeft = IsPlayerOnLeft(victim, attacker);
+    victim.pos.Y += (isVictimOnLeft ? -1 : 1) * 10;
+    // put players back in bounds
+    int collisionExtent = victim.collidesWithBoundary(isVictimOnLeft ? stageBoundLeft.Y : stageBoundRight.Y, !isVictimOnLeft);
+    p1.pos.Y += collisionExtent;
+    p2.pos.Y += collisionExtent;
+
+    --newFrame.hitstop;
   }
 
   // check if anyone died, and if so, start new round or end game and

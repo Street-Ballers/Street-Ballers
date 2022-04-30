@@ -21,13 +21,16 @@ public:
   Player() {};
 
   void TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft);
-  float collidesWithBoundary(int boundary, bool isRightBound);
+  float collidesWithBoundary(float boundary, bool isRightBound);
 };
 
 class Frame {
 public:
   Player p1;
   Player p2;
+  int hitstop = 0; // number of frames of hitstop left
+  bool hitP1; // when hitstop>0, true if p1 was hit, otherwise p2 was
+              // hit
 
   Frame(Player p1, Player p2): p1(p1), p2(p2) {};
   Frame() {};
@@ -106,6 +109,7 @@ private:
         bool collides(const Hitbox &p1b, const Hitbox &p2b, const Frame &f, int targetFrame);
         float playerCollisionExtent(const Player &p, const Player &q, int targetFrame);
         void HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRightBoundary);
+        bool IsPlayerOnLeft(const Player& p1, const Player& p2);
         bool IsP1OnLeft(const Frame& f);
 
         void computeFrame(int targetFrame);
