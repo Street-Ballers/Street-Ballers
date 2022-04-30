@@ -25,6 +25,7 @@ private:
 public:
   std::vector<std::optional<enum Button>> v;
   void reserve(int size);
+  void clear();
 
   void push(const std::optional<enum Button>& x);
 
@@ -78,6 +79,8 @@ public:
 
   // initialize all member variables
   void init(int _maxRollback, int _buffer, int _delay);
+  // clear all inputs
+  void reset();
 
   // The player controller will call this function to say which
   // buttons were pressed and released on the given frame. frame is

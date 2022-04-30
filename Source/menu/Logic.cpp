@@ -7,34 +7,29 @@
 
 void RingBuffer::reserve(int size) {
   n = size;
-  if (n>0)
-    v = (Frame*) malloc(n*sizeof(Frame));
-  start = 0;
-  end = -1;
+  clear();
+}
+
+void RingBuffer::clear() {
+  v.clear();
+  v.resize(n);
+  end = 0;
 }
 
 void RingBuffer::push(const Frame& x) {
   end = end+1;
   if (end == n) end = 0;
-  v[end] = x;
-  if (end == start) {
-    start = start+1;
-    if (start == n) start = 0;
-  }
+  v.at(end) = x;
 }
 
 const Frame& RingBuffer::last() {
-  return v[end];
+  return v.at(end);
 }
 
 void RingBuffer::popn(int m) {
   // assumes that we don't pop off more elements than we have
   end = end - m;
   if (end < 0) end += n;
-}
-
-RingBuffer::~RingBuffer() {
-  if (v) free(v);
 }
 
 // if aFacingRight is true, then flip box b. Else, flip box a
@@ -362,20 +357,29 @@ void ALogic::BeginPlay()
 {
   Super::BeginPlay();
 
-  p1Input->init(maxRollback, 2, 2);
-  p2Input->init(maxRollback, 2, 2);
   frames = RingBuffer();
   frames.reserve(maxRollback+1);
   frame = 0;
   _beginFight = false;
 
+  p1Input->init(maxRollback, 2, 2);
+  p2Input->init(maxRollback, 2, 2);
+
   // construct initial frame
-  Frame f (Player(leftStart, HActionIdle), Player(rightStart, HActionIdle));
-  f.p1.isFacingRight = true;
-  f.p2.isFacingRight = false;
-  frames.push(f);
+  reset(false);
 
   UE_LOG(LogTemp, Display, TEXT("ALogic: BeginPlay"));
+}
+
+void ALogic::reset(bool flipSpawns) {
+  p1Input->reset();
+  p2Input->reset();
+  // construct initial frame
+  Frame f (Player(flipSpawns ? rightStart : leftStart, HActionIdle), Player(flipSpawns ? leftStart : rightStart, HActionIdle));
+  f.p1.isFacingRight = IsP1OnLeft(f);
+  f.p2.isFacingRight = !IsP1OnLeft(f);
+  frames.clear();
+  frames.push(f);
 }
 
 void ALogic::beginFight() {
@@ -383,6 +387,13 @@ void ALogic::beginFight() {
   p1Input->beginFight = true;
   p2Input->beginFight = true;
   UE_LOG(LogTemp, Display, TEXT("ALogic: Begin fight!"));
+}
+
+void ALogic::endFight() {
+  _beginFight = false;
+  p1Input->beginFight = false;
+  p2Input->beginFight = false;
+  UE_LOG(LogTemp, Display, TEXT("ALogic: End fight!"));
 }
 
 bool ALogic::IsP1OnLeft(const Frame& f) {
@@ -460,15 +471,16 @@ void ALogic::computeFrame(int targetFrame) {
   // check if anyone died, and if so, start new round or end game and
   // stuff. when in online multiplayer, this should also wait for both
   // clients to be at a consistent state
+  if ((p1.health == 0) || (p2.health == 0)) {
+    endFight();
+    // do stuff on end fight; declare winner, display message, call
+    // reset(roundNumber%2) and beginFight()
+  }
 
   frames.push(newFrame);
 }
 
-// Called every frame
-void ALogic::Tick(float DeltaTime)
-{
-  Super::Tick(DeltaTime);
-
+void ALogic::FightTick() {
   int latestInputFrame = std::max(p1Input->getCurrentFrame(), p2Input->getCurrentFrame());
   int targetFrame = std::max(latestInputFrame, frame+1);
 
@@ -498,6 +510,16 @@ void ALogic::Tick(float DeltaTime)
   }
 
   // UE_LOG(LogTemp, Display, TEXT("Logic: TICK!"));
+}
+
+// Called every frame
+void ALogic::Tick(float DeltaTime)
+{
+  Super::Tick(DeltaTime);
+
+  if (_beginFight) {
+    FightTick();
+  }
 }
 
 const Player& ALogic::getPlayer1() {

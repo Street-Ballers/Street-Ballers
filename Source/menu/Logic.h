@@ -18,6 +18,7 @@ public:
   int health;
 
   Player(FVector pos, HAction action): pos(pos), action(action), actionStart(0), health(100) {};
+  Player() {};
 
   void TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft);
   float collidesWithBoundary(int boundary, bool isRightBound);
@@ -29,13 +30,13 @@ public:
   Player p2;
 
   Frame(Player p1, Player p2): p1(p1), p2(p2) {};
+  Frame() {};
 };
 
 class RingBuffer {
 private:
-  Frame* v = nullptr;
+  std::vector<Frame> v;
   int n;
-  int start;
   int end;
 
 public:
@@ -43,14 +44,14 @@ public:
   
   void reserve(int size);
 
+  void clear();
+
   void push(const Frame& x);
 
   const Frame& last();
 
   // pop the m last elements
   void popn(int m);
-
-  ~RingBuffer();
 };
 
 // TODO: make this a subclass of AInfo instead
@@ -114,8 +115,15 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+        // Reset the fight; put players back at start with full
+        // health, clear inputs. Do this before beginFight().
+        void reset(bool flipSpawns);
+
+        // start and stop the actual fight logic
         void beginFight();
+        void endFight();
 	// Called every frame
+        void FightTick();
 	virtual void Tick(float DeltaTime) override;
 
         // Getters to get values for updating other actors

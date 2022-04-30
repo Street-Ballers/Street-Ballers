@@ -40,5 +40,5 @@ void ALogicGameMode::PostLogin(APlayerController* NewPlayer) {
   ALogicPlayerController* c = Cast<ALogicPlayerController>(NewPlayer);
   c->PostLogin(1);
   ALogic* l = FindLogic(GetWorld());
-  l->beginFight();
+  l->beginFight(); // TODO: this may not work in networked games
 }

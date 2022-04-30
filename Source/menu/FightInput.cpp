@@ -5,6 +5,10 @@
 
 void ButtonRingBuffer::reserve(int size) {
   n = size;
+  clear();
+}
+
+void ButtonRingBuffer::clear() {
   v.clear();
   v.resize(n, {});
   end = 0;
@@ -13,7 +17,7 @@ void ButtonRingBuffer::reserve(int size) {
 void ButtonRingBuffer::push(const std::optional<enum Button>& x) {
   end = end+1;
   if (end == n) end = 0;
-  v[end] = x;
+  v.at(end) = x;
 }
 
 std::optional<enum Button>& ButtonRingBuffer::last() {
@@ -47,14 +51,18 @@ void AFightInput::init(int _maxRollback, int _buffer, int _delay) {
   buffer = _buffer;
   delay = _delay;
   n = maxRollback+buffer+delay+1;
+  buttonHistory.reserve(n);
+  directionHistory.reserve(n);
+  reset();
+}
+
+void AFightInput::reset() {
+  beginFight = false;
   currentFrame = 0;
   needsRollbackToFrame = -1;
-  buttonHistory = ButtonRingBuffer();
-  buttonHistory.reserve(n);
-  directionHistory = ButtonRingBuffer();
-  directionHistory.reserve(n);
-  beginFight = false;
-};
+  buttonHistory.clear();
+  directionHistory.clear();
+}
 
 void AFightInput::ensureFrame(int targetFrame) {
   while (targetFrame > currentFrame) {
