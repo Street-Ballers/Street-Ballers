@@ -5,6 +5,10 @@
 
 void ButtonRingBuffer::reserve(int size) {
   n = size;
+  clear();
+}
+
+void ButtonRingBuffer::clear() {
   v.clear();
   v.resize(n, {});
   end = 0;
@@ -13,7 +17,7 @@ void ButtonRingBuffer::reserve(int size) {
 void ButtonRingBuffer::push(const std::optional<enum Button>& x) {
   end = end+1;
   if (end == n) end = 0;
-  v[end] = x;
+  v.at(end) = x;
 }
 
 std::optional<enum Button>& ButtonRingBuffer::last() {
@@ -47,14 +51,18 @@ void AFightInput::init(int _maxRollback, int _buffer, int _delay) {
   buffer = _buffer;
   delay = _delay;
   n = maxRollback+buffer+delay+1;
+  buttonHistory.reserve(n);
+  directionHistory.reserve(n);
+  reset();
+}
+
+void AFightInput::reset() {
+  beginFight = false;
   currentFrame = 0;
   needsRollbackToFrame = -1;
-  buttonHistory = ButtonRingBuffer();
-  buttonHistory.reserve(n);
-  directionHistory = ButtonRingBuffer();
-  directionHistory.reserve(n);
-  beginFight = false;
-};
+  buttonHistory.clear();
+  directionHistory.clear();
+}
 
 void AFightInput::ensureFrame(int targetFrame) {
   while (targetFrame > currentFrame) {
@@ -138,6 +146,18 @@ void AFightInput::buttonsShortcut2(int targetFrame) {
   buttons({}, {}, targetFrame);
 }
 
+enum Button AFightInput::translateDirection(const enum Button& d, bool isOnLeft) {
+  if (((d == Button::RIGHT) && isOnLeft) ||
+      ((d == Button::LEFT) && !isOnLeft))
+    return Button::FORWARD;
+  else
+    return Button::BACK;
+}
+
+int AFightInput::computeIndex(int targetFrame) {
+  return (currentFrame - targetFrame)+delay;
+}
+
 HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft) {
   const HCharacter& c = currentAction.character();
   // for now, if there was a button, output the corresponding attack.
@@ -151,14 +171,7 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft) {
     }
   }
   if (directionHistory.nthlast(frame).has_value()) {
-    // translate directional input based on character direction
-    enum Button button = directionHistory.nthlast(frame).value();
-    if (((button == Button::RIGHT) && isOnLeft) ||
-        ((button == Button::LEFT) && !isOnLeft))
-      button = Button::FORWARD;
-    else
-      button = Button::BACK;
-
+    enum Button button = translateDirection(directionHistory.nthlast(frame).value(), isOnLeft);
     if (button == Button::FORWARD)
       return c.walkForward();
     if (button == Button::BACK)
@@ -172,7 +185,7 @@ HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFram
   ensureFrame(targetFrame);
   //UE_LOG(LogTemp, Warning, TEXT("AFightInput action(): %s (current frame %i) (target frame %i)"), *GetActorLabel(false), currentFrame, targetFrame);
 
-  int frame = (currentFrame - targetFrame)+delay;
+  int frame = computeIndex(targetFrame);
   // Try decoding an action based on the inputs at `frame'. If the
   // action we decode is walking or idling, then try using the inputs
   // one frame earlier. Repeat until we find an action that isn't
@@ -185,6 +198,13 @@ HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFram
     action = _action(currentAction, frame, isOnLeft);
   }
   return action.isWalkOrIdle() ? mostRecentAction : action;
+}
+
+bool AFightInput::isGuarding(bool isOnLeft, int targetFrame) {
+  int frame = computeIndex(targetFrame);
+  return
+    directionHistory.nthlast(frame).has_value() &&
+    (translateDirection(directionHistory.nthlast(frame).value(), isOnLeft) == Button::BACK);
 }
 
 int AFightInput::getCurrentFrame() {
