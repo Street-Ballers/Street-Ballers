@@ -65,7 +65,9 @@ enum IAction {
   IActionIdle = 0,
   IActionWalkForward = 1,
   IActionWalkBackward = 2,
-  IActionStHP = 3
+  IActionDamaged = 3,
+  IActionBlock = 4,
+  IActionStHP = 5
 };
 
 // this is to assign HActions to action names. All other code should
@@ -73,6 +75,8 @@ enum IAction {
 #define HActionIdle (HAction(IActionIdle))
 #define HActionWalkForward (HAction(IActionWalkForward))
 #define HActionWalkBackward (HAction(IActionWalkBackward))
+#define HActionDamaged (HAction(IActionDamaged))
+#define HActionBlock (HAction(IActionBlock))
 #define HActionStHP (HAction(IActionStHP))
 
 // Actions themselves are defined in HAction::actions[] in Logic.cpp,
@@ -88,13 +92,15 @@ public:
   HAction idle;
   HAction walkForward;
   HAction walkBackward;
+  HAction damaged;
+  HAction block;
   HAction sthp;
   // crlp, sthk, crlk, guarding, damaged
 
-  Character(Box collision, HAction idle, HAction walkForward, HAction walkBackward, HAction sthp): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), sthp(sthp) {};
+  Character(Box collision, HAction idle, HAction walkForward, HAction walkBackward, HAction damaged, HAction block, HAction sthp): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), damaged(damaged), block(block), sthp(sthp) {};
 
   // don't use this constructor
-  Character(): Character(Box(0, 0, 0, 0), HAction(), HAction(), HAction(), HAction()) {};
+  Character(): Character(Box(0, 0, 0, 0), HAction(), HAction(), HAction(), HAction(), HAction(), HAction()) {};
 };
 
 class HCharacter {
@@ -109,6 +115,8 @@ public:
   HAction idle() const;
   HAction walkForward() const;
   HAction walkBackward() const;
+  HAction damaged() const;
+  HAction block() const;
   HAction sthp() const;
 
   bool operator==(const HCharacter& b) const;

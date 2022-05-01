@@ -212,6 +212,14 @@ HAction HCharacter::walkBackward() const {
   return characters[h].walkBackward;
 }
 
+HAction HCharacter::damaged() const {
+  return characters[h].damaged;
+}
+
+HAction HCharacter::block() const {
+  return characters[h].block;
+}
+
 HAction HCharacter::sthp() const {
   return characters[h].sthp;
 }
@@ -239,6 +247,16 @@ void Player::TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft) 
       isFacingRight = isOnLeft;
     }
   }
+}
+
+void Player::doDamagedAction(int frame) {
+  action = action.character().damaged();
+  actionStart = frame;
+}
+
+void Player::doBlockAction(int frame) {
+  action = action.character().block();
+  actionStart = frame;
 }
 
 // returns the amount of correction needed to move player out of the bound
@@ -417,8 +435,14 @@ void ALogic::computeFrame(int targetFrame) {
   // If the player can act and there is a new action waiting, then
   // start the new action
   bool isP1OnLeft = IsP1OnLeft(newFrame);
-  p1.TryStartingNewAction(targetFrame, *p1Input, isP1OnLeft);
-  p2.TryStartingNewAction(targetFrame, *p2Input, !isP1OnLeft);
+  if (p1.hitstun == 0)
+    p1.TryStartingNewAction(targetFrame, *p1Input, isP1OnLeft);
+  else
+    --p1.hitstun;
+  if (p2.hitstun == 0)
+    p2.TryStartingNewAction(targetFrame, *p2Input, !isP1OnLeft);
+  else
+    --p2.hitstun;
 
   // compute player positions (if they are in a moving action). This
   // includes checking collision boxes and not letting players walk
@@ -456,41 +480,115 @@ void ALogic::computeFrame(int targetFrame) {
   // check for player-boundary collisions
   HandlePlayerBoundaryCollision(newFrame, targetFrame, false);
   HandlePlayerBoundaryCollision(newFrame, targetFrame, true);
+  isP1OnLeft = IsP1OnLeft(newFrame);
 
   // check hitboxes, compute damage. Don't forget the case of ties.
+  UE_LOG(LogTemp, Display, TEXT("ALogic: hitstop %i"), newFrame.hitstop);
   if (newFrame.hitstop == 0) { // only check hitboxes if we are not in hitstop
-    int damage = 0;
+    bool p1Hit = false, p1Block = false;
+    int p1Damage = 0;
+    bool p2Hit = false, p2Block = false;
+    int p2Damage = 0;
     if (collides(p1.action.hitbox(), p2.action.hurtbox(), newFrame, targetFrame) ||
         collides(p1.action.hitbox(), p2.action.collision(), newFrame, targetFrame)) {
       // hit p2
       UE_LOG(LogTemp, Display, TEXT("ALogic: P2 was hit"));
-      if (!p2Input->isGuarding(!isP1OnLeft, targetFrame))
-        damage = p1.action.damage();
-      p2.health -= damage;
-      newFrame.hitP1 = false;
+      p2Hit = true;
+      p2.hitstun = p1.action.lockedFrames() - (targetFrame-p1.actionStart);
+      if (p2Input->isGuarding(!isP1OnLeft, targetFrame)){
+        p2Block = true;
+        // later we could make hitstun a property of an attack so that
+        // we can control the frame advantage. For now, we set the
+        // victim to recover one frame after the attacker on block
+        p2.hitstun += 1;
+      }
+      else {
+        p2Damage = p1.action.damage();
+        // later we could make hitstun a property of an attack so that
+        // we can control the frame advantage. For now, we set the
+        // victim to recover three frames after the attacker on hit
+        p2.hitstun += 3;
+      }
+      p2.health -= p2Damage;
     }
     if (collides(p1.action.hurtbox(), p2.action.hitbox(), newFrame, targetFrame) ||
         collides(p1.action.collision(), p2.action.hitbox(), newFrame, targetFrame)) {
       // hit p1
       UE_LOG(LogTemp, Display, TEXT("ALogic: P1 was hit"));
-      if (!p1Input->isGuarding(isP1OnLeft, targetFrame))
-        damage = p2.action.damage();
-      p1.health -= damage;
-      newFrame.hitP1 = true;
+      p1Hit = true;
+      p1.hitstun = p2.action.lockedFrames() - (targetFrame-p2.actionStart);
+      if (p1Input->isGuarding(isP1OnLeft, targetFrame)){
+        p1Block = true;
+        // later we could make hitstun a property of an attack so that
+        // we can control the frame advantage. For now, we set the
+        // victim to recover one frame after the attacker on block
+        p1.hitstun += 1;
+      }
+      else {
+        p1Damage = p2.action.damage();
+        // later we could make hitstun a property of an attack so that
+        // we can control the frame advantage. For now, we set the
+        // victim to recover three frames after the attacker on hit
+        p1.hitstun += 3;
+      }
+      p1.health -= p1Damage;
     }
-    newFrame.hitstop = damage/5;
+
+    // TODO: should spawn special FX on hit/block here
+    if (p1Hit) {
+      if (p1Block) {
+        p1.doBlockAction(targetFrame);
+      }
+      else {
+        p1.doDamagedAction(targetFrame);
+      }
+      newFrame.hitPlayer = 1;
+    }
+    if (p2Hit) {
+      if (p2Block) {
+        p2.doBlockAction(targetFrame);
+      }
+      else {
+        p2.doDamagedAction(targetFrame);
+      }
+      newFrame.hitPlayer = 2;
+    }
+    newFrame.hitstop = std::max(p1Damage, p2Damage)/5;
+    if (p1Hit && p2Hit) {
+      newFrame.hitPlayer = 0;
+      // add the hitstop because we won't do real hitstop when ties
+      // happen, only pushback
+      p1.hitstun += newFrame.hitstop; 
+      p2.hitstun += newFrame.hitstop;
+    }
   }
   else { // we are in hitstop
     // keep the attacking player frozen, do pushback, keep players in bounds
-    Player &victim = newFrame.hitP1 ? p1 : p2;
-    Player &attacker = newFrame.hitP1 ? p2 : p1;
-    // this causes the freeze on the attacker's animation
-    ++attacker.actionStart;
-    // do pushback on the victim
-    bool isVictimOnLeft = IsPlayerOnLeft(victim, attacker);
-    victim.pos.Y += (isVictimOnLeft ? -1 : 1) * 10;
+    if ((newFrame.hitPlayer == 1) || (newFrame.hitPlayer == 0)) {
+      // do pushback
+      p1.pos.Y += (isP1OnLeft ? -1 : 1) * 10;
+    }
+    if ((newFrame.hitPlayer == 2) || (newFrame.hitPlayer == 0)) {
+      // do pushback
+      p2.pos.Y += (!isP1OnLeft ? -1 : 1) * 10;
+    }
+    if (newFrame.hitPlayer == 1) {
+      // this causes the freeze on the attacker's animation
+      ++p2.actionStart;
+    }
+    if (newFrame.hitPlayer == 2) {
+      // this causes the freeze on the attacker's animation
+      ++p1.actionStart;
+    }
+    // in the case of a tie, we don't freeze any players
+
     // put players back in bounds
-    int collisionExtent = victim.collidesWithBoundary(isVictimOnLeft ? stageBoundLeft.Y : stageBoundRight.Y, !isVictimOnLeft);
+    Player& pleft = isP1OnLeft ? p1 : p2;
+    Player& pright = !isP1OnLeft ? p1 : p2;
+    int collisionExtent = pleft.collidesWithBoundary(stageBoundLeft.Y, false);
+    p1.pos.Y += collisionExtent;
+    p2.pos.Y += collisionExtent;
+    collisionExtent = pright.collidesWithBoundary(stageBoundRight.Y, true);
     p1.pos.Y += collisionExtent;
     p2.pos.Y += collisionExtent;
 

@@ -16,12 +16,15 @@ public:
   bool isFacingRight;
   int actionStart;
   int health;
+  int hitstun = 0;
 
   Player(FVector pos, HAction action): pos(pos), action(action), actionStart(0), health(100) {};
   Player() {};
 
   void TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft);
   float collidesWithBoundary(float boundary, bool isRightBound);
+  void doDamagedAction(int frame);
+  void doBlockAction(int frame);
 };
 
 class Frame {
@@ -29,8 +32,7 @@ public:
   Player p1;
   Player p2;
   int hitstop = 0; // number of frames of hitstop left
-  bool hitP1; // when hitstop>0, true if p1 was hit, otherwise p2 was
-              // hit
+  int hitPlayer; // when hitstop>0, 0=both, 1=p1, 2=p2
 
   Frame(Player p1, Player p2): p1(p1), p2(p2) {};
   Frame() {};
