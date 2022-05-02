@@ -33,4 +33,7 @@ public:
 
   UFUNCTION (Server, Reliable)
   void ServerButtons(int8 buttonsPressed, int8 buttonsReleased, int targetFrame);
+
+  UFUNCTION (BlueprintCallable, Category="Player")
+  int getPlayerNumber();
 };

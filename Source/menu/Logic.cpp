@@ -688,3 +688,25 @@ const Player& ALogic::getPlayer1() {
 const Player& ALogic::getPlayer2() {
   return frames.last().p2;
 }
+
+const Player& ALogic::getPlayer(int playerNumber) {
+  switch (playerNumber) {
+  case 0: return getPlayer1();
+  case 1: return getPlayer2();
+  default:
+    MYLOG(Error, "getPlayer: playerNumber is not 0 or 1! (player number: %i)", playerNumber);
+    return getPlayer1();
+  }
+}
+
+FVector ALogic::playerPos(int playerNumber) {
+  return getPlayer(playerNumber).pos;
+}
+
+bool ALogic::playerIsFacingRight(int playerNumber) {
+  return getPlayer(playerNumber).isFacingRight;
+}
+
+int ALogic::playerHealth(int playerNumber) {
+  return getPlayer(playerNumber).health;
+}

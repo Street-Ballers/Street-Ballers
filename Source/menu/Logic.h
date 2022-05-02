@@ -55,7 +55,7 @@ private:
 
 public:
   RingBuffer() = default;
-  
+
   void reserve(int size);
 
   void clear();
@@ -72,8 +72,8 @@ public:
 UCLASS()
 class MENU_API ALogic : public AActor
 {
-	GENERATED_BODY()
-	
+        GENERATED_BODY()
+
 public:
         // character references so we can actually command them.
         UPROPERTY(EditAnywhere)
@@ -115,8 +115,8 @@ public:
         UPROPERTY (BlueprintAssignable, Category="Fight Sequence")
         FOnEndFightDelegate OnEndFight;
 
-	// Sets default values for this actor's properties
-	ALogic();
+        // Sets default values for this actor's properties
+        ALogic();
 
 private:
         int maxRollback = 10; // keep around 10 frames or so for rollback
@@ -142,32 +142,45 @@ private:
 
         void computeFrame(int targetFrame);
 
-	// Called every frame
+        // Called every frame
         void FightTick();
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+        // Called when the game starts or when spawned
+        virtual void BeginPlay() override;
 
 public:
-        // reset() and Enter FightMode::Idle mode.
-        UFUNCTION ()
+        // reset() and Enter FightMode::Idle mode. Trigger OnPreRound
+        // event.
+        UFUNCTION (BlueprintCallable, Category="Fight Sequence")
         void preRound();
-        // Enter FightMode::Fight mode.
-        UFUNCTION ()
+        // Enter FightMode::Fight mode. Trigger OnBeginRound event.
+        UFUNCTION (BlueprintCallable, Category="Fight Sequence")
         void beginRound();
-        // Go to FightMode::Idle mode.
-        UFUNCTION ()
+        // Go to FightMode::Idle mode. Trigger OnEndRound event.
+        UFUNCTION (BlueprintCallable, Category="Fight Sequence")
         void endRound();
-        // Go to FightMode::Wait.
-        UFUNCTION ()
+        // Go to FightMode::Wait. Trigger OnEndFight event.
+        UFUNCTION (BlueprintCallable, Category="Fight Sequence")
         void endFight();
 
-	virtual void Tick(float DeltaTime) override;
+        virtual void Tick(float DeltaTime) override;
 
         // Getters to get values for updating other actors
         const Player& getPlayer1();
         const Player& getPlayer2();
+        // player number is 0-indexed for this function
+        const Player& getPlayer(int playerNumber);
+
+        // These getters are not methods on Player because I don't
+        // want to turn Player into a UObject and increase the size of
+        // the data we need to save every frame.
+        UFUNCTION (BlueprintCallable, Category="Player")
+        FVector playerPos(int playerNumber);
+        UFUNCTION (BlueprintCallable, Category="Player")
+        bool playerIsFacingRight(int playerNumber);
+        UFUNCTION (BlueprintCallable, Category="Player")
+        int playerHealth(int playerNumber);
 };
 
 static inline ALogic* FindLogic(UWorld *world) {

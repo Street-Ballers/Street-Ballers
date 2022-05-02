@@ -131,3 +131,7 @@ void ALogicPlayerController::ServerButtons_Implementation(int8 buttonsPressed, i
     }
   }
 }
+
+int ALogicPlayerController::getPlayerNumber() {
+  return playerNumber;
+}
