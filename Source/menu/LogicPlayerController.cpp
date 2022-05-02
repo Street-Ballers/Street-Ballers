@@ -19,6 +19,7 @@ ALogicPlayerController::ALogicPlayerController()
 
 void ALogicPlayerController::BeginPlay()
 {
+  Super::BeginPlay();
   MYLOG(Warning, "BeginPlay");
 }
 
