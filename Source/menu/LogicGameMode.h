@@ -15,6 +15,10 @@ class MENU_API ALogicGameMode : public AGameMode
 {
   GENERATED_BODY()
 
+private:
+
+  int playerCount;
+
 public:
   ALogicGameMode();
 

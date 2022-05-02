@@ -14,12 +14,28 @@ class MENU_API ALogicPlayerController : public APlayerController
 
 private:
   int playerNumber;
+  bool readiedUp;
   AFightInput* input;
+  AFightInput* opponentInput;
 
 public:
   ALogicPlayerController();
 
-  void PostLogin(int playerNumber_);
+  UFUNCTION (Server, Reliable)
+  void ServerPostLogin(int playerNumber_);
+  UFUNCTION (Client, Reliable)
+  void ClientPostLogin(int playerNumber_);
   void BeginPlay();
+
+  UFUNCTION (Server, Reliable)
+  void ServerReadyUp();
+
   void Tick(float deltaSeconds);
+
+  UFUNCTION (Server, Reliable)
+  void ServerButtons(int targetFrame);
+  UFUNCTION (Server, Reliable)
+  void ServerButtons1(int targetFrame);
+  UFUNCTION (Server, Reliable)
+  void ServerButtons2(int targetFrame);
 };

@@ -5,6 +5,8 @@
 #include "Action.h"
 #include <algorithm>
 
+#define MYLOG(category, message, ...) UE_LOG(LogTemp, category, TEXT("ALogic (%s) " message), (GetWorld()->IsNetMode(NM_ListenServer)) ? TEXT("server") : TEXT("client"), ##__VA_ARGS__)
+
 void RingBuffer::reserve(int size) {
   n = size;
   clear();
@@ -46,7 +48,7 @@ bool Box::collides(const Box& b, float offsetax, float offsetay, float offsetbx,
     bxend *= -1;
     std::swap(bx, bxend);
   }
-  //UE_LOG(LogTemp, Display, TEXT("Box collides(): (x %f y %f xend %f yend %f) (x %f y %f xend %f yend %f), (offsetax %f offset ay %f offsetbx %f offsetby %f)"), ax, y, axend, yend, bx, b.y, bxend, b.yend, offsetax, offsetay, offsetbx, offsetby);
+  //MYLOG(Display, "Box collides(): (x %f y %f xend %f yend %f) (x %f y %f xend %f yend %f), (offsetax %f offset ay %f offsetbx %f offsetby %f)", ax, y, axend, yend, bx, b.y, bxend, b.yend, offsetax, offsetay, offsetbx, offsetby);
   return
     // TODO: i think some of these can be removed since ax<axend an bx<bxend
     !(((ax+offsetax) < (bx+offsetbx)) &&
@@ -336,13 +338,13 @@ void ALogic::HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRig
     // if p2 collides with p1, also move p2
     float collisionAdj = playerCollisionExtent(f.p2, f.p1, targetFrame);
     //f.p2.pos.Y += collisionAdj;
-    UE_LOG(LogTemp, Display, TEXT("ALogic: p1 collides with %s"), doRightBoundary ? TEXT("right") : TEXT("left"));
+    MYLOG(Display, "HandlePlayerBoundaryCollision: p1 collides with %s", doRightBoundary ? TEXT("right") : TEXT("left"));
   }
   if ((p2CollisionAdj != 0.0) && (p1CollisionAdj == 0.0)) {
     // if p1 collides with p2, also move p1
     float collisionAdj = playerCollisionExtent(f.p1, f.p2, targetFrame);
     f.p1.pos.Y += collisionAdj;
-    //UE_LOG(LogTemp, Display, TEXT("ALogic: p2 collides with %s"), doRightBoundary ? TEXT("right") : TEXT("left"));
+    //MYLOG(Display, "p2 collides with %s", doRightBoundary ? TEXT("right") : TEXT("left"));
   }
   else if ((p1CollisionAdj != 0.0) && (p2CollisionAdj != 0.0)) {
     // at least one player must be jumping. Let the leftmost player
@@ -356,7 +358,7 @@ void ALogic::HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRig
     }
     f.p1.pos.Y += collisionAdj;
     f.p2.pos.Y += collisionAdj;
-    //UE_LOG(LogTemp, Display, TEXT("ALogic: p1 and p2 collide with %s"), doRightBoundary ? TEXT("right") : TEXT("left"));
+    //MYLOG(Display, "p1 and p2 collide with %s", doRightBoundary ? TEXT("right") : TEXT("left"));
   }
 }
 
@@ -375,15 +377,32 @@ void ALogic::BeginPlay()
 {
   Super::BeginPlay();
 
+  MYLOG(Display, TEXT("BeginPlay"));
+
+  // initialize some variables
+
   frames = RingBuffer();
   frames.reserve(maxRollback+1);
 
   p1Input->init(maxRollback, 2, 2);
   p2Input->init(maxRollback, 2, 2);
 
+  mode = LogicMode::Wait;
+  frame = 0;
   reset(false);
 
-  UE_LOG(LogTemp, Display, TEXT("ALogic: BeginPlay"));
+  // subscribe to events
+
+  gameState = GetFightGameState(GetWorld());
+  if (!gameState) {
+    MYLOG(Error, TEXT("BeginPlay: gameState is NULL!"));
+  }
+  else {
+    gameState->OnPreRound.AddDynamic(this, &ALogic::preRound);
+    gameState->OnBeginRound.AddDynamic(this, &ALogic::beginRound);
+    gameState->OnEndRound.AddDynamic(this, &ALogic::endRound);
+    gameState->OnEndFight.AddDynamic(this, &ALogic::endFight);
+  }
 }
 
 void ALogic::reset(bool flipSpawns) {
@@ -395,22 +414,33 @@ void ALogic::reset(bool flipSpawns) {
   f.p2.isFacingRight = !IsP1OnLeft(f);
   frames.clear();
   frames.push(f);
-  frame = 0;
-  _beginFight = false;
 }
 
-void ALogic::beginFight() {
-  _beginFight = true;
-  p1Input->beginFight = true;
-  p2Input->beginFight = true;
-  UE_LOG(LogTemp, Display, TEXT("ALogic: Begin fight!"));
+void ALogic::setMode(enum LogicMode m) {
+  mode = m;
+  p1Input->setMode(m);
+  p2Input->setMode(m);
+}
+
+void ALogic::preRound() {
+  setMode(LogicMode::Idle);
+  reset(false);
+  MYLOG(Display, "preRound");
+}
+
+void ALogic::beginRound() {
+  setMode(LogicMode::Fight);
+  MYLOG(Display, "beginRound");
+}
+
+void ALogic::endRound() {
+  setMode(LogicMode::Idle);
+  MYLOG(Display, "endRound");
 }
 
 void ALogic::endFight() {
-  _beginFight = false;
-  p1Input->beginFight = false;
-  p2Input->beginFight = false;
-  UE_LOG(LogTemp, Display, TEXT("ALogic: End fight!"));
+  setMode(LogicMode::Wait);
+  MYLOG(Display, "endFight");
 }
 
 bool ALogic::IsPlayerOnLeft(const Player& p1, const Player& p2) {
@@ -483,7 +513,7 @@ void ALogic::computeFrame(int targetFrame) {
   isP1OnLeft = IsP1OnLeft(newFrame);
 
   // check hitboxes, compute damage. Don't forget the case of ties.
-  UE_LOG(LogTemp, Display, TEXT("ALogic: hitstop %i"), newFrame.hitstop);
+  //MYLOG(Display, "hitstop %i", newFrame.hitstop);
   if (newFrame.hitstop == 0) { // only check hitboxes if we are not in hitstop
     bool p1Hit = false, p1Block = false;
     int p1Damage = 0;
@@ -492,7 +522,7 @@ void ALogic::computeFrame(int targetFrame) {
     if (collides(p1.action.hitbox(), p2.action.hurtbox(), newFrame, targetFrame) ||
         collides(p1.action.hitbox(), p2.action.collision(), newFrame, targetFrame)) {
       // hit p2
-      UE_LOG(LogTemp, Display, TEXT("ALogic: P2 was hit"));
+      MYLOG(Display, "P2 was hit");
       p2Hit = true;
       p2.hitstun = p1.action.lockedFrames() - (targetFrame-p1.actionStart);
       if (p2Input->isGuarding(!isP1OnLeft, targetFrame)){
@@ -514,7 +544,7 @@ void ALogic::computeFrame(int targetFrame) {
     if (collides(p1.action.hurtbox(), p2.action.hitbox(), newFrame, targetFrame) ||
         collides(p1.action.collision(), p2.action.hitbox(), newFrame, targetFrame)) {
       // hit p1
-      UE_LOG(LogTemp, Display, TEXT("ALogic: P1 was hit"));
+      MYLOG(Display, "P1 was hit");
       p1Hit = true;
       p1.hitstun = p2.action.lockedFrames() - (targetFrame-p2.actionStart);
       if (p1Input->isGuarding(isP1OnLeft, targetFrame)){
@@ -558,7 +588,7 @@ void ALogic::computeFrame(int targetFrame) {
       newFrame.hitPlayer = 0;
       // add the hitstop because we won't do real hitstop when ties
       // happen, only pushback
-      p1.hitstun += newFrame.hitstop; 
+      p1.hitstun += newFrame.hitstop;
       p2.hitstun += newFrame.hitstop;
     }
   }
@@ -608,17 +638,19 @@ void ALogic::computeFrame(int targetFrame) {
 }
 
 void ALogic::FightTick() {
+  MYLOG(Display, "FightTick");
+
   int latestInputFrame = std::max(p1Input->getCurrentFrame(), p2Input->getCurrentFrame());
   int targetFrame = std::max(latestInputFrame, frame+1);
 
   // TODO: needsRollback needs to take into account delay
   if (p1Input->needsRollback() || p2Input->needsRollback()) {
-    UE_LOG(LogTemp, Warning, TEXT("ALogic: Rollback"));
+    MYLOG(Warning, "Rollback");
     int rollbackToFrame = std::min(p1Input->getNeedsRollbackToFrame(), p2Input->getNeedsRollbackToFrame());
     if ((1 + frame - rollbackToFrame) > maxRollback) {
       // exceeded maximum rollback. we do not have data old enough to
       // rollback, simulate the fight and guarantee consistency.
-      UE_LOG(LogTemp, Warning, TEXT("ALogic: MAXIMUM ROLLBACK EXCEEDED!"));
+      MYLOG(Warning, "MAXIMUM ROLLBACK EXCEEDED!");
       // TODO: quit game or maybe just reset match
     }
     else {
@@ -632,11 +664,11 @@ void ALogic::FightTick() {
 
   while (frame < targetFrame) {
     ++frame;
-    //UE_LOG(LogTemp, Display, TEXT("Logic: TICK %i!"), frame);
+    //MYLOG(Display, "TICK %i!", frame);
     computeFrame(frame);
   }
 
-  // UE_LOG(LogTemp, Display, TEXT("Logic: TICK!"));
+  // MYLOG(Display, "TICK!");
 }
 
 // Called every frame
@@ -644,7 +676,8 @@ void ALogic::Tick(float DeltaTime)
 {
   Super::Tick(DeltaTime);
 
-  if (_beginFight) {
+  MYLOG(Display, "Tick");
+  if (mode == LogicMode::Fight) {
     FightTick();
   }
 }

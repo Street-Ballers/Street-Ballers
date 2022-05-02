@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Info.h"
 #include "Action.h"
+#include "LogicMode.h"
 #include <optional>
 #include <vector>
 #include "FightInput.generated.h"
@@ -63,6 +64,8 @@ private:
   ButtonRingBuffer buttonHistory;
   ButtonRingBuffer directionHistory;
 
+  enum LogicMode mode;
+
   bool is_button(const enum Button& b);
   // bool is_none(const Button& b);
   enum Button translateDirection(const enum Button& d, bool isOnLeft);
@@ -79,12 +82,14 @@ private:
   HAction _action(HAction currentAction, int frame, bool isOnLeft);
 
 public:
-  bool beginFight = false;
+  AFightInput();
 
   // initialize all member variables
   void init(int _maxRollback, int _buffer, int _delay);
-  // clear all inputs
+  // clear all inputs and rollback state
   void reset();
+
+  void setMode(enum LogicMode);
 
   // The player controller will call this function to say which
   // buttons were pressed and released on the given frame. frame is
@@ -93,10 +98,12 @@ public:
   // by the player controller.
   void buttons(const std::vector<enum Button>& buttonsPressed, const std::vector<enum Button>& buttonsReleased, int targetFrame);
 
-  UFUNCTION (Client)
-  void buttonsShortcut1(int targetFrame);
-  UFUNCTION (Client)
-  void buttonsShortcut2(int targetFrame);
+  void ButtonsShortcut1(int targetFrame);
+  void ButtonsShortcut2(int targetFrame);
+  UFUNCTION (Client, Reliable)
+  void ClientButtonsShortcut1(int targetFrame);
+  UFUNCTION (Client, Reliable)
+  void ClientButtonsShortcut2(int targetFrame);
 
   // Returns the decoded action for the given targetFrame.
   HAction action(HAction currentAction, bool isOnLeft, int targetFrame);

@@ -3,6 +3,8 @@
 #include "FightInput.h"
 #include <algorithm>
 
+#define MYLOG(category, message, ...) UE_LOG(LogTemp, category, TEXT("AFightInput (%s %s) " message), *GetActorLabel(false), (GetWorld()->IsNetMode(NM_ListenServer)) ? TEXT("server") : TEXT("client"), ##__VA_ARGS__)
+
 void ButtonRingBuffer::reserve(int size) {
   n = size;
   clear();
@@ -30,6 +32,10 @@ std::optional<enum Button>& ButtonRingBuffer::nthlast(int i) {
   return v.at(j);
 }
 
+AFightInput::AFightInput() {
+  bReplicates = true;
+}
+
 bool AFightInput::is_button(const enum Button& b) {
   switch (b) {
   case Button::LP:
@@ -53,15 +59,19 @@ void AFightInput::init(int _maxRollback, int _buffer, int _delay) {
   n = maxRollback+buffer+delay+1;
   buttonHistory.reserve(n);
   directionHistory.reserve(n);
+  mode = LogicMode::Wait;
+  currentFrame = 0;
   reset();
 }
 
 void AFightInput::reset() {
-  beginFight = false;
-  currentFrame = 0;
   needsRollbackToFrame = -1;
   buttonHistory.clear();
   directionHistory.clear();
+}
+
+void AFightInput::setMode(enum LogicMode m) {
+  mode = m;
 }
 
 void AFightInput::ensureFrame(int targetFrame) {
@@ -75,25 +85,38 @@ void AFightInput::ensureFrame(int targetFrame) {
   }
 }
 
+auto buttonToString(enum Button b) {
+  switch (b) {
+  case Button::LP: return TEXT("LP");
+  case Button::HP: return TEXT("HP");
+  case Button::LK: return TEXT("LK");
+  case Button::HK: return TEXT("HK");
+  case Button::FORWARD: return TEXT("FORWARD");
+  case Button::BACK: return TEXT("BACK");
+  case Button::UP: return TEXT("UP");
+  case Button::DOWN: return TEXT("DOWN");
+  case Button::LEFT: return TEXT("LEFT");
+  case Button::RIGHT: return TEXT("RIGHT");
+  }
+}
+
 void AFightInput::buttons(const std::vector<enum Button>& buttonsPressed, const std::vector<enum Button>& buttonsReleased, int targetFrame) {
-  if (!beginFight) return;
-  // UE_LOG(LogTemp,
-  //        Warning,
-  //        TEXT("AFightInput buttons(): %s (current frame %i) (target frame %i) (button: %s)"),
-  //        *GetActorLabel(false),
-  //        currentFrame,
-  //        targetFrame,
-  //        (!buttonsPressed.empty()) ? ((buttonsPressed[0]==Button::RIGHT) ? TEXT("right") : TEXT("not right")) : TEXT("none"));
+  if (mode != LogicMode::Fight) return;
+  MYLOG(Display,
+        TEXT("buttons(): (current frame %i) (target frame %i) (button: %s)"),
+        currentFrame,
+        targetFrame,
+        (!buttonsPressed.empty()) ? buttonToString(buttonsPressed[0]) : TEXT("none"));
 
   // check if a rollback will be needed
-  if (targetFrame <= currentFrame) {
+  if (targetFrame <= (currentFrame-delay)) {
     if (getNeedsRollbackToFrame()) {
-      needsRollbackToFrame = std::min(needsRollbackToFrame, targetFrame);
+      needsRollbackToFrame = std::min(needsRollbackToFrame, targetFrame-delay);
     }
     else {
-      needsRollbackToFrame = targetFrame;
+      needsRollbackToFrame = targetFrame-delay;
     }
-    if (targetFrame <= currentFrame+1 - maxRollback) {
+    if (targetFrame <= currentFrame+1 - delay - maxRollback) {
       return; // there is nothing that this class can do in this
               // situation. We don't have input data going back that
               // far. Let ALogic decide how to reset or quit the
@@ -135,15 +158,27 @@ void AFightInput::buttons(const std::vector<enum Button>& buttonsPressed, const 
     }
   }
 
-  // UE_LOG(LogTemp, Warning, TEXT("AFightInput end of buttons(): %s (i %i) (button: %s) (buttonlast %s)"), *GetActorLabel(false), i, (dh.has_value() && (dh.value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"), (directionHistory.last().has_value() && (directionHistory.last().value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"));
+  // MYLOG(Warning, "end of buttons(): %s (i %i) (button: %s) (buttonlast %s)", *GetActorLabel(false), i, (dh.has_value() && (dh.value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"), (directionHistory.last().has_value() && (directionHistory.last().value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"));
 }
 
-void AFightInput::buttonsShortcut1(int targetFrame) {
+void AFightInput::ButtonsShortcut1(int targetFrame) {
+  MYLOG(Display, "ButtonsShortcut1");
   buttons({Button::RIGHT}, {}, targetFrame);
 }
 
-void AFightInput::buttonsShortcut2(int targetFrame) {
-  buttons({}, {}, targetFrame);
+void AFightInput::ButtonsShortcut2(int targetFrame) {
+  MYLOG(Display, "ButtonsShortcut2");
+  buttons({Button::HP}, {}, targetFrame);
+}
+
+void AFightInput::ClientButtonsShortcut1_Implementation(int targetFrame) {
+  MYLOG(Display, "ClientButtonsShortcut1");
+  ButtonsShortcut1(targetFrame);
+}
+
+void AFightInput::ClientButtonsShortcut2_Implementation(int targetFrame) {
+  MYLOG(Display, "ClientButtonsShortcut2");
+  ButtonsShortcut2(targetFrame);
 }
 
 enum Button AFightInput::translateDirection(const enum Button& d, bool isOnLeft) {
@@ -162,11 +197,11 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft) {
   const HCharacter& c = currentAction.character();
   // for now, if there was a button, output the corresponding attack.
   // If no button, then walk/idle based on directional input.
-  // UE_LOG(LogTemp, Warning, TEXT("AFightInput _action(): %s (frame %i) (button %s)"), *GetActorLabel(false), frame, directionHistory.nthlast(frame).has_value() ? ((directionHistory.nthlast(frame).value() == Button::RIGHT) ? TEXT("right") : TEXT("not right")) : TEXT("none"));
+  // MYLOG(Warning, "_action(): %s (frame %i) (button %s)", *GetActorLabel(false), frame, directionHistory.nthlast(frame).has_value() ? ((directionHistory.nthlast(frame).value() == Button::RIGHT) ? TEXT("right") : TEXT("not right")) : TEXT("none"));
   if (buttonHistory.nthlast(frame).has_value()) {
     enum Button button = buttonHistory.nthlast(frame).value();
     if (button == Button::HP){
-      UE_LOG(LogTemp, Display, TEXT("AFightInput _action(): %s Do StHP"), *GetActorLabel(false));
+      MYLOG(Display, "_action(): Do StHP");
       return c.sthp();
     }
   }
@@ -183,7 +218,7 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft) {
 HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFrame) {
   int frameBefore = currentFrame;
   ensureFrame(targetFrame);
-  //UE_LOG(LogTemp, Warning, TEXT("AFightInput action(): %s (current frame %i) (target frame %i)"), *GetActorLabel(false), currentFrame, targetFrame);
+  //MYLOG(Warning, "action(): %s (current frame %i) (target frame %i)", *GetActorLabel(false), currentFrame, targetFrame);
 
   int frame = computeIndex(targetFrame);
   // Try decoding an action based on the inputs at `frame'. If the
@@ -192,7 +227,7 @@ HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFram
   // idling or walking, or we have tried all of the `input
   // buffer' frames.
   HAction mostRecentAction = _action(currentAction, frame, isOnLeft);
-  // UE_LOG(LogTemp, Warning, TEXT("AFightInput action(): %s (current frame %i) (target frame %i) (action: %s)"), *GetActorLabel(false), currentFrame, targetFrame, (mostRecentAction == HActionIdle) ? TEXT("idle") : TEXT("not idle"));
+  // MYLOG(Warning, "action(): %s (current frame %i) (target frame %i) (action: %s)", *GetActorLabel(false), currentFrame, targetFrame, (mostRecentAction == HActionIdle) ? TEXT("idle") : TEXT("not idle"));
   HAction action = mostRecentAction;
   while (action.isWalkOrIdle() && (++frame <= (delay+buffer))) {
     action = _action(currentAction, frame, isOnLeft);

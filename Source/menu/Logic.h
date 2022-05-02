@@ -7,6 +7,8 @@
 #include "EngineUtils.h"
 #include "Action.h"
 #include "FightInput.h"
+#include "FightGameState.h"
+#include "LogicMode.h"
 #include "Logic.generated.h"
 
 class Player {
@@ -91,20 +93,29 @@ public:
         UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
         FVector rightStart;
 
-        int maxRollback = 10; // keep around 10 frames or so for rollback
-        RingBuffer frames;
         UPROPERTY(EditAnywhere)
         AFightInput* p1Input;
         UPROPERTY(EditAnywhere)
         AFightInput* p2Input;
-        int frame;
 
 	// Sets default values for this actor's properties
 	ALogic();
 
 private:
-        bool _beginFight = false;
+        int maxRollback = 10; // keep around 10 frames or so for rollback
+        RingBuffer frames;
+        int frame;
 
+        enum LogicMode mode;
+        AFightGameState* gameState;
+
+        void setMode(enum LogicMode);
+
+        // Reset the fight; put players back at start with full
+        // health, clear inputs and rollback buffer.
+        void reset(bool flipSpawns);
+
+        // a bunch of convenience functions for computeFrame()
         bool collides(const Box &p1b, const Box &p2b, const Frame &f, int targetFrame);
         bool collides(const Hitbox &p1b, const Box &p2b, const Frame &f, int targetFrame);
         bool collides(const Box &p1b, const Hitbox &p2b, const Frame &f, int targetFrame);
@@ -116,20 +127,27 @@ private:
 
         void computeFrame(int targetFrame);
 
+	// Called every frame
+        void FightTick();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 public:
-        // Reset the fight; put players back at start with full
-        // health, clear inputs. Do this before beginFight().
-        void reset(bool flipSpawns);
-
-        // start and stop the actual fight logic
-        void beginFight();
+        // reset() and Enter FightMode::Idle mode.
+        UFUNCTION ()
+        void preRound();
+        // Enter FightMode::Fight mode.
+        UFUNCTION ()
+        void beginRound();
+        // Go to FightMode::Idle mode.
+        UFUNCTION ()
+        void endRound();
+        // Go to FightMode::Wait.
+        UFUNCTION ()
         void endFight();
-	// Called every frame
-        void FightTick();
+
 	virtual void Tick(float DeltaTime) override;
 
         // Getters to get values for updating other actors
@@ -141,7 +159,7 @@ static inline ALogic* FindLogic(UWorld *world) {
   TActorIterator<ALogic> i (world);
   ALogic *l = Cast<ALogic>(*i);
   if (l) {
-    UE_LOG(LogTemp, Warning, TEXT("ALogic found!"));
+    // UE_LOG(LogTemp, Display, TEXT("ALogic found!"));
   }
   else {
     UE_LOG(LogTemp, Warning, TEXT("ALogic NOT found!"));
