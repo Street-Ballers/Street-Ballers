@@ -390,19 +390,6 @@ void ALogic::BeginPlay()
   mode = LogicMode::Wait;
   frame = 0;
   reset(false);
-
-  // subscribe to events
-
-  gameState = GetFightGameState(GetWorld());
-  if (!gameState) {
-    MYLOG(Error, TEXT("BeginPlay: gameState is NULL!"));
-  }
-  else {
-    gameState->OnPreRound.AddDynamic(this, &ALogic::preRound);
-    gameState->OnBeginRound.AddDynamic(this, &ALogic::beginRound);
-    gameState->OnEndRound.AddDynamic(this, &ALogic::endRound);
-    gameState->OnEndFight.AddDynamic(this, &ALogic::endFight);
-  }
 }
 
 void ALogic::reset(bool flipSpawns) {
@@ -423,24 +410,36 @@ void ALogic::setMode(enum LogicMode m) {
 }
 
 void ALogic::preRound() {
+  MYLOG(Display, "preRound");
   setMode(LogicMode::Idle);
   reset(false);
-  MYLOG(Display, "preRound");
+  if(OnPreRound.IsBound()) {
+    OnPreRound.Broadcast();
+  }
 }
 
 void ALogic::beginRound() {
-  setMode(LogicMode::Fight);
   MYLOG(Display, "beginRound");
+  setMode(LogicMode::Fight);
+  if(OnBeginRound.IsBound()) {
+    OnBeginRound.Broadcast();
+  }
 }
 
 void ALogic::endRound() {
-  setMode(LogicMode::Idle);
   MYLOG(Display, "endRound");
+  setMode(LogicMode::Idle);
+  if(OnEndRound.IsBound()) {
+    OnEndRound.Broadcast();
+  }
 }
 
 void ALogic::endFight() {
-  setMode(LogicMode::Wait);
   MYLOG(Display, "endFight");
+  setMode(LogicMode::Wait);
+  if(OnEndFight.IsBound()) {
+    OnEndFight.Broadcast();
+  }
 }
 
 bool ALogic::IsPlayerOnLeft(const Player& p1, const Player& p2) {

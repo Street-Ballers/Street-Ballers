@@ -11,6 +11,13 @@
 #include "LogicMode.h"
 #include "Logic.generated.h"
 
+// Important fight sequence events. It should be possible to bind to
+// these events from blueprints.
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPreRoundDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBeginRoundDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEndRoundDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEndFightDelegate);
+
 class Player {
 public:
   FVector pos;
@@ -98,6 +105,16 @@ public:
         UPROPERTY(EditAnywhere)
         AFightInput* p2Input;
 
+        // Fight sequence events
+        UPROPERTY (BlueprintAssignable, Category="Fight Sequence")
+        FOnPreRoundDelegate OnPreRound;
+        UPROPERTY (BlueprintAssignable, Category="Fight Sequence")
+        FOnBeginRoundDelegate OnBeginRound;
+        UPROPERTY (BlueprintAssignable, Category="Fight Sequence")
+        FOnEndRoundDelegate OnEndRound;
+        UPROPERTY (BlueprintAssignable, Category="Fight Sequence")
+        FOnEndFightDelegate OnEndFight;
+
 	// Sets default values for this actor's properties
 	ALogic();
 
@@ -107,8 +124,6 @@ private:
         int frame;
 
         enum LogicMode mode;
-        AFightGameState* gameState;
-
         void setMode(enum LogicMode);
 
         // Reset the fight; put players back at start with full
