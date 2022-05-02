@@ -16,7 +16,6 @@ private:
   int playerNumber;
   bool readiedUp;
   AFightInput* input;
-  AFightInput* opponentInput;
 
 public:
   ALogicPlayerController();
@@ -33,9 +32,5 @@ public:
   void Tick(float deltaSeconds);
 
   UFUNCTION (Server, Reliable)
-  void ServerButtons(int targetFrame);
-  UFUNCTION (Server, Reliable)
-  void ServerButtons1(int targetFrame);
-  UFUNCTION (Server, Reliable)
-  void ServerButtons2(int targetFrame);
+  void ServerButtons(int8 buttonsPressed, int8 buttonsReleased, int targetFrame);
 };

@@ -100,13 +100,32 @@ auto buttonToString(enum Button b) {
   }
 }
 
-void AFightInput::buttons(const std::vector<enum Button>& buttonsPressed, const std::vector<enum Button>& buttonsReleased, int targetFrame) {
+FString AFightInput::encodedButtonsToString(int8 e) {
+  FString r;
+  for (auto b : {Button::LP, Button::HP, Button::LK, Button::HK,
+                 Button::UP, Button::DOWN, Button::LEFT, Button::RIGHT}) {
+    if (decodeButton(b, e))
+      r.Append(buttonToString(b));
+  }
+  return r;
+}
+
+int8 AFightInput::encodeButton(enum Button b, int8 encoded) {
+  return encoded | (1 << (int) b);
+}
+
+bool AFightInput::decodeButton(enum Button b, int8 encoded) {
+  return (encoded & (1 << (int) b)) != 0;
+}
+
+void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetFrame) {
   if (mode != LogicMode::Fight) return;
   MYLOG(Display,
-        TEXT("buttons(): (current frame %i) (target frame %i) (button: %s)"),
+        TEXT("buttons(): (current frame %i) (target frame %i) (buttonsPressed %s) (buttonsReleased %s)"),
         currentFrame,
         targetFrame,
-        (!buttonsPressed.empty()) ? buttonToString(buttonsPressed[0]) : TEXT("none"));
+        *encodedButtonsToString(buttonsPressed),
+        *encodedButtonsToString(buttonsReleased));
 
   // check if a rollback will be needed
   if (targetFrame <= (currentFrame-delay)) {
@@ -132,17 +151,15 @@ void AFightInput::buttons(const std::vector<enum Button>& buttonsPressed, const 
   std::optional<enum Button>& dh = directionHistory.nthlast(i);
 
   // handle presses. this is a really simple implementation that just
-  // sets the button pressed to the last button that happens to appear
-  // in buttonsPressed.
-  if (!buttonsPressed.empty()) {
-    for (auto b : buttonsPressed) {
-      if (is_button(b)) {
+  // sets the button pressed to the last button/direction that happens
+  // to appear in buttonsPressed.
+  for (auto b: {Button::LP, Button::HP, Button::LK, Button::HK}) {
+    if (decodeButton(b, buttonsPressed))
         bh = std::make_optional(b);
-      }
-      if (!is_button(b)) {
-        dh = std::make_optional(b);
-      }
-    }
+  }
+  for (auto b: {Button::UP, Button::DOWN, Button::LEFT, Button::RIGHT}) {
+    if (decodeButton(b, buttonsPressed))
+      dh = std::make_optional(b);
   }
 
   // handle releases. this should probably just ignore everything
@@ -151,34 +168,15 @@ void AFightInput::buttons(const std::vector<enum Button>& buttonsPressed, const 
   // of all directions held so that when one is released we can use
   // one of the other currently held ones. _action() will have to pick
   // between which directions to prioritize.
-  if (!buttonsReleased.empty()) {
-    for (auto b : buttonsReleased) {
-      if (!is_button(b) && (directionHistory.last() == b))
-        dh = {};
-    }
+  for (auto b: {Button::UP, Button::DOWN, Button::LEFT, Button::RIGHT}) {
+    if (decodeButton(b, buttonsReleased) && (directionHistory.last() == b))
+      dh = {};
   }
-
-  // MYLOG(Warning, "end of buttons(): %s (i %i) (button: %s) (buttonlast %s)", *GetActorLabel(false), i, (dh.has_value() && (dh.value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"), (directionHistory.last().has_value() && (directionHistory.last().value() == Button::RIGHT)) ? TEXT("right") : TEXT("not right"));
 }
 
-void AFightInput::ButtonsShortcut1(int targetFrame) {
-  MYLOG(Display, "ButtonsShortcut1");
-  buttons({Button::RIGHT}, {}, targetFrame);
-}
-
-void AFightInput::ButtonsShortcut2(int targetFrame) {
-  MYLOG(Display, "ButtonsShortcut2");
-  buttons({Button::HP}, {}, targetFrame);
-}
-
-void AFightInput::ClientButtonsShortcut1_Implementation(int targetFrame) {
-  MYLOG(Display, "ClientButtonsShortcut1");
-  ButtonsShortcut1(targetFrame);
-}
-
-void AFightInput::ClientButtonsShortcut2_Implementation(int targetFrame) {
-  MYLOG(Display, "ClientButtonsShortcut2");
-  ButtonsShortcut2(targetFrame);
+void AFightInput::ClientButtons_Implementation(int8 buttonsPressed, int8 buttonsReleased, int targetFrame) {
+  MYLOG(Display, "ClientButtons");
+  buttons(buttonsPressed, buttonsReleased, targetFrame);
 }
 
 enum Button AFightInput::translateDirection(const enum Button& d, bool isOnLeft) {

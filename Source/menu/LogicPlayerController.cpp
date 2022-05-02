@@ -37,6 +37,7 @@ void ALogicPlayerController::ServerPostLogin_Implementation(int playerNumber_) {
   //UE_LOG(LogTemp, Warning, "ALogicPlayerController ServerPostLogin: Logging in Player %i (%s)", playerNumber, GetLocalPlayer() ? "local player" : "networked player");
 
   ALogic *l = FindLogic(GetWorld());
+  AFightInput* opponentInput;
   switch (playerNumber) {
   case 0:
     input = l->p1Input;
@@ -87,9 +88,6 @@ void ALogicPlayerController::Tick(float deltaSeconds) {
   if (!IsLocalController())
     return;
 
-  // if (!HasActorBegunPlay())
-  //   return;
-
   if (GetWorld()->IsPaused())
     return;
 
@@ -100,19 +98,21 @@ void ALogicPlayerController::Tick(float deltaSeconds) {
     readiedUp = true;
   }
 
-  // for now, just simulate player 1 walking forward, and player 2
-  // standing still
+  // for now, just simulate player 1 pressing right repeatedly, and
+  // player 2 pressing HP repeatedly
   if (input) {
     int targetFrame = input->getCurrentFrame()+1;
     if (playerNumber == 0) {
-      input->ButtonsShortcut1(targetFrame);
-      ServerButtons1(targetFrame);
-      //input->buttons({}, {}, input->getCurrentFrame()+1);
+      int8 encodedButtons = AFightInput::encodeButton(Button::RIGHT);
+      MYLOG(Display, "Tick: button %i", encodedButtons);
+      input->buttons(encodedButtons, 0, targetFrame);
+      ServerButtons(encodedButtons, 0, targetFrame);
     }
     else {
-      input->ButtonsShortcut2(targetFrame);
-      ServerButtons2(targetFrame);
-      //input->buttons({Button::HP}, {}, input->getCurrentFrame()+1);
+      int8 encodedButtons = AFightInput::encodeButton(Button::HP);
+      MYLOG(Display, "Tick: button %i", encodedButtons);
+      input->buttons(encodedButtons, 0, targetFrame);
+      ServerButtons(encodedButtons, 0, targetFrame);
     }
   }
   else {
@@ -120,38 +120,14 @@ void ALogicPlayerController::Tick(float deltaSeconds) {
   }
 }
 
-void ALogicPlayerController::ServerButtons_Implementation(int targetFrame) {
+void ALogicPlayerController::ServerButtons_Implementation(int8 buttonsPressed, int8 buttonsReleased, int targetFrame) {
   if (GetWorld()->IsNetMode(NM_ListenServer)) {
     MYLOG(Display, "ServerButtons");
-    if (!opponentInput) {
-      MYLOG(Warning, "ServerButtons: opponentInput is NULL");
-    }
-    else {
-      opponentInput->ClientButtonsShortcut1(targetFrame);
-    }
-  }
-}
-
-void ALogicPlayerController::ServerButtons1_Implementation(int targetFrame) {
-  if (GetWorld()->IsNetMode(NM_ListenServer)) {
-    MYLOG(Display, "ServerButtons1");
     if (!input) {
-      MYLOG(Warning, "ServerButtons1: input is NULL");
+      MYLOG(Warning, "ServerButtons: input is NULL");
     }
     else {
-      input->ClientButtonsShortcut1(targetFrame);
-    }
-  }
-}
-
-void ALogicPlayerController::ServerButtons2_Implementation(int targetFrame) {
-  if (GetWorld()->IsNetMode(NM_ListenServer)) {
-    MYLOG(Display, "ServerButtons2");
-    if (!input) {
-      MYLOG(Warning, "ServerButtons2: input is NULL");
-    }
-    else {
-      input->ButtonsShortcut2(targetFrame);
+      input->ClientButtons(buttonsPressed, buttonsReleased, targetFrame);
     }
   }
 }

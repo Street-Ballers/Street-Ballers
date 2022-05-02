@@ -12,7 +12,14 @@
 
 // "Button" here includes directional input. They are relative to the
 // character's orientation.
-enum class Button {LP, HP, LK, HK, FORWARD, BACK, UP, DOWN, LEFT, RIGHT};
+enum class Button {
+  LP=0, HP=1, LK=2, HK=3,
+  UP=4, DOWN=5, LEFT=6, RIGHT=7,
+  FORWARD, BACK
+};
+
+// UE doesn't support type aliases
+#define int8 char
 
 // ideally we'd only have one RingBuffer<T> class but unreal doesn't
 // like templates and I don't want to figure out how to build it as an
@@ -91,19 +98,21 @@ public:
 
   void setMode(enum LogicMode);
 
+  // Returns the encoding given in `encoded' plus the button `b'
+  // encoded into it
+  static FString encodedButtonsToString(int8 e);
+  static int8 encodeButton(enum Button b, int8 encoded=0);
+  static bool decodeButton(enum Button b, int8 encoded);
+
   // The player controller will call this function to say which
   // buttons were pressed and released on the given frame. frame is
   // the frame that the inputs should first appear. It is 1+ the frame
   // number stored in ALogic at the time that this function is called
   // by the player controller.
-  void buttons(const std::vector<enum Button>& buttonsPressed, const std::vector<enum Button>& buttonsReleased, int targetFrame);
+  void buttons(int8 buttonsPressed, int8 buttonsReleased, int targetFrame);
 
-  void ButtonsShortcut1(int targetFrame);
-  void ButtonsShortcut2(int targetFrame);
   UFUNCTION (Client, Reliable)
-  void ClientButtonsShortcut1(int targetFrame);
-  UFUNCTION (Client, Reliable)
-  void ClientButtonsShortcut2(int targetFrame);
+  void ClientButtons(int8 buttonsPressed, int8 buttonsReleased, int targetFrame);
 
   // Returns the decoded action for the given targetFrame.
   HAction action(HAction currentAction, bool isOnLeft, int targetFrame);
