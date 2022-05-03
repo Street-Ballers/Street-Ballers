@@ -75,15 +75,9 @@ class MENU_API ALogic : public AActor
         GENERATED_BODY()
 
 public:
-        // character references so we can actually command them.
+        // set to true to skip the preround
         UPROPERTY(EditAnywhere)
-        AActor* character1;
-        UPROPERTY(EditAnywhere)
-        AActor* character2;
-
-        // HUD reference so we can actually command it.
-        UPROPERTY(EditAnywhere)
-        AActor* hud;
+        bool skipPreRound;
 
         // Invisible objects at the ends of the stages. We will use
         // these just to grab their coordinates and not let players
@@ -124,6 +118,11 @@ private:
         int frame;
 
         enum LogicMode mode;
+        bool inPreRound; // setting this to true will cause Tick() to
+                         // count forward 30 frames rounded to the
+                         // nearest 15 frames, and then call
+                         // beginRound().
+        int roundStartFrame;
         void setMode(enum LogicMode);
 
         // Reset the fight; put players back at start with full

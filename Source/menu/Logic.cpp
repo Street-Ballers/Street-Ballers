@@ -411,13 +411,20 @@ void ALogic::setMode(enum LogicMode m) {
 
 void ALogic::preRound() {
   MYLOG(Display, "preRound");
-  setMode(LogicMode::Idle);
-  reset(false);
-  if(OnPreRound.IsBound()) {
-    OnPreRound.Broadcast();
+  if (skipPreRound) {
+    reset(false);
+    beginRound();
+  }
+  else {
+    setMode(LogicMode::Idle);
+    inPreRound = true;
+    roundStartFrame = ((frame+60)/15)*15;
+    reset(false);
+    if(OnPreRound.IsBound()) {
+      OnPreRound.Broadcast();
+    }
   }
 }
-
 void ALogic::beginRound() {
   MYLOG(Display, "beginRound");
   setMode(LogicMode::Fight);
@@ -666,8 +673,6 @@ void ALogic::FightTick() {
     //MYLOG(Display, "TICK %i!", frame);
     computeFrame(frame);
   }
-
-  // MYLOG(Display, "TICK!");
 }
 
 // Called every frame
@@ -676,8 +681,17 @@ void ALogic::Tick(float DeltaTime)
   Super::Tick(DeltaTime);
 
   MYLOG(Display, "Tick");
-  if (mode == LogicMode::Fight) {
+  switch (mode) {
+  case LogicMode::Idle:
+    if (inPreRound && (frame == (roundStartFrame-1))) {
+      inPreRound = false;
+      beginRound();
+    }
+    ++frame;
+    break;
+  case LogicMode::Fight:
     FightTick();
+    break;
   }
 }
 

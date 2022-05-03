@@ -16,9 +16,5 @@ void AFightGameState::ServerPlayerReady(int playerNumber) {
 
 void AFightGameState::ClientPlayersReady_Implementation() {
   ALogic* l = FindLogic(GetWorld());
-  // TODO: we should call preRound() instead. An actor bound to the
-  // preround event should then call beginRound() after its done doing
-  // things like displaying a "ready...fight" banner
-  //l->preRound();
-  l->beginRound();
+  l->preRound();
 }
