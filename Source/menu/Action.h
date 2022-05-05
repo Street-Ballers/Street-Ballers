@@ -3,6 +3,9 @@
 #include "Hitbox.h"
 #include <optional>
 
+UENUM(BlueprintType)
+enum EAnimation { Idle, WalkBackward, WalkForward, Damaged, Block, StHP };
+
 // Defines
 // - animation
 // - hitboxes
@@ -12,6 +15,8 @@
 class Action {
 public:
   int character;
+
+  enum EAnimation animation;
 
   // TODO: Box should really be a Hitbox here. There should be a
   // Hitbox constructor for making Hitboxes that always return the
@@ -27,10 +32,10 @@ public:
   FVector velocity;
   bool isWalkOrIdle;
 
-  Action(int character, std::optional<Box> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int lockedFrames, bool isWalkOrIdle = false, FVector velocity = FVector(0.0, 0.0, 0.0)): character(character), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), lockedFrames(lockedFrames), velocity(velocity), isWalkOrIdle(isWalkOrIdle) {};
+  Action(int character, enum EAnimation animation, std::optional<Box> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int lockedFrames, bool isWalkOrIdle = false, FVector velocity = FVector(0.0, 0.0, 0.0)): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), lockedFrames(lockedFrames), velocity(velocity), isWalkOrIdle(isWalkOrIdle) {};
 
   // don't use this constructor
-  Action(): Action(-1, {}, Hitbox({}), Hitbox({}), 0, 0) {};
+  Action(): Action(-1, EAnimation::Idle, {}, Hitbox({}), Hitbox({}), 0, 0) {};
 };
 
 class HCharacter;
@@ -47,6 +52,7 @@ public:
   static void init();
 
   HCharacter character() const;
+  enum EAnimation animation() const;
   const Box& collision() const;
   const Hitbox& hitbox() const;
   const Hitbox& hurtbox() const;

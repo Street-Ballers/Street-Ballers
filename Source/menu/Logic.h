@@ -180,6 +180,8 @@ public:
         bool playerIsFacingRight(int playerNumber);
         UFUNCTION (BlueprintCallable, Category="Player")
         int playerHealth(int playerNumber);
+        UFUNCTION (BlueprintCallable, Category="Player")
+        enum EAnimation playerAnimation(int playerNumber);
 };
 
 static inline ALogic* FindLogic(UWorld *world) {

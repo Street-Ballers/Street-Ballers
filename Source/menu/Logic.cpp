@@ -189,6 +189,10 @@ bool HAction::isWalkOrIdle() const {
   return actions[h].isWalkOrIdle;
 }
 
+enum EAnimation HAction::animation() const {
+  return actions[h].animation;
+}
+
 bool HAction::operator==(const HAction& b) const {
   return h == b.h;
 }
@@ -635,7 +639,7 @@ void ALogic::computeFrame(int targetFrame) {
   // stuff. when in online multiplayer, this should also wait for both
   // clients to be at a consistent state
   if ((p1.health == 0) || (p2.health == 0)) {
-    endFight();
+    endRound();
     // do stuff on end fight; declare winner, display message, call
     // reset(roundNumber%2) and beginFight()
   }
@@ -723,4 +727,8 @@ bool ALogic::playerIsFacingRight(int playerNumber) {
 
 int ALogic::playerHealth(int playerNumber) {
   return getPlayer(playerNumber).health;
+}
+
+enum EAnimation ALogic::playerAnimation(int playerNumber) {
+  return getPlayer(playerNumber).action.animation();
 }
