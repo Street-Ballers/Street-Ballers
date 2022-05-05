@@ -3,6 +3,9 @@
 #include "Hitbox.h"
 #include <optional>
 
+UENUM(BlueprintType)
+enum EAnimation { Idle, WalkBackward, WalkForward, Damaged, Block, StHP };
+
 // Defines
 // - animation
 // - hitboxes
@@ -12,6 +15,8 @@
 class Action {
 public:
   int character;
+
+  enum EAnimation animation;
 
   // TODO: Box should really be a Hitbox here. There should be a
   // Hitbox constructor for making Hitboxes that always return the
@@ -27,10 +32,10 @@ public:
   FVector velocity;
   bool isWalkOrIdle;
 
-  Action(int character, std::optional<Box> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int lockedFrames, bool isWalkOrIdle = false, FVector velocity = FVector(0.0, 0.0, 0.0)): character(character), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), lockedFrames(lockedFrames), velocity(velocity), isWalkOrIdle(isWalkOrIdle) {};
+  Action(int character, enum EAnimation animation, std::optional<Box> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int lockedFrames, bool isWalkOrIdle = false, FVector velocity = FVector(0.0, 0.0, 0.0)): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), lockedFrames(lockedFrames), velocity(velocity), isWalkOrIdle(isWalkOrIdle) {};
 
   // don't use this constructor
-  Action(): Action(-1, {}, Hitbox({}), Hitbox({}), 0, 0) {};
+  Action(): Action(-1, EAnimation::Idle, {}, Hitbox({}), Hitbox({}), 0, 0) {};
 };
 
 class HCharacter;
@@ -47,6 +52,7 @@ public:
   static void init();
 
   HCharacter character() const;
+  enum EAnimation animation() const;
   const Box& collision() const;
   const Hitbox& hitbox() const;
   const Hitbox& hurtbox() const;
@@ -65,7 +71,9 @@ enum IAction {
   IActionIdle = 0,
   IActionWalkForward = 1,
   IActionWalkBackward = 2,
-  IActionStHP = 3
+  IActionDamaged = 3,
+  IActionBlock = 4,
+  IActionStHP = 5
 };
 
 // this is to assign HActions to action names. All other code should
@@ -73,6 +81,8 @@ enum IAction {
 #define HActionIdle (HAction(IActionIdle))
 #define HActionWalkForward (HAction(IActionWalkForward))
 #define HActionWalkBackward (HAction(IActionWalkBackward))
+#define HActionDamaged (HAction(IActionDamaged))
+#define HActionBlock (HAction(IActionBlock))
 #define HActionStHP (HAction(IActionStHP))
 
 // Actions themselves are defined in HAction::actions[] in Logic.cpp,
@@ -88,13 +98,15 @@ public:
   HAction idle;
   HAction walkForward;
   HAction walkBackward;
+  HAction damaged;
+  HAction block;
   HAction sthp;
   // crlp, sthk, crlk, guarding, damaged
 
-  Character(Box collision, HAction idle, HAction walkForward, HAction walkBackward, HAction sthp): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), sthp(sthp) {};
+  Character(Box collision, HAction idle, HAction walkForward, HAction walkBackward, HAction damaged, HAction block, HAction sthp): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), damaged(damaged), block(block), sthp(sthp) {};
 
   // don't use this constructor
-  Character(): Character(Box(0, 0, 0, 0), HAction(), HAction(), HAction(), HAction()) {};
+  Character(): Character(Box(0, 0, 0, 0), HAction(), HAction(), HAction(), HAction(), HAction(), HAction()) {};
 };
 
 class HCharacter {
@@ -109,6 +121,8 @@ public:
   HAction idle() const;
   HAction walkForward() const;
   HAction walkBackward() const;
+  HAction damaged() const;
+  HAction block() const;
   HAction sthp() const;
 
   bool operator==(const HCharacter& b) const;

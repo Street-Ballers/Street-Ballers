@@ -3,6 +3,7 @@
 
 #include "FightCameraActor.h"
 #include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
 #include <algorithm>
 
 AFightCameraActor::AFightCameraActor() {
@@ -14,6 +15,12 @@ void AFightCameraActor::BeginPlay() {
   Super::BeginPlay();
 
   RegisterAllActorTickFunctions(true, false);
+
+  // set the camera for the local player to this camera
+  APlayerController* pc = UGameplayStatics::GetPlayerController(this, 0);
+  if (pc) {
+    pc->SetViewTarget(this);
+  }
 }
 
 void AFightCameraActor::SetFighters(AFighter* fighter1_, AFighter* fighter2_) {

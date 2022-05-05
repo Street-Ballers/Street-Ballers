@@ -5,11 +5,14 @@ Action HAction::actions[8];
 Character HCharacter::characters[8];
 
 void HAction::init() {
-  actions[IActionIdle] = Action(IChar1, {}, Hitbox({}), Hitbox({}), 0, true);
-  actions[IActionWalkBackward] = Action(IChar1, {}, Hitbox({}), Hitbox({}), 0, 0, true, FVector(0.0, -2.0, 0.0));
-  actions[IActionWalkForward] = Action(IChar1, {}, Hitbox({}), Hitbox({}), 0, 0, true, FVector(0.0, 4.0, 0.0));
+  actions[IActionIdle] = Action(IChar1, EAnimation::Idle, {}, Hitbox({}), Hitbox({}), 0, true);
+  actions[IActionWalkBackward] = Action(IChar1, EAnimation::WalkBackward, {}, Hitbox({}), Hitbox({}), 0, 0, true, FVector(0.0, -2.0, 0.0));
+  actions[IActionWalkForward] = Action(IChar1, EAnimation::WalkForward, {}, Hitbox({}), Hitbox({}), 0, 0, true, FVector(0.0, 4.0, 0.0));
+  actions[IActionDamaged] = Action(IChar1, EAnimation::Damaged, {}, Hitbox({}), Hitbox({}), 0, true);
+  actions[IActionBlock] = Action(IChar1, EAnimation::Block, {}, Hitbox({}), Hitbox({}), 0, true);
 
   actions[IActionStHP] = Action(IChar1,
+                                EAnimation::StHP,
                                 {},
                                 Hitbox({
                                     // TODO: make a convenience function for
@@ -26,5 +29,5 @@ void HAction::init() {
 }
 
 void HCharacter::init() {
-  characters[IChar1] = Character(Box::make_centeredx(100.0, 200.0), HActionIdle, HActionWalkForward, HActionWalkBackward, HActionStHP);
+  characters[IChar1] = Character(Box::make_centeredx(100.0, 200.0), HActionIdle, HActionWalkForward, HActionWalkBackward, HActionDamaged, HActionBlock, HActionStHP);
 }

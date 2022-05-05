@@ -7,7 +7,16 @@
 #include "EngineUtils.h"
 #include "Action.h"
 #include "FightInput.h"
+#include "FightGameState.h"
+#include "LogicMode.h"
 #include "Logic.generated.h"
+
+// Important fight sequence events. It should be possible to bind to
+// these events from blueprints.
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPreRoundDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBeginRoundDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEndRoundDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEndFightDelegate);
 
 class Player {
 public:
@@ -16,32 +25,40 @@ public:
   bool isFacingRight;
   int actionStart;
   int health;
+  int hitstun = 0;
 
   Player(FVector pos, HAction action): pos(pos), action(action), actionStart(0), health(100) {};
+  Player() {};
 
   void TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft);
-  float collidesWithBoundary(int boundary, bool isRightBound);
+  float collidesWithBoundary(float boundary, bool isRightBound);
+  void doDamagedAction(int frame);
+  void doBlockAction(int frame);
 };
 
 class Frame {
 public:
   Player p1;
   Player p2;
+  int hitstop = 0; // number of frames of hitstop left
+  int hitPlayer; // when hitstop>0, 0=both, 1=p1, 2=p2
 
   Frame(Player p1, Player p2): p1(p1), p2(p2) {};
+  Frame() {};
 };
 
 class RingBuffer {
 private:
-  Frame* v = nullptr;
+  std::vector<Frame> v;
   int n;
-  int start;
   int end;
 
 public:
   RingBuffer() = default;
-  
+
   void reserve(int size);
+
+  void clear();
 
   void push(const Frame& x);
 
@@ -49,26 +66,18 @@ public:
 
   // pop the m last elements
   void popn(int m);
-
-  ~RingBuffer();
 };
 
 // TODO: make this a subclass of AInfo instead
 UCLASS()
 class MENU_API ALogic : public AActor
 {
-	GENERATED_BODY()
-	
-public:
-        // character references so we can actually command them.
-        UPROPERTY(EditAnywhere)
-        AActor* character1;
-        UPROPERTY(EditAnywhere)
-        AActor* character2;
+        GENERATED_BODY()
 
-        // HUD reference so we can actually command it.
+public:
+        // set to true to skip the preround
         UPROPERTY(EditAnywhere)
-        AActor* hud;
+        bool skipPreRound;
 
         // Invisible objects at the ends of the stages. We will use
         // these just to grab their coordinates and not let players
@@ -85,49 +94,101 @@ public:
         UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
         FVector rightStart;
 
-        int maxRollback = 10; // keep around 10 frames or so for rollback
-        RingBuffer frames;
         UPROPERTY(EditAnywhere)
         AFightInput* p1Input;
         UPROPERTY(EditAnywhere)
         AFightInput* p2Input;
-        int frame;
 
-	// Sets default values for this actor's properties
-	ALogic();
+        // Fight sequence events
+        UPROPERTY (BlueprintAssignable, Category="Fight Sequence")
+        FOnPreRoundDelegate OnPreRound;
+        UPROPERTY (BlueprintAssignable, Category="Fight Sequence")
+        FOnBeginRoundDelegate OnBeginRound;
+        UPROPERTY (BlueprintAssignable, Category="Fight Sequence")
+        FOnEndRoundDelegate OnEndRound;
+        UPROPERTY (BlueprintAssignable, Category="Fight Sequence")
+        FOnEndFightDelegate OnEndFight;
+
+        // Sets default values for this actor's properties
+        ALogic();
 
 private:
-        bool _beginFight = false;
+        int maxRollback = 10; // keep around 10 frames or so for rollback
+        RingBuffer frames;
+        int frame;
 
+        enum LogicMode mode;
+        bool inPreRound; // setting this to true will cause Tick() to
+                         // count forward 30 frames rounded to the
+                         // nearest 15 frames, and then call
+                         // beginRound().
+        int roundStartFrame;
+        void setMode(enum LogicMode);
+
+        // Reset the fight; put players back at start with full
+        // health, clear inputs and rollback buffer.
+        void reset(bool flipSpawns);
+
+        // a bunch of convenience functions for computeFrame()
         bool collides(const Box &p1b, const Box &p2b, const Frame &f, int targetFrame);
         bool collides(const Hitbox &p1b, const Box &p2b, const Frame &f, int targetFrame);
         bool collides(const Box &p1b, const Hitbox &p2b, const Frame &f, int targetFrame);
         bool collides(const Hitbox &p1b, const Hitbox &p2b, const Frame &f, int targetFrame);
         float playerCollisionExtent(const Player &p, const Player &q, int targetFrame);
         void HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRightBoundary);
+        bool IsPlayerOnLeft(const Player& p1, const Player& p2);
         bool IsP1OnLeft(const Frame& f);
 
         void computeFrame(int targetFrame);
 
+        // Called every frame
+        void FightTick();
+
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+        // Called when the game starts or when spawned
+        virtual void BeginPlay() override;
 
 public:
-        void beginFight();
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+        // reset() and Enter FightMode::Idle mode. Trigger OnPreRound
+        // event.
+        UFUNCTION (BlueprintCallable, Category="Fight Sequence")
+        void preRound();
+        // Enter FightMode::Fight mode. Trigger OnBeginRound event.
+        UFUNCTION (BlueprintCallable, Category="Fight Sequence")
+        void beginRound();
+        // Go to FightMode::Idle mode. Trigger OnEndRound event.
+        UFUNCTION (BlueprintCallable, Category="Fight Sequence")
+        void endRound();
+        // Go to FightMode::Wait. Trigger OnEndFight event.
+        UFUNCTION (BlueprintCallable, Category="Fight Sequence")
+        void endFight();
+
+        virtual void Tick(float DeltaTime) override;
 
         // Getters to get values for updating other actors
         const Player& getPlayer1();
         const Player& getPlayer2();
+        // player number is 0-indexed for this function
+        const Player& getPlayer(int playerNumber);
+
+        // These getters are not methods on Player because I don't
+        // want to turn Player into a UObject and increase the size of
+        // the data we need to save every frame.
+        UFUNCTION (BlueprintCallable, Category="Player")
+        FVector playerPos(int playerNumber);
+        UFUNCTION (BlueprintCallable, Category="Player")
+        bool playerIsFacingRight(int playerNumber);
+        UFUNCTION (BlueprintCallable, Category="Player")
+        int playerHealth(int playerNumber);
+        UFUNCTION (BlueprintCallable, Category="Player")
+        enum EAnimation playerAnimation(int playerNumber);
 };
 
 static inline ALogic* FindLogic(UWorld *world) {
   TActorIterator<ALogic> i (world);
   ALogic *l = Cast<ALogic>(*i);
   if (l) {
-    UE_LOG(LogTemp, Warning, TEXT("ALogic found!"));
+    // UE_LOG(LogTemp, Display, TEXT("ALogic found!"));
   }
   else {
     UE_LOG(LogTemp, Warning, TEXT("ALogic NOT found!"));

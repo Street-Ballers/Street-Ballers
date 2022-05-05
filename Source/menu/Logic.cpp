@@ -5,36 +5,33 @@
 #include "Action.h"
 #include <algorithm>
 
+#define MYLOG(category, message, ...) UE_LOG(LogTemp, category, TEXT("ALogic (%s) " message), (GetWorld()->IsNetMode(NM_ListenServer)) ? TEXT("server") : TEXT("client"), ##__VA_ARGS__)
+
 void RingBuffer::reserve(int size) {
   n = size;
-  if (n>0)
-    v = (Frame*) malloc(n*sizeof(Frame));
-  start = 0;
-  end = -1;
+  clear();
+}
+
+void RingBuffer::clear() {
+  v.clear();
+  v.resize(n);
+  end = 0;
 }
 
 void RingBuffer::push(const Frame& x) {
   end = end+1;
   if (end == n) end = 0;
-  v[end] = x;
-  if (end == start) {
-    start = start+1;
-    if (start == n) start = 0;
-  }
+  v.at(end) = x;
 }
 
 const Frame& RingBuffer::last() {
-  return v[end];
+  return v.at(end);
 }
 
 void RingBuffer::popn(int m) {
   // assumes that we don't pop off more elements than we have
   end = end - m;
   if (end < 0) end += n;
-}
-
-RingBuffer::~RingBuffer() {
-  if (v) free(v);
 }
 
 // if aFacingRight is true, then flip box b. Else, flip box a
@@ -51,7 +48,7 @@ bool Box::collides(const Box& b, float offsetax, float offsetay, float offsetbx,
     bxend *= -1;
     std::swap(bx, bxend);
   }
-  //UE_LOG(LogTemp, Display, TEXT("Box collides(): (x %f y %f xend %f yend %f) (x %f y %f xend %f yend %f), (offsetax %f offset ay %f offsetbx %f offsetby %f)"), ax, y, axend, yend, bx, b.y, bxend, b.yend, offsetax, offsetay, offsetbx, offsetby);
+  //MYLOG(Display, "Box collides(): (x %f y %f xend %f yend %f) (x %f y %f xend %f yend %f), (offsetax %f offset ay %f offsetbx %f offsetby %f)", ax, y, axend, yend, bx, b.y, bxend, b.yend, offsetax, offsetay, offsetbx, offsetby);
   return
     // TODO: i think some of these can be removed since ax<axend an bx<bxend
     !(((ax+offsetax) < (bx+offsetbx)) &&
@@ -192,6 +189,10 @@ bool HAction::isWalkOrIdle() const {
   return actions[h].isWalkOrIdle;
 }
 
+enum EAnimation HAction::animation() const {
+  return actions[h].animation;
+}
+
 bool HAction::operator==(const HAction& b) const {
   return h == b.h;
 }
@@ -215,6 +216,14 @@ HAction HCharacter::walkForward() const {
 
 HAction HCharacter::walkBackward() const {
   return characters[h].walkBackward;
+}
+
+HAction HCharacter::damaged() const {
+  return characters[h].damaged;
+}
+
+HAction HCharacter::block() const {
+  return characters[h].block;
 }
 
 HAction HCharacter::sthp() const {
@@ -246,10 +255,20 @@ void Player::TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft) 
   }
 }
 
+void Player::doDamagedAction(int frame) {
+  action = action.character().damaged();
+  actionStart = frame;
+}
+
+void Player::doBlockAction(int frame) {
+  action = action.character().block();
+  actionStart = frame;
+}
+
 // returns the amount of correction needed to move player out of the bound
-float Player::collidesWithBoundary(int boundary, bool isRightBound) {
+float Player::collidesWithBoundary(float boundary, bool isRightBound) {
   const Box& b = action.collision();
-  int x = b.x, xend = b.xend;
+  float x = b.x, xend = b.xend;
   if (!isFacingRight) {
     x *= -1;
     xend *= -1;
@@ -315,21 +334,21 @@ float ALogic::playerCollisionExtent(const Player &p, const Player &q, int target
 
 void ALogic::HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRightBoundary) {
   float stageBound = doRightBoundary ? stageBoundRight.Y : stageBoundLeft.Y;
-  int p1CollisionAdj = f.p1.collidesWithBoundary(stageBound, doRightBoundary);
-  int p2CollisionAdj = f.p2.collidesWithBoundary(stageBound, doRightBoundary);
+  float p1CollisionAdj = f.p1.collidesWithBoundary(stageBound, doRightBoundary);
+  float p2CollisionAdj = f.p2.collidesWithBoundary(stageBound, doRightBoundary);
   f.p1.pos.Y += p1CollisionAdj;
   f.p2.pos.Y += p2CollisionAdj;
   if ((p1CollisionAdj != 0.0) && (p2CollisionAdj == 0.0)) {
     // if p2 collides with p1, also move p2
     float collisionAdj = playerCollisionExtent(f.p2, f.p1, targetFrame);
     //f.p2.pos.Y += collisionAdj;
-    UE_LOG(LogTemp, Display, TEXT("ALogic: p1 collides with %s"), doRightBoundary ? TEXT("right") : TEXT("left"));
+    MYLOG(Display, "HandlePlayerBoundaryCollision: p1 collides with %s", doRightBoundary ? TEXT("right") : TEXT("left"));
   }
   if ((p2CollisionAdj != 0.0) && (p1CollisionAdj == 0.0)) {
     // if p1 collides with p2, also move p1
     float collisionAdj = playerCollisionExtent(f.p1, f.p2, targetFrame);
     f.p1.pos.Y += collisionAdj;
-    //UE_LOG(LogTemp, Display, TEXT("ALogic: p2 collides with %s"), doRightBoundary ? TEXT("right") : TEXT("left"));
+    //MYLOG(Display, "p2 collides with %s", doRightBoundary ? TEXT("right") : TEXT("left"));
   }
   else if ((p1CollisionAdj != 0.0) && (p2CollisionAdj != 0.0)) {
     // at least one player must be jumping. Let the leftmost player
@@ -343,7 +362,7 @@ void ALogic::HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRig
     }
     f.p1.pos.Y += collisionAdj;
     f.p2.pos.Y += collisionAdj;
-    //UE_LOG(LogTemp, Display, TEXT("ALogic: p1 and p2 collide with %s"), doRightBoundary ? TEXT("right") : TEXT("left"));
+    //MYLOG(Display, "p1 and p2 collide with %s", doRightBoundary ? TEXT("right") : TEXT("left"));
   }
 }
 
@@ -362,31 +381,84 @@ void ALogic::BeginPlay()
 {
   Super::BeginPlay();
 
-  p1Input->init(maxRollback, 2, 2);
-  p2Input->init(maxRollback, 2, 2);
+  MYLOG(Display, TEXT("BeginPlay"));
+
+  // initialize some variables
+
   frames = RingBuffer();
   frames.reserve(maxRollback+1);
+
+  p1Input->init(maxRollback, 2, 2);
+  p2Input->init(maxRollback, 2, 2);
+
+  mode = LogicMode::Wait;
   frame = 0;
-  _beginFight = false;
-
-  // construct initial frame
-  Frame f (Player(leftStart, HActionIdle), Player(rightStart, HActionIdle));
-  f.p1.isFacingRight = true;
-  f.p2.isFacingRight = false;
-  frames.push(f);
-
-  UE_LOG(LogTemp, Display, TEXT("ALogic: BeginPlay"));
+  reset(false);
 }
 
-void ALogic::beginFight() {
-  _beginFight = true;
-  p1Input->beginFight = true;
-  p2Input->beginFight = true;
-  UE_LOG(LogTemp, Display, TEXT("ALogic: Begin fight!"));
+void ALogic::reset(bool flipSpawns) {
+  p1Input->reset();
+  p2Input->reset();
+  // construct initial frame
+  Frame f (Player(flipSpawns ? rightStart : leftStart, HActionIdle), Player(flipSpawns ? leftStart : rightStart, HActionIdle));
+  f.p1.isFacingRight = IsP1OnLeft(f);
+  f.p2.isFacingRight = !IsP1OnLeft(f);
+  frames.clear();
+  frames.push(f);
+}
+
+void ALogic::setMode(enum LogicMode m) {
+  mode = m;
+  p1Input->setMode(m);
+  p2Input->setMode(m);
+}
+
+void ALogic::preRound() {
+  MYLOG(Display, "preRound");
+  if (skipPreRound) {
+    reset(false);
+    beginRound();
+  }
+  else {
+    setMode(LogicMode::Idle);
+    inPreRound = true;
+    roundStartFrame = ((frame+60)/15)*15;
+    reset(false);
+    if(OnPreRound.IsBound()) {
+      OnPreRound.Broadcast();
+    }
+  }
+}
+void ALogic::beginRound() {
+  MYLOG(Display, "beginRound");
+  setMode(LogicMode::Fight);
+  if(OnBeginRound.IsBound()) {
+    OnBeginRound.Broadcast();
+  }
+}
+
+void ALogic::endRound() {
+  MYLOG(Display, "endRound");
+  setMode(LogicMode::Idle);
+  if(OnEndRound.IsBound()) {
+    OnEndRound.Broadcast();
+  }
+}
+
+void ALogic::endFight() {
+  MYLOG(Display, "endFight");
+  setMode(LogicMode::Wait);
+  if(OnEndFight.IsBound()) {
+    OnEndFight.Broadcast();
+  }
+}
+
+bool ALogic::IsPlayerOnLeft(const Player& p1, const Player& p2) {
+  return p1.pos.Y <= p2.pos.Y;
 }
 
 bool ALogic::IsP1OnLeft(const Frame& f) {
-  return f.p1.pos.Y <= f.p2.pos.Y;
+  return IsPlayerOnLeft(f.p1, f.p2);
 }
 
 // the targetFrame field is required for using the right inputs from
@@ -403,8 +475,14 @@ void ALogic::computeFrame(int targetFrame) {
   // If the player can act and there is a new action waiting, then
   // start the new action
   bool isP1OnLeft = IsP1OnLeft(newFrame);
-  p1.TryStartingNewAction(targetFrame, *p1Input, isP1OnLeft);
-  p2.TryStartingNewAction(targetFrame, *p2Input, !isP1OnLeft);
+  if (p1.hitstun == 0)
+    p1.TryStartingNewAction(targetFrame, *p1Input, isP1OnLeft);
+  else
+    --p1.hitstun;
+  if (p2.hitstun == 0)
+    p2.TryStartingNewAction(targetFrame, *p2Input, !isP1OnLeft);
+  else
+    --p2.hitstun;
 
   // compute player positions (if they are in a moving action). This
   // includes checking collision boxes and not letting players walk
@@ -442,44 +520,147 @@ void ALogic::computeFrame(int targetFrame) {
   // check for player-boundary collisions
   HandlePlayerBoundaryCollision(newFrame, targetFrame, false);
   HandlePlayerBoundaryCollision(newFrame, targetFrame, true);
+  isP1OnLeft = IsP1OnLeft(newFrame);
 
   // check hitboxes, compute damage. Don't forget the case of ties.
-  if (collides(p1.action.hitbox(), p2.action.hurtbox(), newFrame, targetFrame) ||
-      collides(p1.action.hitbox(), p2.action.collision(), newFrame, targetFrame)) {
-    // hit p2
-    UE_LOG(LogTemp, Display, TEXT("ALogic: P2 was hit"));
-    p2.health -= 10;
+  //MYLOG(Display, "hitstop %i", newFrame.hitstop);
+  if (newFrame.hitstop == 0) { // only check hitboxes if we are not in hitstop
+    bool p1Hit = false, p1Block = false;
+    int p1Damage = 0;
+    bool p2Hit = false, p2Block = false;
+    int p2Damage = 0;
+    if (collides(p1.action.hitbox(), p2.action.hurtbox(), newFrame, targetFrame) ||
+        collides(p1.action.hitbox(), p2.action.collision(), newFrame, targetFrame)) {
+      // hit p2
+      MYLOG(Display, "P2 was hit");
+      p2Hit = true;
+      p2.hitstun = p1.action.lockedFrames() - (targetFrame-p1.actionStart);
+      if (p2Input->isGuarding(!isP1OnLeft, targetFrame)){
+        p2Block = true;
+        // later we could make hitstun a property of an attack so that
+        // we can control the frame advantage. For now, we set the
+        // victim to recover one frame after the attacker on block
+        p2.hitstun += 1;
+      }
+      else {
+        p2Damage = p1.action.damage();
+        // later we could make hitstun a property of an attack so that
+        // we can control the frame advantage. For now, we set the
+        // victim to recover three frames after the attacker on hit
+        p2.hitstun += 3;
+      }
+      p2.health -= p2Damage;
+    }
+    if (collides(p1.action.hurtbox(), p2.action.hitbox(), newFrame, targetFrame) ||
+        collides(p1.action.collision(), p2.action.hitbox(), newFrame, targetFrame)) {
+      // hit p1
+      MYLOG(Display, "P1 was hit");
+      p1Hit = true;
+      p1.hitstun = p2.action.lockedFrames() - (targetFrame-p2.actionStart);
+      if (p1Input->isGuarding(isP1OnLeft, targetFrame)){
+        p1Block = true;
+        // later we could make hitstun a property of an attack so that
+        // we can control the frame advantage. For now, we set the
+        // victim to recover one frame after the attacker on block
+        p1.hitstun += 1;
+      }
+      else {
+        p1Damage = p2.action.damage();
+        // later we could make hitstun a property of an attack so that
+        // we can control the frame advantage. For now, we set the
+        // victim to recover three frames after the attacker on hit
+        p1.hitstun += 3;
+      }
+      p1.health -= p1Damage;
+    }
+
+    // TODO: should spawn special FX on hit/block here
+    if (p1Hit) {
+      if (p1Block) {
+        p1.doBlockAction(targetFrame);
+      }
+      else {
+        p1.doDamagedAction(targetFrame);
+      }
+      newFrame.hitPlayer = 1;
+    }
+    if (p2Hit) {
+      if (p2Block) {
+        p2.doBlockAction(targetFrame);
+      }
+      else {
+        p2.doDamagedAction(targetFrame);
+      }
+      newFrame.hitPlayer = 2;
+    }
+    newFrame.hitstop = std::max(p1Damage, p2Damage)/5;
+    if (p1Hit && p2Hit) {
+      newFrame.hitPlayer = 0;
+      // add the hitstop because we won't do real hitstop when ties
+      // happen, only pushback
+      p1.hitstun += newFrame.hitstop;
+      p2.hitstun += newFrame.hitstop;
+    }
   }
-  if (collides(p1.action.hurtbox(), p2.action.hitbox(), newFrame, targetFrame) ||
-      collides(p1.action.collision(), p2.action.hitbox(), newFrame, targetFrame)) {
-    // hit p1
-    UE_LOG(LogTemp, Display, TEXT("ALogic: P1 was hit"));
-    p1.health -= 10;
+  else { // we are in hitstop
+    // keep the attacking player frozen, do pushback, keep players in bounds
+    if ((newFrame.hitPlayer == 1) || (newFrame.hitPlayer == 0)) {
+      // do pushback
+      p1.pos.Y += (isP1OnLeft ? -1 : 1) * 10;
+    }
+    if ((newFrame.hitPlayer == 2) || (newFrame.hitPlayer == 0)) {
+      // do pushback
+      p2.pos.Y += (!isP1OnLeft ? -1 : 1) * 10;
+    }
+    if (newFrame.hitPlayer == 1) {
+      // this causes the freeze on the attacker's animation
+      ++p2.actionStart;
+    }
+    if (newFrame.hitPlayer == 2) {
+      // this causes the freeze on the attacker's animation
+      ++p1.actionStart;
+    }
+    // in the case of a tie, we don't freeze any players
+
+    // put players back in bounds
+    Player& pleft = isP1OnLeft ? p1 : p2;
+    Player& pright = !isP1OnLeft ? p1 : p2;
+    int collisionExtent = pleft.collidesWithBoundary(stageBoundLeft.Y, false);
+    p1.pos.Y += collisionExtent;
+    p2.pos.Y += collisionExtent;
+    collisionExtent = pright.collidesWithBoundary(stageBoundRight.Y, true);
+    p1.pos.Y += collisionExtent;
+    p2.pos.Y += collisionExtent;
+
+    --newFrame.hitstop;
   }
 
   // check if anyone died, and if so, start new round or end game and
   // stuff. when in online multiplayer, this should also wait for both
   // clients to be at a consistent state
+  if ((p1.health == 0) || (p2.health == 0)) {
+    endRound();
+    // do stuff on end fight; declare winner, display message, call
+    // reset(roundNumber%2) and beginFight()
+  }
 
   frames.push(newFrame);
 }
 
-// Called every frame
-void ALogic::Tick(float DeltaTime)
-{
-  Super::Tick(DeltaTime);
+void ALogic::FightTick() {
+  MYLOG(Display, "FightTick");
 
   int latestInputFrame = std::max(p1Input->getCurrentFrame(), p2Input->getCurrentFrame());
   int targetFrame = std::max(latestInputFrame, frame+1);
 
   // TODO: needsRollback needs to take into account delay
   if (p1Input->needsRollback() || p2Input->needsRollback()) {
-    UE_LOG(LogTemp, Warning, TEXT("ALogic: Rollback"));
+    MYLOG(Warning, "Rollback");
     int rollbackToFrame = std::min(p1Input->getNeedsRollbackToFrame(), p2Input->getNeedsRollbackToFrame());
     if ((1 + frame - rollbackToFrame) > maxRollback) {
       // exceeded maximum rollback. we do not have data old enough to
       // rollback, simulate the fight and guarantee consistency.
-      UE_LOG(LogTemp, Warning, TEXT("ALogic: MAXIMUM ROLLBACK EXCEEDED!"));
+      MYLOG(Warning, "MAXIMUM ROLLBACK EXCEEDED!");
       // TODO: quit game or maybe just reset match
     }
     else {
@@ -493,11 +674,29 @@ void ALogic::Tick(float DeltaTime)
 
   while (frame < targetFrame) {
     ++frame;
-    //UE_LOG(LogTemp, Display, TEXT("Logic: TICK %i!"), frame);
+    //MYLOG(Display, "TICK %i!", frame);
     computeFrame(frame);
   }
+}
 
-  // UE_LOG(LogTemp, Display, TEXT("Logic: TICK!"));
+// Called every frame
+void ALogic::Tick(float DeltaTime)
+{
+  Super::Tick(DeltaTime);
+
+  MYLOG(Display, "Tick");
+  switch (mode) {
+  case LogicMode::Idle:
+    if (inPreRound && (frame == (roundStartFrame-1))) {
+      inPreRound = false;
+      beginRound();
+    }
+    ++frame;
+    break;
+  case LogicMode::Fight:
+    FightTick();
+    break;
+  }
 }
 
 const Player& ALogic::getPlayer1() {
@@ -506,4 +705,30 @@ const Player& ALogic::getPlayer1() {
 
 const Player& ALogic::getPlayer2() {
   return frames.last().p2;
+}
+
+const Player& ALogic::getPlayer(int playerNumber) {
+  switch (playerNumber) {
+  case 0: return getPlayer1();
+  case 1: return getPlayer2();
+  default:
+    MYLOG(Error, "getPlayer: playerNumber is not 0 or 1! (player number: %i)", playerNumber);
+    return getPlayer1();
+  }
+}
+
+FVector ALogic::playerPos(int playerNumber) {
+  return getPlayer(playerNumber).pos;
+}
+
+bool ALogic::playerIsFacingRight(int playerNumber) {
+  return getPlayer(playerNumber).isFacingRight;
+}
+
+int ALogic::playerHealth(int playerNumber) {
+  return getPlayer(playerNumber).health;
+}
+
+enum EAnimation ALogic::playerAnimation(int playerNumber) {
+  return getPlayer(playerNumber).action.animation();
 }
