@@ -17,6 +17,9 @@ private:
   bool readiedUp;
   AFightInput* input;
 
+protected:
+	virtual void SetupInputComponent() override;
+
 public:
   ALogicPlayerController();
 
@@ -36,4 +39,11 @@ public:
 
   UFUNCTION (BlueprintCallable, Category="Player")
   int getPlayerNumber();
+
+  void RightInput(float value);
+  void LeftInput(float value);
+  void HP();
+  void LP();
+  void HK();
+  void LK();
 };

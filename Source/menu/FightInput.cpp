@@ -87,16 +87,17 @@ void AFightInput::ensureFrame(int targetFrame) {
 
 auto buttonToString(enum Button b) {
   switch (b) {
-  case Button::LP: return TEXT("LP");
-  case Button::HP: return TEXT("HP");
-  case Button::LK: return TEXT("LK");
-  case Button::HK: return TEXT("HK");
-  case Button::FORWARD: return TEXT("FORWARD");
-  case Button::BACK: return TEXT("BACK");
-  case Button::UP: return TEXT("UP");
-  case Button::DOWN: return TEXT("DOWN");
-  case Button::LEFT: return TEXT("LEFT");
-  case Button::RIGHT: return TEXT("RIGHT");
+  case Button::LP: return TEXT("LP"); break;
+  case Button::HP: return TEXT("HP"); break;
+  case Button::LK: return TEXT("LK"); break;
+  case Button::HK: return TEXT("HK"); break;
+  case Button::FORWARD: return TEXT("FORWARD"); break;
+  case Button::BACK: return TEXT("BACK"); break;
+  case Button::UP: return TEXT("UP"); break;
+  case Button::DOWN: return TEXT("DOWN"); break;
+  case Button::LEFT: return TEXT("LEFT"); break;
+  case Button::RIGHT: return TEXT("RIGHT"); break;
+  default: return TEXT("0");
   }
 }
 
