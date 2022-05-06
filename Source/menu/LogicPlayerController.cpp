@@ -21,6 +21,8 @@ void ALogicPlayerController::BeginPlay()
 {
   Super::BeginPlay();
   MYLOG(Warning, "BeginPlay");
+  buttonsPressed = 0;
+  buttonsReleased = 0;
 }
 
 void ALogicPlayerController::SetupInputComponent() {
@@ -42,81 +44,85 @@ void ALogicPlayerController::SetupInputComponent() {
 
 void ALogicPlayerController::RightInput(float value) {
 
-    int targetFrame = input->getCurrentFrame() + 1;
-    int8 encodedButtons = AFightInput::encodeButton(Button::RIGHT);
+    // int targetFrame = input->getCurrentFrame() + 1;
+    // int8 encodedButtons = AFightInput::encodeButton(Button::RIGHT);
 
-    MYLOG(Display, "Right Input: button %i", encodedButtons);
+    // MYLOG(Display, "Right Input: button %i", encodedButtons);
 
     if (value >= 0.25) {
         UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: Right was pressed!!"));
         UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: Value is %f!!"), value);
-
-        input->buttons(encodedButtons, 0, targetFrame);
-        ServerButtons(encodedButtons, 0, targetFrame);
+        buttonsPressed = AFightInput::encodeButton(Button::RIGHT, buttonsPressed);
+        // input->buttons(encodedButtons, 0, targetFrame);
+        // ServerButtons(encodedButtons, 0, targetFrame);
     }
     else{
-        input->buttons(0, encodedButtons, targetFrame);
-        ServerButtons(0, encodedButtons, targetFrame);
+        // input->buttons(0, encodedButtons, targetFrame);
+        // ServerButtons(0, encodedButtons, targetFrame);
     }
         
 }
 
 void ALogicPlayerController::LeftInput(float value) {
 
-    int targetFrame = input->getCurrentFrame() + 1;
-    int8 encodedButtons = AFightInput::encodeButton(Button::LEFT);
+    // int targetFrame = input->getCurrentFrame() + 1;
+    // int8 encodedButtons = AFightInput::encodeButton(Button::LEFT);
 
     if (value <= -0.25) {
         UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: Left was pressed!!"));
         UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: Value is %f!!"), value);
-
-        input->buttons(encodedButtons, 0, targetFrame);
-        ServerButtons(encodedButtons, 0, targetFrame);
+        buttonsPressed = AFightInput::encodeButton(Button::LEFT, buttonsPressed);
+        // input->buttons(encodedButtons, 0, targetFrame);
+        // ServerButtons(encodedButtons, 0, targetFrame);
     }
     else {
-        input->buttons(0, encodedButtons, targetFrame);
-        ServerButtons(0, encodedButtons, targetFrame);
+        // input->buttons(0, encodedButtons, targetFrame);
+        // ServerButtons(0, encodedButtons, targetFrame);
     }
 }
 
 void ALogicPlayerController::LP() {
-    int targetFrame = input->getCurrentFrame() + 1;
-    int8 encodedButtons = AFightInput::encodeButton(Button::LP);
+    // int targetFrame = input->getCurrentFrame() + 1;
+    // int8 encodedButtons = AFightInput::encodeButton(Button::LP);
 
     UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: LP was pressed"));
 
-    input->buttons(encodedButtons, 0, targetFrame);
-    ServerButtons(encodedButtons, 0, targetFrame);
+    buttonsPressed = AFightInput::encodeButton(Button::LP, buttonsPressed);
+    // input->buttons(encodedButtons, 0, targetFrame);
+    // ServerButtons(encodedButtons, 0, targetFrame);
 }
 
 void ALogicPlayerController::LK() {
-    int targetFrame = input->getCurrentFrame() + 1;
-    int8 encodedButtons = AFightInput::encodeButton(Button::LK);
+    // int targetFrame = input->getCurrentFrame() + 1;
+    // int8 encodedButtons = AFightInput::encodeButton(Button::LK);
 
     UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: LK was pressed"));
 
-    input->buttons(encodedButtons, 0, targetFrame);
-    ServerButtons(encodedButtons, 0, targetFrame);
+    buttonsPressed = AFightInput::encodeButton(Button::LK, buttonsPressed);
+    // input->buttons(encodedButtons, 0, targetFrame);
+    // ServerButtons(encodedButtons, 0, targetFrame);
 }
 
 void ALogicPlayerController::HP() {
-    int targetFrame = input->getCurrentFrame() + 1;
-    int8 encodedButtons = AFightInput::encodeButton(Button::HP);
+    // int targetFrame = input->getCurrentFrame() + 1;
+    // int8 encodedButtons = AFightInput::encodeButton(Button::HP);
 
     UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: HP was pressed"));
 
-    input->buttons(encodedButtons, 0, targetFrame);
-    ServerButtons(encodedButtons, 0, targetFrame);
+    buttonsPressed = AFightInput::encodeButton(Button::HP, buttonsPressed);
+    // input->buttons(encodedButtons, 0, targetFrame);
+    // ServerButtons(encodedButtons, 0, targetFrame);
 }
 
 void ALogicPlayerController::HK() {
-    int targetFrame = input->getCurrentFrame() + 1;
-    int8 encodedButtons = AFightInput::encodeButton(Button::HK);
+    // int targetFrame = input->getCurrentFrame() + 1;
+    // int8 encodedButtons = AFightInput::encodeButton(Button::HK);
 
     UE_LOG(LogTemp, Warning, TEXT("ALogicPlayerController: HK was pressed"));
 
-    input->buttons(encodedButtons, 0, targetFrame);
-    ServerButtons(encodedButtons, 0, targetFrame);
+    buttonsPressed = AFightInput::encodeButton(Button::HK, buttonsPressed);
+    // input->buttons(encodedButtons, 0, targetFrame);
+    // ServerButtons(encodedButtons, 0, targetFrame);
 } 
 
 void ALogicPlayerController::ServerPostLogin_Implementation(int playerNumber_) {
@@ -196,17 +202,23 @@ void ALogicPlayerController::Tick(float deltaSeconds) {
   if (!readiedUp) {
     ServerReadyUp();
     readiedUp = true;
-  }  
+  }
+
+  int targetFrame = input->getCurrentFrame() + 1;
+  input->buttons(buttonsPressed, buttonsReleased, targetFrame);
+  ServerButtons(buttonsPressed, buttonsReleased, targetFrame);
+  buttonsPressed = 0;
+  buttonsReleased = 0;
 }
 
-void ALogicPlayerController::ServerButtons_Implementation(int8 buttonsPressed, int8 buttonsReleased, int targetFrame) {
+void ALogicPlayerController::ServerButtons_Implementation(int8 _buttonsPressed, int8 _buttonsReleased, int targetFrame) {
   if (GetWorld()->IsNetMode(NM_ListenServer)) {
     MYLOG(Display, "ServerButtons");
     if (!input) {
       MYLOG(Warning, "ServerButtons: input is NULL");
     }
     else {
-      input->ClientButtons(buttonsPressed, buttonsReleased, targetFrame);
+      input->ClientButtons(_buttonsPressed, _buttonsReleased, targetFrame);
     }
   }
 }

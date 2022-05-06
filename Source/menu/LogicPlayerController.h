@@ -16,6 +16,8 @@ private:
   int playerNumber;
   bool readiedUp;
   AFightInput* input;
+  int8 buttonsPressed;
+  int8 buttonsReleased;
 
 protected:
 	virtual void SetupInputComponent() override;
@@ -35,7 +37,7 @@ public:
   void Tick(float deltaSeconds);
 
   UFUNCTION (Server, Reliable)
-  void ServerButtons(int8 buttonsPressed, int8 buttonsReleased, int targetFrame);
+  void ServerButtons(int8 _buttonsPressed, int8 _buttonsReleased, int targetFrame);
 
   UFUNCTION (BlueprintCallable, Category="Player")
   int getPlayerNumber();

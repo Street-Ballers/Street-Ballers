@@ -80,7 +80,7 @@ void AFightInput::ensureFrame(int targetFrame) {
     // last one we push is actually for the new frame and we will
     // store the recieved inputs in that one.
     buttonHistory.push({});
-    directionHistory.push(directionHistory.last());
+    directionHistory.push({});
     ++currentFrame;
   }
 }
