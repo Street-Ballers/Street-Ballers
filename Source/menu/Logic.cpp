@@ -732,3 +732,7 @@ int ALogic::playerHealth(int playerNumber) {
 enum EAnimation ALogic::playerAnimation(int playerNumber) {
   return getPlayer(playerNumber).action.animation();
 }
+
+int ALogic::playerFrame(int playerNumber) {
+  return (frame - getPlayer(playerNumber).actionStart);
+}
