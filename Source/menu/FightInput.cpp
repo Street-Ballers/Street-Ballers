@@ -58,7 +58,8 @@ void AFightInput::init(int _maxRollback, int _buffer, int _delay) {
   delay = _delay;
   n = maxRollback+buffer+delay+1;
   buttonHistory.reserve(n);
-  directionHistory.reserve(n);
+  directionHistoryX.reserve(n);
+  directionHistoryY.reserve(n);
   mode = LogicMode::Wait;
   currentFrame = 0;
   reset();
@@ -67,7 +68,8 @@ void AFightInput::init(int _maxRollback, int _buffer, int _delay) {
 void AFightInput::reset() {
   needsRollbackToFrame = -1;
   buttonHistory.clear();
-  directionHistory.clear();
+  directionHistoryX.clear();
+  directionHistoryY.clear();
 }
 
 void AFightInput::setMode(enum LogicMode m) {
@@ -80,7 +82,8 @@ void AFightInput::ensureFrame(int targetFrame) {
     // last one we push is actually for the new frame and we will
     // store the recieved inputs in that one.
     buttonHistory.push({});
-    directionHistory.push({});
+    directionHistoryX.push(directionHistoryX.last());
+    directionHistoryY.push(directionHistoryY.last());
     ++currentFrame;
   }
 }
@@ -113,6 +116,10 @@ FString AFightInput::encodedButtonsToString(int8 e) {
 
 int8 AFightInput::encodeButton(enum Button b, int8 encoded) {
   return encoded | (1 << (int) b);
+}
+
+int8 AFightInput::unsetButton(enum Button b, int8 encoded) {
+  return encoded & (~(1 << (int) b));
 }
 
 bool AFightInput::decodeButton(enum Button b, int8 encoded) {
@@ -149,7 +156,8 @@ void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetF
   // get the data for the frame we want to modify
   int i = currentFrame - targetFrame;
   std::optional<enum Button>& bh = buttonHistory.nthlast(i);
-  std::optional<enum Button>& dh = directionHistory.nthlast(i);
+  std::optional<enum Button>& dxh = directionHistoryX.nthlast(i);
+  std::optional<enum Button>& dyh = directionHistoryY.nthlast(i);
 
   // handle presses. this is a really simple implementation that just
   // sets the button pressed to the last button/direction that happens
@@ -158,9 +166,13 @@ void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetF
     if (decodeButton(b, buttonsPressed))
         bh = std::make_optional(b);
   }
-  for (auto b: {Button::UP, Button::DOWN, Button::LEFT, Button::RIGHT}) {
+  for (auto b: {Button::LEFT, Button::RIGHT}) {
     if (decodeButton(b, buttonsPressed))
-      dh = std::make_optional(b);
+      dxh = std::make_optional(b);
+  }
+  for (auto b: {Button::UP, Button::DOWN}) {
+    if (decodeButton(b, buttonsPressed))
+      dyh = std::make_optional(b);
   }
 
   // handle releases. this should probably just ignore everything
@@ -169,9 +181,13 @@ void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetF
   // of all directions held so that when one is released we can use
   // one of the other currently held ones. _action() will have to pick
   // between which directions to prioritize.
-  for (auto b: {Button::UP, Button::DOWN, Button::LEFT, Button::RIGHT}) {
-    if (decodeButton(b, buttonsReleased) && (directionHistory.last() == b))
-      dh = {};
+  for (auto b: {Button::LEFT, Button::RIGHT}) {
+    if (decodeButton(b, buttonsReleased) && (directionHistoryX.last() == b))
+      dxh = {};
+  }
+  for (auto b: {Button::UP, Button::DOWN}) {
+    if (decodeButton(b, buttonsReleased) && (directionHistoryY.last() == b))
+      dyh = {};
   }
 }
 
@@ -184,8 +200,11 @@ enum Button AFightInput::translateDirection(const enum Button& d, bool isOnLeft)
   if (((d == Button::RIGHT) && isOnLeft) ||
       ((d == Button::LEFT) && !isOnLeft))
     return Button::FORWARD;
-  else
+  else if (((d == Button::LEFT) && isOnLeft) ||
+           ((d == Button::RIGHT) && !isOnLeft))
     return Button::BACK;
+  else
+    return d;
 }
 
 int AFightInput::computeIndex(int targetFrame) {
@@ -204,12 +223,18 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft) {
       return c.sthp();
     }
   }
-  if (directionHistory.nthlast(frame).has_value()) {
-    enum Button button = translateDirection(directionHistory.nthlast(frame).value(), isOnLeft);
-    if (button == Button::FORWARD)
-      return c.walkForward();
-    if (button == Button::BACK)
-      return c.walkBackward();
+  if (!directionHistoryY.nthlast(frame).has_value() || directionHistoryY.nthlast(frame).value() != Button::DOWN) {
+    // player is not holding down
+    if (directionHistoryX.nthlast(frame).has_value()) {
+      enum Button button = translateDirection(directionHistoryX.nthlast(frame).value(), isOnLeft);
+      if (button == Button::FORWARD)
+        return c.walkForward();
+      if (button == Button::BACK)
+        return c.walkBackward();
+    }
+  }
+  else {
+    // player is holding down. crouch?
   }
   return c.idle();
 }
@@ -237,8 +262,8 @@ HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFram
 bool AFightInput::isGuarding(bool isOnLeft, int targetFrame) {
   int frame = computeIndex(targetFrame);
   return
-    directionHistory.nthlast(frame).has_value() &&
-    (translateDirection(directionHistory.nthlast(frame).value(), isOnLeft) == Button::BACK);
+    directionHistoryX.nthlast(frame).has_value() &&
+    (translateDirection(directionHistoryX.nthlast(frame).value(), isOnLeft) == Button::BACK);
 }
 
 int AFightInput::getCurrentFrame() {

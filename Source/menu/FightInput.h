@@ -67,9 +67,12 @@ private:
   int currentFrame;
   int needsRollbackToFrame;
 
-  // for now, just allow one button and direction at a time
+  // for now, just allow one button at a time
   ButtonRingBuffer buttonHistory;
-  ButtonRingBuffer directionHistory;
+  // this assumes that the player cannot press opposite directions at
+  // the same time
+  ButtonRingBuffer directionHistoryX;
+  ButtonRingBuffer directionHistoryY;
 
   enum LogicMode mode;
 
@@ -102,6 +105,7 @@ public:
   // encoded into it
   static FString encodedButtonsToString(int8 e);
   static int8 encodeButton(enum Button b, int8 encoded=0);
+  static int8 unsetButton(enum Button b, int8 encoded=0);
   static bool decodeButton(enum Button b, int8 encoded);
 
   // The player controller will call this function to say which
