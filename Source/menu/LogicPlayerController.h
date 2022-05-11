@@ -42,10 +42,16 @@ public:
   UFUNCTION (BlueprintCallable, Category="Player")
   int getPlayerNumber();
 
-  void RightInput(float value);
-  void LeftInput(float value);
-  void HP();
-  void LP();
-  void HK();
-  void LK();
+  void ButtonRightPressed();
+  void ButtonLeftPressed();
+  void ButtonUpPressed();
+  void ButtonDownPressed();
+  void ButtonRightReleased();
+  void ButtonLeftReleased();
+  void ButtonUpReleased();
+  void ButtonDownReleased();
+  void ButtonHP();
+  void ButtonLP();
+  void ButtonHK();
+  void ButtonLK();
 };
