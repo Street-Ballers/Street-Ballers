@@ -4,6 +4,7 @@
 #include "Box.h"
 #include "Action.h"
 #include <algorithm>
+#include <limits>
 
 #define MYLOG(category, message, ...) UE_LOG(LogTemp, category, TEXT("ALogic (%s) " message), (GetWorld()->IsNetMode(NM_ListenServer)) ? TEXT("server") : TEXT("client"), ##__VA_ARGS__)
 
@@ -107,6 +108,14 @@ float Box::collisionExtent(const Box& b, float offsetax, float offsetay, float o
   }
 }
 
+hitbox_pair Hitbox::make_pair(int endFrame, std::vector<Box> boxes) {
+  return std::make_pair(endFrame, boxes);
+}
+
+Hitbox::Hitbox(std::vector<Box> _boxes) {
+  boxes = std::vector({Hitbox::make_pair(std::numeric_limits<int>::max(), _boxes)});
+}
+
 const std::vector<Box>* Hitbox::at(int frame) const {
   // scan through boxes for the last pair that starts at or before
   // frame, and return the corresponding vector
@@ -157,8 +166,8 @@ HCharacter HAction::character() const {
   return HCharacter(actions[h].character);
 }
 
-const Box& HAction::collision() const {
-  const std::optional<Box>& b = actions[h].collision;
+const Hitbox& HAction::collision() const {
+  const std::optional<Hitbox>& b = actions[h].collision;
   if (b.has_value())
     return b.value();
   else
@@ -201,7 +210,7 @@ bool HAction::operator!=(const HAction& b) const {
   return !(*this == b);
 }
 
-const Box& HCharacter::collision() const {
+const Hitbox& HCharacter::collision() const {
   return characters[h].collision;
 }
 
@@ -266,8 +275,8 @@ void Player::doBlockAction(int frame) {
 }
 
 // returns the amount of correction needed to move player out of the bound
-float Player::collidesWithBoundary(float boundary, bool isRightBound) {
-  const Box& b = action.collision();
+float Player::collidesWithBoundary(float boundary, bool isRightBound, int targetFrame) {
+  const Box& b = action.collision().at(targetFrame)->at(0);
   float x = b.x, xend = b.xend;
   if (!isFacingRight) {
     x *= -1;
@@ -327,15 +336,15 @@ bool ALogic::collides(const Hitbox &p1b, const Hitbox &p2b, const Frame &f, int 
 
 // returns the amount of adjustment player P needs
 float ALogic::playerCollisionExtent(const Player &p, const Player &q, int targetFrame) {
-  const Box &pb = p.action.collision();
-  const Box &qb = q.action.collision();
+  const Box &pb = p.action.collision().at(targetFrame)->at(0);
+  const Box &qb = q.action.collision().at(targetFrame)->at(0);
   return qb.collisionExtent(pb, p.pos.Y, p.pos.Z, q.pos.Y, q.pos.Z, p.isFacingRight, q.isFacingRight);
 }
 
 void ALogic::HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRightBoundary) {
   float stageBound = doRightBoundary ? stageBoundRight.Y : stageBoundLeft.Y;
-  float p1CollisionAdj = f.p1.collidesWithBoundary(stageBound, doRightBoundary);
-  float p2CollisionAdj = f.p2.collidesWithBoundary(stageBound, doRightBoundary);
+  float p1CollisionAdj = f.p1.collidesWithBoundary(stageBound, doRightBoundary, targetFrame);
+  float p2CollisionAdj = f.p2.collidesWithBoundary(stageBound, doRightBoundary, targetFrame);
   f.p1.pos.Y += p1CollisionAdj;
   f.p2.pos.Y += p2CollisionAdj;
   if ((p1CollisionAdj != 0.0) && (p2CollisionAdj == 0.0)) {
@@ -625,10 +634,10 @@ void ALogic::computeFrame(int targetFrame) {
     // put players back in bounds
     Player& pleft = isP1OnLeft ? p1 : p2;
     Player& pright = !isP1OnLeft ? p1 : p2;
-    int collisionExtent = pleft.collidesWithBoundary(stageBoundLeft.Y, false);
+    int collisionExtent = pleft.collidesWithBoundary(stageBoundLeft.Y, false, targetFrame);
     p1.pos.Y += collisionExtent;
     p2.pos.Y += collisionExtent;
-    collisionExtent = pright.collidesWithBoundary(stageBoundRight.Y, true);
+    collisionExtent = pright.collidesWithBoundary(stageBoundRight.Y, true, targetFrame);
     p1.pos.Y += collisionExtent;
     p2.pos.Y += collisionExtent;
 
@@ -653,7 +662,6 @@ void ALogic::FightTick() {
   int latestInputFrame = std::max(p1Input->getCurrentFrame(), p2Input->getCurrentFrame());
   int targetFrame = std::max(latestInputFrame, frame+1);
 
-  // TODO: needsRollback needs to take into account delay
   if (p1Input->needsRollback() || p2Input->needsRollback()) {
     MYLOG(Warning, "Rollback");
     int rollbackToFrame = std::min(p1Input->getNeedsRollbackToFrame(), p2Input->getNeedsRollbackToFrame());

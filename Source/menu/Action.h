@@ -18,24 +18,26 @@ public:
 
   enum EAnimation animation;
 
-  // TODO: Box should really be a Hitbox here. There should be a
-  // Hitbox constructor for making Hitboxes that always return the
-  // same Box so that we don't have to write code for Box-Hitbox and
-  // Hitbox-Hitbox collisions twice
-  std::optional<Box> collision; // leave None to use character's default collision box
+  std::optional<Hitbox> collision; // leave None to use character's default collision box
 
   Hitbox hitbox;
   Hitbox hurtbox;
   int damage;
   int lockedFrames; // number of frames that the player is locked into
                     // this action
+  int animationLength; // length of the actual animation. The player
+                       // may cancel the end of the animation by
+                       // pressing a button after lockedFrames have
+                       // passed, but if they don't cancel, the action
+                       // will continue for a total of animationLength
+                       // frames.
   FVector velocity;
   bool isWalkOrIdle;
 
-  Action(int character, enum EAnimation animation, std::optional<Box> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int lockedFrames, bool isWalkOrIdle = false, FVector velocity = FVector(0.0, 0.0, 0.0)): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), lockedFrames(lockedFrames), velocity(velocity), isWalkOrIdle(isWalkOrIdle) {};
+  Action(int character, enum EAnimation animation, std::optional<Hitbox> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int lockedFrames, int animationLength, bool isWalkOrIdle = false, FVector velocity = FVector(0.0, 0.0, 0.0)): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), lockedFrames(lockedFrames), animationLength(animationLength), velocity(velocity), isWalkOrIdle(isWalkOrIdle) {};
 
   // don't use this constructor
-  Action(): Action(-1, EAnimation::Idle, {}, Hitbox({}), Hitbox({}), 0, 0) {};
+  Action(): Action(-1, EAnimation::Idle, Hitbox(), Hitbox(), Hitbox(), 0, 0, 0) {};
 };
 
 class HCharacter;
@@ -53,7 +55,7 @@ public:
 
   HCharacter character() const;
   enum EAnimation animation() const;
-  const Box& collision() const;
+  const Hitbox& collision() const;
   const Hitbox& hitbox() const;
   const Hitbox& hurtbox() const;
   int damage() const;
@@ -94,7 +96,7 @@ enum IAction {
 // have to store handles to all these common actions.
 class Character {
 public:
-  Box collision; // default collision box
+  Hitbox collision; // default collision box
   HAction idle;
   HAction walkForward;
   HAction walkBackward;
@@ -103,10 +105,10 @@ public:
   HAction sthp;
   // crlp, sthk, crlk, guarding, damaged
 
-  Character(Box collision, HAction idle, HAction walkForward, HAction walkBackward, HAction damaged, HAction block, HAction sthp): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), damaged(damaged), block(block), sthp(sthp) {};
+  Character(Hitbox collision, HAction idle, HAction walkForward, HAction walkBackward, HAction damaged, HAction block, HAction sthp): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), damaged(damaged), block(block), sthp(sthp) {};
 
   // don't use this constructor
-  Character(): Character(Box(0, 0, 0, 0), HAction(), HAction(), HAction(), HAction(), HAction(), HAction()) {};
+  Character(): Character(Hitbox({Box(0, 0, 0, 0)}), HAction(), HAction(), HAction(), HAction(), HAction(), HAction()) {};
 };
 
 class HCharacter {
@@ -117,7 +119,7 @@ private:
 public:
   HCharacter(int h): h(h) {};
   static void init();
-  const Box& collision() const;
+  const Hitbox& collision() const;
   HAction idle() const;
   HAction walkForward() const;
   HAction walkBackward() const;

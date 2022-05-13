@@ -4,14 +4,26 @@
 #include <vector>
 #include <utility>
 
+typedef std::pair<int, std::vector<Box>> hitbox_pair;
+
 class Hitbox {
 public:
   // At each frame, there are a set of hitboxes to check. The outer
   // vector orders the hitboxes by time. The pair is a pair of (end
   // frame, hitboxes).
-  std::vector<std::pair<int, std::vector<Box>>> boxes;
+  std::vector<hitbox_pair> boxes;
 
-  Hitbox(std::vector<std::pair<int, std::vector<Box>>> boxes): boxes(boxes) {};
+  static hitbox_pair make_pair(int endFrame, std::vector<Box> boxes);
+
+  // constructor that takes a vector whos format is given above
+  Hitbox(std::vector<hitbox_pair> boxes): boxes(boxes) {};
+
+  // constructor that takes a single vector of Boxes. Constructs a
+  // Hitbox where this vector is active at all frames.
+  Hitbox(std::vector<Box> boxes);
+
+  // just constructs an empty hitbox
+  Hitbox(): boxes({}) {};
 
   const std::vector<Box>* at(int frame) const;
 

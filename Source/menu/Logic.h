@@ -31,7 +31,7 @@ public:
   Player() {};
 
   void TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft);
-  float collidesWithBoundary(float boundary, bool isRightBound);
+  float collidesWithBoundary(float boundary, bool isRightBound, int targetFrame);
   void doDamagedAction(int frame);
   void doBlockAction(int frame);
 };
