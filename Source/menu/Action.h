@@ -60,6 +60,7 @@ public:
   const Hitbox& hurtbox() const;
   int damage() const;
   int lockedFrames() const;
+  int animationLength() const;
   FVector velocity() const;
   bool isWalkOrIdle() const;
 

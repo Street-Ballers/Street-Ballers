@@ -190,6 +190,10 @@ int HAction::lockedFrames() const {
   return actions[h].lockedFrames;
 }
 
+int HAction::animationLength() const {
+  return actions[h].animationLength;
+}
+
 FVector HAction::velocity() const {
   return actions[h].velocity;
 }
@@ -248,12 +252,17 @@ bool HCharacter::operator!=(const HCharacter& b) const {
 }
 
 void Player::TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft) {
-  if (frame - actionStart >= action.lockedFrames()) {
+  if (frame - actionStart > action.lockedFrames()) {
     std::optional<HAction> newActionO = input.action(action, isOnLeft, frame);
     if (newActionO.has_value()) {
       HAction newAction = newActionO.value();
-      // don't restart action if it is walking or idling
-      if (!(newAction.isWalkOrIdle() && (newAction == action))) {
+      // don't interrupt current action if the new action is just an idle unless we are walking
+      if (!((action.isWalkOrIdle() &&
+             (newAction == action) &&
+             (frame - actionStart <= action.animationLength())) ||
+            (!action.isWalkOrIdle() &&
+             (newAction == action.character().idle()) &&
+             (frame - actionStart <= action.animationLength())))) {
         action = newAction;
         actionStart = frame;
       }
