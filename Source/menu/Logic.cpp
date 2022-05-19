@@ -199,7 +199,11 @@ FVector HAction::velocity() const {
 }
 
 bool HAction::isWalkOrIdle() const {
-  return actions[h].isWalkOrIdle;
+  return (actions[h].type == ActionType::Idle) || (actions[h].type == ActionType::Walk);
+}
+
+enum ActionType HAction::type() const {
+  return actions[h].type;
 }
 
 enum EAnimation HAction::animation() const {
@@ -231,6 +235,10 @@ HAction HCharacter::walkBackward() const {
   return characters[h].walkBackward;
 }
 
+HAction HCharacter::fJump() const {
+  return characters[h].fJump;
+}
+
 HAction HCharacter::damaged() const {
   return characters[h].damaged;
 }
@@ -252,17 +260,17 @@ bool HCharacter::operator!=(const HCharacter& b) const {
 }
 
 void Player::TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft) {
-  if (frame - actionStart > action.lockedFrames()) {
+  if (frame - actionStart >= action.lockedFrames()) {
     std::optional<HAction> newActionO = input.action(action, isOnLeft, frame);
     if (newActionO.has_value()) {
       HAction newAction = newActionO.value();
       // don't interrupt current action if the new action is just an idle unless we are walking
       if (!((action.isWalkOrIdle() &&
              (newAction == action) &&
-             (frame - actionStart <= action.animationLength())) ||
+             (frame - actionStart < action.animationLength())) ||
             (!action.isWalkOrIdle() &&
-             (newAction == action.character().idle()) &&
-             (frame - actionStart <= action.animationLength())))) {
+             (newAction.type() == ActionType::Idle) &&
+             (frame - actionStart < action.animationLength())))) {
         action = newAction;
         actionStart = frame;
       }
@@ -302,6 +310,12 @@ float Player::collidesWithBoundary(float boundary, bool isRightBound, int target
   }
   else {
     return 0.0;
+  }
+}
+
+void Player::maybeDoJump(int targetFrame) {
+  if (action.type() == ActionType::Jump) {
+    pos.Z = 35*jumpHeights[targetFrame - actionStart];
   }
 }
 
@@ -511,6 +525,8 @@ void ALogic::computeFrame(int targetFrame) {
   FVector p2v = p2Direction*p2.action.velocity();
   p1.pos += p1v;
   p2.pos += p2v;
+  p1.maybeDoJump(targetFrame);
+  p2.maybeDoJump(targetFrame);
   // recompute who is on left, useful in the case of a jumping cross
   // up
   isP1OnLeft = IsP1OnLeft(newFrame);
@@ -520,6 +536,13 @@ void ALogic::computeFrame(int targetFrame) {
   if (collisionAdj != 0.0) {
     float p1CollisionAdj = 0.5 * collisionAdj;
     float p2CollisionAdj = -0.5 * collisionAdj;
+    if (p1.pos.Y == p2.pos.Y) {
+      // players are on top of eachother; move the higher player in
+      // their current velocity direction
+      int direction = (p1.action.velocity().Y > 0) ? 1 : -1;
+      p1CollisionAdj = direction * std::abs(p1CollisionAdj);
+      p2CollisionAdj = -1 * direction * std::abs(p2CollisionAdj);
+    }
     p1.pos.Y += p1CollisionAdj;
     p2.pos.Y += p2CollisionAdj;
     // if (!(((p1v.Y > 0) && (p2v.Y > 0)) ||
@@ -666,7 +689,7 @@ void ALogic::computeFrame(int targetFrame) {
 }
 
 void ALogic::FightTick() {
-  MYLOG(Display, "FightTick");
+  //MYLOG(Display, "FightTick");
 
   int latestInputFrame = std::max(p1Input->getCurrentFrame(), p2Input->getCurrentFrame());
   int targetFrame = std::max(latestInputFrame, frame+1);
@@ -701,7 +724,7 @@ void ALogic::Tick(float DeltaTime)
 {
   Super::Tick(DeltaTime);
 
-  MYLOG(Display, "Tick");
+  //MYLOG(Display, "Tick");
   switch (mode) {
   case LogicMode::Idle:
     if (inPreRound && (frame == (roundStartFrame-1))) {

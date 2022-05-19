@@ -128,12 +128,12 @@ bool AFightInput::decodeButton(enum Button b, int8 encoded) {
 
 void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetFrame) {
   if (mode != LogicMode::Fight) return;
-  MYLOG(Display,
-        TEXT("buttons(): (current frame %i) (target frame %i) (buttonsPressed %s) (buttonsReleased %s)"),
-        currentFrame,
-        targetFrame,
-        *encodedButtonsToString(buttonsPressed),
-        *encodedButtonsToString(buttonsReleased));
+  // MYLOG(Display,
+  //       TEXT("buttons(): (current frame %i) (target frame %i) (buttonsPressed %s) (buttonsReleased %s)"),
+  //       currentFrame,
+  //       targetFrame,
+  //       *encodedButtonsToString(buttonsPressed),
+  //       *encodedButtonsToString(buttonsReleased));
 
   // check if a rollback will be needed
   if (targetFrame <= (currentFrame-delay)) {
@@ -223,8 +223,8 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft) {
       return c.sthp();
     }
   }
-  if (!directionHistoryY.nthlast(frame).has_value() || directionHistoryY.nthlast(frame).value() != Button::DOWN) {
-    // player is not holding down
+  if (!directionHistoryY.nthlast(frame).has_value()) {
+    // player is not holding up or down
     if (directionHistoryX.nthlast(frame).has_value()) {
       enum Button button = translateDirection(directionHistoryX.nthlast(frame).value(), isOnLeft);
       if (button == Button::FORWARD)
@@ -233,8 +233,18 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft) {
         return c.walkBackward();
     }
   }
-  else {
+  else if (directionHistoryY.nthlast(frame).value() == Button::DOWN) {
     // player is holding down. crouch?
+  }
+  else {
+    // player is holding up
+    if (directionHistoryX.nthlast(frame).has_value()) {
+      enum Button button = translateDirection(directionHistoryX.nthlast(frame).value(), isOnLeft);
+      if (button == Button::FORWARD)
+        return c.fJump();
+      else if (button == Button::BACK)
+        return c.walkBackward(); // no backjump right now
+    }
   }
   return c.idle();
 }

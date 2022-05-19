@@ -4,14 +4,16 @@
 #include <optional>
 
 UENUM(BlueprintType)
-enum EAnimation { Idle, WalkBackward, WalkForward, Damaged, Block, StHP };
+enum EAnimation { Idle, WalkBackward, WalkForward, FJump, Damaged, Block, StHP };
 
-// Defines
+enum class ActionType { Idle, Walk, Jump, Other };
+
+// Defines things such as
 // - animation
 // - hitboxes
 // - hurtboxes
-// - maps select inputs to other Actions in the case of e.g. target
-//   combos
+// - could map select inputs to other Actions in the case of e.g.
+//   target combos
 class Action {
 public:
   int character;
@@ -31,10 +33,14 @@ public:
                        // passed, but if they don't cancel, the action
                        // will continue for a total of animationLength
                        // frames.
-  FVector velocity;
-  bool isWalkOrIdle;
 
-  Action(int character, enum EAnimation animation, std::optional<Hitbox> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int lockedFrames, int animationLength, bool isWalkOrIdle = false, FVector velocity = FVector(0.0, 0.0, 0.0)): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), lockedFrames(lockedFrames), animationLength(animationLength), velocity(velocity), isWalkOrIdle(isWalkOrIdle) {};
+  enum ActionType type;
+
+  FVector velocity; // constant velocity that a player moves forward
+                    // during a action. Probably only useful for
+                    // walking.
+
+  Action(int character, enum EAnimation animation, std::optional<Hitbox> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int lockedFrames, int animationLength, enum ActionType type = ActionType::Other, FVector velocity = FVector(0.0, 0.0, 0.0)): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), lockedFrames(lockedFrames), animationLength(animationLength), type(type), velocity(velocity) {};
 
   // don't use this constructor
   Action(): Action(-1, EAnimation::Idle, Hitbox(), Hitbox(), Hitbox(), 0, 0, 0) {};
@@ -46,7 +52,8 @@ class HCharacter;
 class HAction {
 private:
   int h;
-  static Action actions[8];
+  #define N_ACTIONS 128
+  static Action actions[N_ACTIONS];
 
 public:
   HAction(int h): h(h) {};
@@ -63,6 +70,7 @@ public:
   int animationLength() const;
   FVector velocity() const;
   bool isWalkOrIdle() const;
+  enum ActionType type() const;
 
   bool operator==(const HAction& b) const;
   bool operator!=(const HAction& b) const;
@@ -76,7 +84,8 @@ enum IAction {
   IActionWalkBackward = 2,
   IActionDamaged = 3,
   IActionBlock = 4,
-  IActionStHP = 5
+  IActionStHP = 5,
+  IActionFJump = 6
 };
 
 // this is to assign HActions to action names. All other code should
@@ -87,6 +96,7 @@ enum IAction {
 #define HActionDamaged (HAction(IActionDamaged))
 #define HActionBlock (HAction(IActionBlock))
 #define HActionStHP (HAction(IActionStHP))
+#define HActionFJump (HAction(IActionFJump))
 
 // Actions themselves are defined in HAction::actions[] in Logic.cpp,
 // for now
@@ -101,21 +111,23 @@ public:
   HAction idle;
   HAction walkForward;
   HAction walkBackward;
+  HAction fJump;
   HAction damaged;
   HAction block;
   HAction sthp;
   // crlp, sthk, crlk, guarding, damaged
 
-  Character(Hitbox collision, HAction idle, HAction walkForward, HAction walkBackward, HAction damaged, HAction block, HAction sthp): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), damaged(damaged), block(block), sthp(sthp) {};
+  Character(Hitbox collision, HAction idle, HAction walkForward, HAction walkBackward, HAction fJump, HAction damaged, HAction block, HAction sthp): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), fJump(fJump), damaged(damaged), block(block), sthp(sthp) {};
 
   // don't use this constructor
-  Character(): Character(Hitbox({Box(0, 0, 0, 0)}), HAction(), HAction(), HAction(), HAction(), HAction(), HAction()) {};
+  Character(): Character(Hitbox({Box(0, 0, 0, 0)}), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction()) {};
 };
 
 class HCharacter {
 private:
   int h;
-  static Character characters[8];
+  #define N_CHARACTERS 8
+  static Character characters[N_CHARACTERS];
 
 public:
   HCharacter(int h): h(h) {};
@@ -124,6 +136,7 @@ public:
   HAction idle() const;
   HAction walkForward() const;
   HAction walkBackward() const;
+  HAction fJump() const;
   HAction damaged() const;
   HAction block() const;
   HAction sthp() const;
@@ -141,3 +154,6 @@ enum ICharacter {
 // This function needs to be called early in the game startup to
 // populate the actions and character arrays
 void init_actions();
+
+#define JUMP_LENGTH 22
+extern float jumpHeights[JUMP_LENGTH];

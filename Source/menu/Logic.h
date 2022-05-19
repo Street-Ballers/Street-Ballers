@@ -34,6 +34,7 @@ public:
   float collidesWithBoundary(float boundary, bool isRightBound, int targetFrame);
   void doDamagedAction(int frame);
   void doBlockAction(int frame);
+  void maybeDoJump(int frame);
 };
 
 class Frame {

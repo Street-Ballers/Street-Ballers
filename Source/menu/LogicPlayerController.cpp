@@ -185,7 +185,7 @@ void ALogicPlayerController::Tick(float deltaSeconds) {
   if (GetWorld()->IsPaused())
     return;
 
-  MYLOG(Display, "Tick");
+  // MYLOG(Display, "Tick");
 
   if (!readiedUp) {
     ServerReadyUp();
