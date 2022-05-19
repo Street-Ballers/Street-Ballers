@@ -5,38 +5,101 @@ Action HAction::actions[N_ACTIONS];
 Character HCharacter::characters[N_CHARACTERS];
 
 void HAction::init() {
-  actions[IActionIdle] = Action(IChar1, EAnimation::Idle, {}, Hitbox(), Hitbox(), 0, 0, 6, ActionType::Idle);
-  actions[IActionWalkBackward] = Action(IChar1, EAnimation::WalkBackward, {}, Hitbox(), Hitbox(), 0, 0, 16, ActionType::Walk, FVector(0.0, -2.0, 0.0));
-  actions[IActionWalkForward] = Action(IChar1, EAnimation::WalkForward, {}, Hitbox(), Hitbox(), 0, 0, 16, ActionType::Walk, FVector(0.0, 4.0, 0.0));
-  actions[IActionDamaged] = Action(IChar1, EAnimation::Damaged, {}, Hitbox(), Hitbox(), 0, 0, 7);
-  actions[IActionBlock] = Action(IChar1, EAnimation::Block, {}, Hitbox(), Hitbox(), 0, 0, 0);
+  actions[IActionIdle]
+    = Action(IChar1,
+             EAnimation::Idle,
+             {},
+             Hitbox(),
+             Hitbox(),
+             0,
+             0,
+             6,
+             ActionType::Idle);
 
-  actions[IActionStHP] = Action(IChar1, // character
-                                EAnimation::StHP, // animation
-                                {}, // collision box (note that this is an std::optional)
-                                Hitbox({ // hitbox
-                                    Hitbox::make_pair(1, {}),
-                                    Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
-                                Hitbox(), // hurtbox
-                                10, // damage
-                                6, // lockedFrames
-                                9 // animationLength
-                                );
+  actions[IActionWalkBackward]
+    = Action(IChar1,
+             EAnimation::WalkBackward,
+             {},
+             Hitbox(),
+             Hitbox(),
+             0,
+             0,
+             16,
+             ActionType::Walk,
+             FVector(0.0,
+                     -2.0,
+                     0.0));
 
-  actions[IActionFJump] = Action(IChar1,
-                                 EAnimation::FJump,
-                                 {},
-                                 {},
-                                 Hitbox(),
-                                 0,
-                                 JUMP_LENGTH,
-                                 JUMP_LENGTH,
-                                 ActionType::Jump,
-                                 FVector(0.0, 7.0, 0.0));
+  actions[IActionWalkForward]
+    = Action(IChar1,
+             EAnimation::WalkForward,
+             {},
+             Hitbox(),
+             Hitbox(),
+             0,
+             0,
+             16,
+             ActionType::Walk,
+             FVector(0.0,
+                     4.0,
+                     0.0));
+
+  actions[IActionDamaged]
+    = Action(IChar1,
+             EAnimation::Damaged,
+             {},
+             Hitbox(),
+             Hitbox(),
+             0,
+             0,
+             7);
+
+  actions[IActionBlock]
+    = Action(IChar1,
+             EAnimation::Block,
+             {},
+             Hitbox(),
+             Hitbox(),
+             0,
+             0,
+             0);
+
+  actions[IActionStHP]
+    = Action(IChar1, // character
+             EAnimation::StHP, // animation
+             {}, // collision box (note that this is an std::optional)
+             Hitbox({ // hitbox
+                 Hitbox::make_pair(1, {}),
+                 Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
+             Hitbox(), // hurtbox
+             10, // damage
+             6, // lockedFrames (number of frames before player can cancel)
+             9 // animationLength
+             );
+
+  actions[IActionFJump]
+    = Action(IChar1,
+             EAnimation::FJump,
+             {},
+             {},
+             Hitbox(),
+             0,
+             JUMP_LENGTH,
+             JUMP_LENGTH,
+             ActionType::Jump,
+             FVector(0.0, 7.0, 0.0));
 }
 
 void HCharacter::init() {
-  characters[IChar1] = Character(Hitbox({Box::make_centeredx(100.0, 200.0)}), HActionIdle, HActionWalkForward, HActionWalkBackward, HActionFJump, HActionDamaged, HActionBlock, HActionStHP);
+  characters[IChar1]
+    = Character(Hitbox({Box::make_centeredx(100.0, 200.0)}),
+                HActionIdle,
+                HActionWalkForward,
+                HActionWalkBackward,
+                HActionFJump,
+                HActionDamaged,
+                HActionBlock,
+                HActionStHP);
 }
 
 // set xrange [0:22]
