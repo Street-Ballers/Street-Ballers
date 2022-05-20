@@ -23,11 +23,20 @@ public:
   AActor* fighter2;
 
   UPROPERTY(EditAnywhere)
+  float stageBoundLeft;
+  UPROPERTY(EditAnywhere)
+  float stageBoundRight;
+
+  // these get reset to their true values in BeginPlay but are useful
+  // for experimenting with new values
+  UPROPERTY(EditAnywhere)
     double scale;
   UPROPERTY(EditAnywhere)
     double min;
   UPROPERTY(EditAnywhere)
     double height;
+  UPROPERTY(EditAnywhere)
+    double boundAdjust;
 
   void BeginPlay();
 

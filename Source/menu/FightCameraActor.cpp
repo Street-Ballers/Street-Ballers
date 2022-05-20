@@ -26,6 +26,7 @@ void AFightCameraActor::BeginPlay() {
   scale = 1.2;
   min = 750.0;
   height = 100.0;
+  boundAdjust = 300.0;
 }
 
 void AFightCameraActor::Tick(float DeltaTime) {
@@ -36,11 +37,14 @@ void AFightCameraActor::Tick(float DeltaTime) {
 
   FVector pos = (pos1+pos2) * 0.5;
 
+  pos.Y = std::max(pos.Y, stageBoundLeft + boundAdjust);
+  pos.Y = std::min(pos.Y, stageBoundRight - boundAdjust);
+
   pos.X = std::min(-1 * scale * std::abs(pos1.Y - pos2.Y),
                    -1 * min);
 
   // Adjust camera to mid level of fighters
-  pos.Z += height;
+  pos.Z = std::max(pos.Z, height);
 
   SetActorLocation(pos, false, nullptr, ETeleportType::None);
 }
