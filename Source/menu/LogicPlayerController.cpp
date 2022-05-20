@@ -4,7 +4,6 @@
 
 #include "Logic.h"
 #include "FightInput.h"
-#include "Fighter.h"
 #include "FightCameraActor.h"
 #include "FightGameState.h"
 #include "EngineUtils.h"

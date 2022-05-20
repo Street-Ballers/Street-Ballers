@@ -23,11 +23,6 @@ void AFightCameraActor::BeginPlay() {
   }
 }
 
-void AFightCameraActor::SetFighters(AFighter* fighter1_, AFighter* fighter2_) {
-  fighter1 = fighter1_;
-  fighter2 = fighter2_;
-}
-
 void AFightCameraActor::Tick(float DeltaTime) {
   Super::Tick(DeltaTime);
 

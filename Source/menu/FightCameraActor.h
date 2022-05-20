@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Camera/CameraActor.h"
-#include "Fighter.h"
 #include "FightCameraActor.generated.h"
 
 /**
@@ -19,13 +18,11 @@ public:
   AFightCameraActor();
 
   UPROPERTY(EditAnywhere)
-  AFighter* fighter1;
+  AActor* fighter1;
   UPROPERTY(EditAnywhere)
-  AFighter* fighter2;
+  AActor* fighter2;
 
   void BeginPlay();
-
-  void SetFighters(AFighter* fighter1, AFighter* fighter2);
 
   void Tick(float DeltaTime);
 };
