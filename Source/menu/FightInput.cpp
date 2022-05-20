@@ -263,7 +263,7 @@ HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFram
   HAction mostRecentAction = _action(currentAction, frame, isOnLeft);
   // MYLOG(Warning, "action(): %s (current frame %i) (target frame %i) (action: %s)", *GetActorLabel(false), currentFrame, targetFrame, (mostRecentAction == HActionIdle) ? TEXT("idle") : TEXT("not idle"));
   HAction action = mostRecentAction;
-  while (action.isWalkOrIdle() && (++frame <= (delay+buffer))) {
+  while (action.isWalkOrIdle() && (++frame < (delay+buffer))) {
     action = _action(currentAction, frame, isOnLeft);
   }
   return action.isWalkOrIdle() ? mostRecentAction : action;

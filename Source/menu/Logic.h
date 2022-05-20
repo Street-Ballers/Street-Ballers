@@ -81,6 +81,10 @@ public:
         // set to true to skip the preround
         UPROPERTY(EditAnywhere)
         bool skipPreRound;
+        // set to true to always rollback the maximum amount for
+        // testing purposes
+        UPROPERTY(EditAnywhere)
+        bool alwaysRollback;
 
         // Invisible objects at the ends of the stages. We will use
         // these just to grab their coordinates and not let players

@@ -73,8 +73,8 @@ void HAction::init() {
                  Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
              Hitbox(), // hurtbox
              10, // damage
-             6, // lockedFrames (number of frames before player can cancel)
-             9 // animationLength
+             4, // lockedFrames (number of frames before player can cancel)
+             4 // animationLength
              );
 
   actions[IActionFJump]

@@ -420,8 +420,10 @@ void ALogic::BeginPlay()
   frames = RingBuffer();
   frames.reserve(maxRollback+1);
 
-  p1Input->init(maxRollback, 2, 2);
-  p2Input->init(maxRollback, 2, 2);
+  const int delay = 1;
+  const int buffer = 2;
+  p1Input->init(maxRollback, buffer, delay);
+  p2Input->init(maxRollback, buffer, delay);
 
   mode = LogicMode::Wait;
   inPreRound = false;
@@ -695,15 +697,17 @@ void ALogic::computeFrame(int targetFrame) {
 }
 
 void ALogic::FightTick() {
-  //MYLOG(Display, "FightTick");
+  // MYLOG(Display, "FightTick");
 
   int latestInputFrame = std::max(p1Input->getCurrentFrame(), p2Input->getCurrentFrame());
   int targetFrame = std::max(latestInputFrame, frame+1);
 
-  if (p1Input->needsRollback() || p2Input->needsRollback()) {
+  if ((alwaysRollback && frame > maxRollback) || p1Input->needsRollback() || p2Input->needsRollback()) {
     MYLOG(Warning, "Rollback");
+    // rollbackToFrame is the frame just before the input
     int rollbackToFrame = std::min(p1Input->getNeedsRollbackToFrame(), p2Input->getNeedsRollbackToFrame());
-    if ((1 + frame - rollbackToFrame) > maxRollback) {
+    if (alwaysRollback) rollbackToFrame = frame - maxRollback + 1;
+    if ((frame - rollbackToFrame + 1) > maxRollback) {
       // exceeded maximum rollback. we do not have data old enough to
       // rollback, simulate the fight and guarantee consistency.
       MYLOG(Warning, "MAXIMUM ROLLBACK EXCEEDED!");
@@ -711,7 +715,7 @@ void ALogic::FightTick() {
     }
     else {
       // pop off all the frames that occur at or after the input
-      frames.popn(1 + frame - rollbackToFrame);
+      frames.popn(frame - rollbackToFrame + 1);
     }
     p1Input->clearRollbackFlags();
     p2Input->clearRollbackFlags();
@@ -720,7 +724,7 @@ void ALogic::FightTick() {
 
   while (frame < targetFrame) {
     ++frame;
-    //MYLOG(Display, "TICK %i!", frame);
+    // MYLOG(Display, "TICK %i!", frame);
     computeFrame(frame);
   }
 }
@@ -730,7 +734,7 @@ void ALogic::Tick(float DeltaTime)
 {
   Super::Tick(DeltaTime);
 
-  //MYLOG(Display, "Tick");
+  // MYLOG(Display, "Tick");
   switch (mode) {
   case LogicMode::Idle:
     if (inPreRound && (frame == (roundStartFrame-1))) {
