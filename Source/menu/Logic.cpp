@@ -617,6 +617,7 @@ void ALogic::computeFrame(int targetFrame) {
 
     // TODO: should spawn special FX on hit/block here
     if (p1Hit) {
+      p1.pos.Z = 0;
       if (p1Block) {
         p1.doBlockAction(targetFrame);
       }
@@ -626,6 +627,7 @@ void ALogic::computeFrame(int targetFrame) {
       newFrame.hitPlayer = 1;
     }
     if (p2Hit) {
+      p2.pos.Z = 0;
       if (p2Block) {
         p2.doBlockAction(targetFrame);
       }

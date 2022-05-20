@@ -27,7 +27,7 @@ void HAction::init() {
              16,
              ActionType::Walk,
              FVector(0.0,
-                     -2.0,
+                     -6.0,
                      0.0));
 
   actions[IActionWalkForward]
@@ -41,7 +41,7 @@ void HAction::init() {
              16,
              ActionType::Walk,
              FVector(0.0,
-                     4.0,
+                     6.0,
                      0.0));
 
   actions[IActionDamaged]
