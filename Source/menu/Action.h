@@ -6,7 +6,7 @@
 #include <map>
 
 UENUM(BlueprintType)
-enum EAnimation { Idle, WalkBackward, WalkForward, FJump, Damaged, Block, StHP };
+enum EAnimation { Idle, WalkBackward, WalkForward, FJump, Damaged, Block, StHP, StLP };
 
 enum class ActionType { Idle, Walk, Jump, Other };
 
@@ -98,7 +98,8 @@ enum IAction {
   IActionDamaged = 3,
   IActionBlock = 4,
   IActionStHP = 5,
-  IActionFJump = 6
+  IActionStLP = 6,
+  IActionFJump = 7
 };
 
 // this is to assign HActions to action names. All other code should
@@ -109,6 +110,7 @@ enum IAction {
 #define HActionDamaged (HAction(IActionDamaged))
 #define HActionBlock (HAction(IActionBlock))
 #define HActionStHP (HAction(IActionStHP))
+#define HActionStLP (HAction(IActionStLP))
 #define HActionFJump (HAction(IActionFJump))
 
 // Actions themselves are defined in HAction::actions[] in Logic.cpp,
@@ -128,12 +130,12 @@ public:
   HAction damaged;
   HAction block;
   HAction sthp;
-  // crlp, sthk, crlk, guarding, damaged
+  HAction stlp;
 
-  Character(Hitbox collision, HAction idle, HAction walkForward, HAction walkBackward, HAction fJump, HAction damaged, HAction block, HAction sthp): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), fJump(fJump), damaged(damaged), block(block), sthp(sthp) {};
+  Character(Hitbox collision, HAction idle, HAction walkForward, HAction walkBackward, HAction fJump, HAction damaged, HAction block, HAction sthp, HAction stlp): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), fJump(fJump), damaged(damaged), block(block), sthp(sthp), stlp(stlp) {};
 
   // don't use this constructor
-  Character(): Character(Hitbox({Box(0, 0, 0, 0)}), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction()) {};
+  Character(): Character(Hitbox({Box(0, 0, 0, 0)}), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction()) {};
 };
 
 class HCharacter {
@@ -153,6 +155,7 @@ public:
   HAction damaged() const;
   HAction block() const;
   HAction sthp() const;
+  HAction stlp() const;
 
   bool operator==(const HCharacter& b) const;
   bool operator!=(const HCharacter& b) const;

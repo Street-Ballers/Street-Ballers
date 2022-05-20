@@ -314,6 +314,8 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft, in
     return c.fJump();
   case Button::HP:
     return c.sthp();
+  case Button::LP:
+    return c.stlp();
   }
 
   // just idle if no other action was chosen

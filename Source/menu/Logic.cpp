@@ -259,6 +259,10 @@ HAction HCharacter::sthp() const {
   return characters[h].sthp;
 }
 
+HAction HCharacter::stlp() const {
+  return characters[h].stlp;
+}
+
 bool HCharacter::operator==(const HCharacter& b) const {
   return h == b.h;
 }

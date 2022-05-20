@@ -13,7 +13,7 @@ void HAction::init() {
              Hitbox(),
              0,
              0,
-             6,
+             8,
              ActionType::Idle);
 
   actions[IActionWalkBackward]
@@ -52,7 +52,7 @@ void HAction::init() {
              Hitbox(),
              0,
              0,
-             7);
+             8);
 
   actions[IActionBlock]
     = Action(IChar1,
@@ -60,7 +60,7 @@ void HAction::init() {
              {},
              Hitbox(),
              Hitbox(),
-             0,
+             0, // leave these all 0s
              0,
              0);
 
@@ -79,6 +79,23 @@ void HAction::init() {
              FVector(0, 0, 0), // velocity
              6, // specialCancelFrames
              {{Button::QCFP, HActionFJump}} // chains
+             );
+
+  actions[IActionStLP]
+    = Action(IChar1, // character
+             EAnimation::StLP, // animation
+             {}, // collision box (note that this is an std::optional)
+             Hitbox({ // hitbox
+                 Hitbox::make_pair(1, {}),
+                 Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
+             Hitbox(), // hurtbox
+             5, // damage
+             5, // lockedFrames (number of frames before player can cancel)
+             7, // animationLength
+             ActionType::Other, // ActionType
+             FVector(0, 0, 0), // velocity
+             3, // specialCancelFrames
+             {{Button::LP, HActionStLP}} // chains
              );
 
   actions[IActionFJump]
@@ -103,7 +120,8 @@ void HCharacter::init() {
                 HActionFJump,
                 HActionDamaged,
                 HActionBlock,
-                HActionStHP);
+                HActionStHP,
+                HActionStLP);
 }
 
 // set xrange [0:22]
