@@ -76,6 +76,8 @@ class MENU_API ALogic : public AActor
         GENERATED_BODY()
 
 public:
+#define PREROUND_TIME 60
+#define ENDROUND_TIME 60
         // set to true to skip the preround
         UPROPERTY(EditAnywhere)
         bool skipPreRound;
@@ -123,6 +125,7 @@ private:
                          // count forward 30 frames rounded to the
                          // nearest 15 frames, and then call
                          // beginRound().
+        bool inEndRound;
         int roundStartFrame;
         void setMode(enum LogicMode);
 

@@ -424,6 +424,8 @@ void ALogic::BeginPlay()
   p2Input->init(maxRollback, 2, 2);
 
   mode = LogicMode::Wait;
+  inPreRound = false;
+  inEndRound = false;
   frame = 0;
   reset(false);
 }
@@ -454,7 +456,7 @@ void ALogic::preRound() {
   else {
     setMode(LogicMode::Idle);
     inPreRound = true;
-    roundStartFrame = ((frame+60)/15)*15;
+    roundStartFrame = ((frame+PREROUND_TIME)/15)*15;
     reset(false);
     if(OnPreRound.IsBound()) {
       OnPreRound.Broadcast();
@@ -472,6 +474,8 @@ void ALogic::beginRound() {
 void ALogic::endRound() {
   MYLOG(Display, "endRound");
   setMode(LogicMode::Idle);
+  inEndRound = true;
+  roundStartFrame = ((frame+ENDROUND_TIME)/15)*15;
   if(OnEndRound.IsBound()) {
     OnEndRound.Broadcast();
   }
@@ -732,6 +736,10 @@ void ALogic::Tick(float DeltaTime)
     if (inPreRound && (frame == (roundStartFrame-1))) {
       inPreRound = false;
       beginRound();
+    }
+    if (inEndRound && (frame == (roundStartFrame-1))) {
+      inEndRound = false;
+      preRound();
     }
     ++frame;
     break;
