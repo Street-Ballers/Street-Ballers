@@ -22,6 +22,13 @@ public:
   UPROPERTY(EditAnywhere)
   AActor* fighter2;
 
+  UPROPERTY(EditAnywhere)
+    double scale;
+  UPROPERTY(EditAnywhere)
+    double min;
+  UPROPERTY(EditAnywhere)
+    double height;
+
   void BeginPlay();
 
   void Tick(float DeltaTime);

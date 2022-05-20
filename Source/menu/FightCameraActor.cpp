@@ -5,6 +5,7 @@
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
 #include <algorithm>
+#include <cmath>
 
 AFightCameraActor::AFightCameraActor() {
   PrimaryActorTick.bCanEverTick = true;
@@ -21,6 +22,10 @@ void AFightCameraActor::BeginPlay() {
   if (pc) {
     pc->SetViewTarget(this);
   }
+
+  scale = 1.2;
+  min = 750.0;
+  height = 100.0;
 }
 
 void AFightCameraActor::Tick(float DeltaTime) {
@@ -31,13 +36,11 @@ void AFightCameraActor::Tick(float DeltaTime) {
 
   FVector pos = (pos1+pos2) * 0.5;
 
-  // 1.732 = cot(30 degrees). 30 deg is half our FOV.
-  pos.X = std::min(-1.732 * FVector::Distance(pos1, pos2),
-                   // don't move closer than this
-                   -500.0);
+  pos.X = std::min(-1 * scale * std::abs(pos1.Y - pos2.Y),
+                   -1 * min);
 
   // Adjust camera to mid level of fighters
-  pos.Z += 100.0;
+  pos.Z += height;
 
   SetActorLocation(pos, false, nullptr, ETeleportType::None);
 }
