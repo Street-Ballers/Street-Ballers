@@ -73,8 +73,12 @@ void HAction::init() {
                  Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
              Hitbox(), // hurtbox
              10, // damage
-             4, // lockedFrames (number of frames before player can cancel)
-             4 // animationLength
+             9, // lockedFrames (number of frames before player can cancel)
+             12, // animationLength
+             ActionType::Other, // ActionType
+             FVector(0, 0, 0), // velocity
+             6, // specialCancelFrames
+             {{Button::QCFP, HActionFJump}} // chains
              );
 
   actions[IActionFJump]
@@ -154,3 +158,14 @@ float jumpHeights[JUMP_LENGTH] = {
   2.48685199098422,
   0.0
 };
+
+std::map<enum Button, std::vector<std::vector<enum Button>>> motionCommands;
+
+void init_actions() {
+  HAction::init();
+  HCharacter::init();
+
+  // two ways to input QCFP
+  motionCommands[Button::QCFP] = {{Button::DOWN, Button::DOWNFORWARD, Button::FORWARD, Button::HP},
+                                  {Button::DOWN, Button::FORWARD, Button::HP}};
+}

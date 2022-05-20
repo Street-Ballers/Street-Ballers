@@ -6,17 +6,10 @@
 #include "GameFramework/Info.h"
 #include "Action.h"
 #include "LogicMode.h"
+#include "Button.h"
 #include <optional>
 #include <vector>
 #include "FightInput.generated.h"
-
-// "Button" here includes directional input. They are relative to the
-// character's orientation.
-enum class Button {
-  LP=0, HP=1, LK=2, HK=3,
-  UP=4, DOWN=5, LEFT=6, RIGHT=7,
-  FORWARD, BACK
-};
 
 // UE doesn't support type aliases
 #define int8 char
@@ -79,6 +72,7 @@ private:
   bool is_button(const enum Button& b);
   // bool is_none(const Button& b);
   enum Button translateDirection(const enum Button& d, bool isOnLeft);
+  std::optional<enum Button> translateDirection(std::optional<enum Button>& d, bool isOnLeft);
   // compute how far back in our history we have to look for the input
   // data for targetFrame
   int computeIndex(int targetFrame);
@@ -88,8 +82,10 @@ private:
   // pressed or released).
   void ensureFrame(int targetFrame);
 
+  // returns true if a sequence of `motion` inputs ends on `frame`
+  bool checkMotionCommand(std::vector<enum Button>& motion, int n, int frame, bool isOnLeft);
   // return action using input `frame` frames ago as latest input
-  HAction _action(HAction currentAction, int frame, bool isOnLeft);
+  HAction _action(HAction currentAction, int frame, bool isOnLeft, int actionFrame);
 
 public:
   AFightInput();
@@ -119,7 +115,7 @@ public:
   void ClientButtons(int8 buttonsPressed, int8 buttonsReleased, int targetFrame);
 
   // Returns the decoded action for the given targetFrame.
-  HAction action(HAction currentAction, bool isOnLeft, int targetFrame);
+  HAction action(HAction currentAction, bool isOnLeft, int targetFrame, int actionStart);
 
   // guarding might not depend on the action but rather the inputs
   // (holding back or down-back), so we use a new method here. We

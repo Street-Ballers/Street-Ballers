@@ -29,6 +29,8 @@ std::optional<enum Button>& ButtonRingBuffer::last() {
 std::optional<enum Button>& ButtonRingBuffer::nthlast(int i) {
   int j = end-i;
   if (j < 0) j += n;
+  check(j >= 0);
+  check(j < n);
   return v.at(j);
 }
 
@@ -46,6 +48,32 @@ bool AFightInput::is_button(const enum Button& b) {
   default:
     return false;
   }
+}
+
+enum Button toSingleDirection(std::optional<enum Button> dx, std::optional<enum Button> dy) {
+  if (dx.has_value()) {
+    if (dx.value() == Button::FORWARD) {
+      if (dy.has_value() && (dy.value() == Button::DOWN))
+        return Button::DOWNFORWARD;
+      else if (dy.has_value() && (dy.value() == Button::UP))
+        return Button::UPFORWARD;
+      else
+        return Button::FORWARD;
+    }
+    else if (dx.value() == Button::BACK) {
+      if (dy.has_value() && (dy.value() == Button::DOWN))
+        return Button::DOWNBACK;
+      if (dy.has_value() && (dy.value() == Button::UP))
+        return Button::UPBACK;
+      else
+        return Button::BACK;
+    }
+  }
+
+  if (dy.has_value())
+    return dy.value();
+  else
+    return Button::NEUTRAL;
 }
 
 // bool AFightInput::is_none(const Button& b) {
@@ -100,6 +128,12 @@ auto buttonToString(enum Button b) {
   case Button::DOWN: return TEXT("DOWN"); break;
   case Button::LEFT: return TEXT("LEFT"); break;
   case Button::RIGHT: return TEXT("RIGHT"); break;
+  case Button::UPBACK: return TEXT("UPBACK"); break;
+  case Button::UPFORWARD: return TEXT("UPFORWARD"); break;
+  case Button::DOWNBACK: return TEXT("DOWNBACK"); break;
+  case Button::DOWNFORWARD: return TEXT("DOWNFORWARD"); break;
+  case Button::NEUTRAL: return TEXT("NEUTRAL"); break;
+  case Button::QCFP: return TEXT("QCFP"); break;
   default: return TEXT("0");
   }
 }
@@ -108,8 +142,10 @@ FString AFightInput::encodedButtonsToString(int8 e) {
   FString r;
   for (auto b : {Button::LP, Button::HP, Button::LK, Button::HK,
                  Button::UP, Button::DOWN, Button::LEFT, Button::RIGHT}) {
-    if (decodeButton(b, e))
+    if (decodeButton(b, e)) {
       r.Append(buttonToString(b));
+      r.Append(FString(" "));
+    }
   }
   return r;
 }
@@ -207,50 +243,111 @@ enum Button AFightInput::translateDirection(const enum Button& d, bool isOnLeft)
     return d;
 }
 
+std::optional<enum Button> AFightInput::translateDirection(std::optional<enum Button>& d, bool isOnLeft) {
+  if (d.has_value())
+    return std::make_optional(translateDirection(d.value(), isOnLeft));
+  else
+    return {};
+}
+
 int AFightInput::computeIndex(int targetFrame) {
   return (currentFrame - targetFrame)+delay;
 }
 
-HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft) {
+HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft, int actionFrame) {
   const HCharacter& c = currentAction.character();
-  // for now, if there was a button, output the corresponding attack.
-  // If no button, then walk/idle based on directional input.
   // MYLOG(Warning, "_action(): %s (frame %i) (button %s)", *GetActorLabel(false), frame, directionHistory.nthlast(frame).has_value() ? ((directionHistory.nthlast(frame).value() == Button::RIGHT) ? TEXT("right") : TEXT("not right")) : TEXT("none"));
+
+  // first we will determine the "button"
+  enum Button newButton = Button::NEUTRAL;
+
+  // first try motion commands; they have the highest priority
   if (buttonHistory.nthlast(frame).has_value()) {
-    enum Button button = buttonHistory.nthlast(frame).value();
-    if (button == Button::HP){
-      MYLOG(Display, "_action(): Do StHP");
-      return c.sthp();
+    for (auto i = motionCommands.begin(); i != motionCommands.end(); ++i) {
+      for (auto j = i->second.begin(); j != i->second.end(); ++j) {
+        if (j->back() == buttonHistory.nthlast(frame).value()) {
+          if (checkMotionCommand(*j, 1, frame, isOnLeft)) {
+            MYLOG(Display, "_action(): %s!", buttonToString(i->first));
+            newButton = i->first;
+          }
+        }
+      }
     }
   }
-  if (!directionHistoryY.nthlast(frame).has_value()) {
-    // player is not holding up or down
-    if (directionHistoryX.nthlast(frame).has_value()) {
-      enum Button button = translateDirection(directionHistoryX.nthlast(frame).value(), isOnLeft);
-      if (button == Button::FORWARD)
-        return c.walkForward();
-      if (button == Button::BACK)
-        return c.walkBackward();
+
+  // try a normal attack
+  if (newButton == Button::NEUTRAL) {
+    if (buttonHistory.nthlast(frame).has_value()) {
+      newButton = buttonHistory.nthlast(frame).value();
     }
   }
-  else if (directionHistoryY.nthlast(frame).value() == Button::DOWN) {
-    // player is holding down. crouch?
+
+  // try directional input
+  if (newButton == Button::NEUTRAL)
+    newButton = toSingleDirection(translateDirection(directionHistoryX.nthlast(frame), isOnLeft), directionHistoryY.nthlast(frame));
+
+  // now with our "button" we pick an action
+
+  // first try chains; these have highest priority
+  if (actionFrame >= currentAction.specialCancelFrames()) {
+    auto i = currentAction.chains().find(newButton);
+    if (i != currentAction.chains().end()) return i->second;
   }
-  else {
-    // player is holding up
-    if (directionHistoryX.nthlast(frame).has_value()) {
-      enum Button button = translateDirection(directionHistoryX.nthlast(frame).value(), isOnLeft);
-      if (button == Button::FORWARD)
-        return c.fJump();
-      else if (button == Button::BACK)
-        return c.walkBackward(); // no backjump right now
-    }
+
+  if (actionFrame < currentAction.lockedFrames())
+    return currentAction.character().idle(); // idle doesn't interrupt
+                                             // any actions so this is
+                                             // safe as a "do nothing"
+                                             // return value
+
+  switch (newButton) {
+  case Button::NEUTRAL:
+  case Button::DOWNFORWARD:
+  case Button::DOWNBACK:
+    return c.idle();
+  case Button::FORWARD:
+    return c.walkForward();
+  case Button::BACK:
+  case Button::UPBACK:
+    return c.walkBackward();
+  case Button::UPFORWARD:
+    return c.fJump();
+  case Button::HP:
+    return c.sthp();
   }
+
+  // just idle if no other action was chosen
   return c.idle();
 }
 
-HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFrame) {
+bool AFightInput::checkMotionCommand(std::vector<enum Button>& motion, int m, int frame, bool isOnLeft) {
+  if (m == motion.size())
+    return true;
+  if (frame >= n)
+    return false;
+
+  check(frame >= 0);
+  check((motion.size() - m - 1) < motion.size());
+  // MYLOG(Display,
+  //       "checkMotionCommand() %i %i %s %s %s",
+  //       m,
+  //       frame,
+  //       buttonToString(toSingleDirection(translateDirection(directionHistoryX.nthlast(frame), isOnLeft), directionHistoryY.nthlast(frame))),
+  //       directionHistoryX.nthlast(frame).has_value() ? buttonToString(translateDirection(directionHistoryX.nthlast(frame).value(), isOnLeft)) : TEXT("None"),
+  //       directionHistoryY.nthlast(frame).has_value() ? buttonToString(directionHistoryY.nthlast(frame).value()) : TEXT("None"));
+  for (int i = 0; i < 4; ++i) { // this 4 is the number of frames we allow between inputs
+    if (toSingleDirection(translateDirection(directionHistoryX.nthlast(frame+i), isOnLeft), directionHistoryY.nthlast(frame+i)) == motion[motion.size() - m - 1]) {
+      if (checkMotionCommand(motion, m+1, frame+i+1, isOnLeft))
+        return true;
+    }
+  }
+
+  return false;
+}
+
+HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFrame, int actionStart) {
   int frameBefore = currentFrame;
+  int actionFrame = targetFrame - actionStart;
   ensureFrame(targetFrame);
   //MYLOG(Warning, "action(): %s (current frame %i) (target frame %i)", *GetActorLabel(false), currentFrame, targetFrame);
 
@@ -260,11 +357,12 @@ HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFram
   // one frame earlier. Repeat until we find an action that isn't
   // idling or walking, or we have tried all of the `input
   // buffer' frames.
-  HAction mostRecentAction = _action(currentAction, frame, isOnLeft);
+  HAction mostRecentAction = _action(currentAction, frame, isOnLeft, actionFrame);
   // MYLOG(Warning, "action(): %s (current frame %i) (target frame %i) (action: %s)", *GetActorLabel(false), currentFrame, targetFrame, (mostRecentAction == HActionIdle) ? TEXT("idle") : TEXT("not idle"));
   HAction action = mostRecentAction;
+
   while (action.isWalkOrIdle() && (++frame < (delay+buffer))) {
-    action = _action(currentAction, frame, isOnLeft);
+    action = _action(currentAction, frame, isOnLeft, actionFrame);
   }
   return action.isWalkOrIdle() ? mostRecentAction : action;
 }

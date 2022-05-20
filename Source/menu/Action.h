@@ -1,12 +1,16 @@
 #pragma once
 
+#include "Button.h"
 #include "Hitbox.h"
 #include <optional>
+#include <map>
 
 UENUM(BlueprintType)
 enum EAnimation { Idle, WalkBackward, WalkForward, FJump, Damaged, Block, StHP };
 
 enum class ActionType { Idle, Walk, Jump, Other };
+
+class HAction;
 
 // Defines things such as
 // - animation
@@ -40,7 +44,14 @@ public:
                     // during a action. Probably only useful for
                     // walking.
 
-  Action(int character, enum EAnimation animation, std::optional<Hitbox> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int lockedFrames, int animationLength, enum ActionType type = ActionType::Other, FVector velocity = FVector(0.0, 0.0, 0.0)): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), lockedFrames(lockedFrames), animationLength(animationLength), type(type), velocity(velocity) {};
+  int specialCancelFrames; // number of frames that the player cannot
+                           // special cancel
+  std::map<enum Button, HAction> chains; // actions that chain from
+                                         // this one when pressed
+                                         // after specialCancelFrames
+                                         // have passed
+
+  Action(int character, enum EAnimation animation, std::optional<Hitbox> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int lockedFrames, int animationLength, enum ActionType type = ActionType::Other, FVector velocity = FVector(0.0, 0.0, 0.0), int specialCancelFrames = 0, std::map<enum Button, HAction> chains = {}): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), lockedFrames(lockedFrames), animationLength(animationLength), type(type), velocity(velocity), specialCancelFrames(specialCancelFrames), chains(chains) {};
 
   // don't use this constructor
   Action(): Action(-1, EAnimation::Idle, Hitbox(), Hitbox(), Hitbox(), 0, 0, 0) {};
@@ -71,6 +82,8 @@ public:
   FVector velocity() const;
   bool isWalkOrIdle() const;
   enum ActionType type() const;
+  int specialCancelFrames() const;
+  const std::map<enum Button, HAction>& chains() const;
 
   bool operator==(const HAction& b) const;
   bool operator!=(const HAction& b) const;
@@ -153,7 +166,9 @@ enum ICharacter {
 
 // This function needs to be called early in the game startup to
 // populate the actions and character arrays
-void init_actions();
+extern void init_actions();
 
 #define JUMP_LENGTH 22
 extern float jumpHeights[JUMP_LENGTH];
+
+extern std::map<enum Button, std::vector<std::vector<enum Button>>> motionCommands;

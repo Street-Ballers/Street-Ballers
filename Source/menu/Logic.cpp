@@ -210,6 +210,14 @@ enum EAnimation HAction::animation() const {
   return actions[h].animation;
 }
 
+int HAction::specialCancelFrames() const {
+  return actions[h].specialCancelFrames;
+}
+
+const std::map<enum Button, HAction>& HAction::chains() const {
+  return actions[h].chains;
+}
+
 bool HAction::operator==(const HAction& b) const {
   return h == b.h;
 }
@@ -260,8 +268,8 @@ bool HCharacter::operator!=(const HCharacter& b) const {
 }
 
 void Player::TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft) {
-  if (frame - actionStart >= action.lockedFrames()) {
-    std::optional<HAction> newActionO = input.action(action, isOnLeft, frame);
+  if (frame - actionStart >= action.specialCancelFrames()) {
+    std::optional<HAction> newActionO = input.action(action, isOnLeft, frame, actionStart);
     if (newActionO.has_value()) {
       HAction newAction = newActionO.value();
       // don't interrupt current action if the new action is just an idle unless we are walking
