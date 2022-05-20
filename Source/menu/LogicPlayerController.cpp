@@ -200,7 +200,7 @@ void ALogicPlayerController::Tick(float deltaSeconds) {
 
 void ALogicPlayerController::ServerButtons_Implementation(int8 _buttonsPressed, int8 _buttonsReleased, int targetFrame) {
   if (GetWorld()->IsNetMode(NM_ListenServer)) {
-    MYLOG(Display, "ServerButtons");
+    //MYLOG(Display, "ServerButtons");
     if (!input) {
       MYLOG(Warning, "ServerButtons: input is NULL");
     }

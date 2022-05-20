@@ -109,6 +109,113 @@ void HAction::init() {
              JUMP_LENGTH,
              ActionType::Jump,
              FVector(0.0, 7.0, 0.0));
+
+  // Grave robber
+
+  actions[IActionGRIdle]
+    = Action(ICharGR,
+             EAnimation::GRIdle,
+             {},
+             Hitbox(),
+             Hitbox(),
+             0,
+             0,
+             16,
+             ActionType::Idle);
+
+  actions[IActionGRWalkBackward]
+    = Action(ICharGR,
+             EAnimation::GRWalkBackward,
+             {},
+             Hitbox(),
+             Hitbox(),
+             0,
+             0,
+             16,
+             ActionType::Walk,
+             FVector(0.0,
+                     -6.0,
+                     0.0));
+
+  actions[IActionGRWalkForward]
+    = Action(ICharGR,
+             EAnimation::GRWalkForward,
+             {},
+             Hitbox(),
+             Hitbox(),
+             0,
+             0,
+             16,
+             ActionType::Walk,
+             FVector(0.0,
+                     6.0,
+                     0.0));
+
+  actions[IActionGRDamaged]
+    = Action(ICharGR,
+             EAnimation::GRDamaged,
+             {},
+             Hitbox(),
+             Hitbox(),
+             0,
+             0,
+             8);
+
+  actions[IActionGRBlock]
+    = Action(ICharGR,
+             EAnimation::GRBlock,
+             {},
+             Hitbox(),
+             Hitbox(),
+             0, // leave these all 0s
+             0,
+             0);
+
+  actions[IActionGRStHP]
+    = Action(ICharGR, // character
+             EAnimation::GRStHP, // animation
+             {}, // collision box (note that this is an std::optional)
+             Hitbox({ // hitbox
+                 Hitbox::make_pair(1, {}),
+                 Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
+             Hitbox(), // hurtbox
+             10, // damage
+             9, // lockedFrames (number of frames before player can cancel)
+             9, // animationLength
+             ActionType::Other, // ActionType
+             FVector(0, 0, 0), // velocity
+             6, // specialCancelFrames
+             {{Button::QCFP, HActionGRFJump}} // chains
+             );
+
+  actions[IActionGRStLP]
+    = Action(ICharGR, // character
+             EAnimation::GRStLP, // animation
+             {}, // collision box (note that this is an std::optional)
+             Hitbox({ // hitbox
+                 Hitbox::make_pair(1, {}),
+                 Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
+             Hitbox(), // hurtbox
+             5, // damage
+             5, // lockedFrames (number of frames before player can cancel)
+             8, // animationLength
+             ActionType::Other, // ActionType
+             FVector(0, 0, 0), // velocity
+             3, // specialCancelFrames
+             {{Button::LP, HActionGRStLP}} // chains
+             );
+
+  actions[IActionGRFJump]
+    = Action(ICharGR,
+             EAnimation::GRFJump,
+             {},
+             {},
+             Hitbox(),
+             0,
+             JUMP_LENGTH,
+             JUMP_LENGTH,
+             ActionType::Jump,
+             FVector(0.0, 7.0, 0.0));
 }
 
 void HCharacter::init() {
@@ -122,6 +229,17 @@ void HCharacter::init() {
                 HActionBlock,
                 HActionStHP,
                 HActionStLP);
+
+  characters[ICharGR]
+    = Character(Hitbox({Box::make_centeredx(100.0, 200.0)}),
+                HActionGRIdle,
+                HActionGRWalkForward,
+                HActionGRWalkBackward,
+                HActionGRFJump,
+                HActionGRDamaged,
+                HActionGRBlock,
+                HActionGRStHP,
+                HActionGRStLP);
 }
 
 // set xrange [0:22]

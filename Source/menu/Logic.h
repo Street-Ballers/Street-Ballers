@@ -189,7 +189,7 @@ public:
         UFUNCTION (BlueprintCallable, Category="Player")
         int playerHealth(int playerNumber);
         UFUNCTION (BlueprintCallable, Category="Player")
-        enum EAnimation playerAnimation(int playerNumber);
+        int playerAnimation(int playerNumber);
         UFUNCTION (BlueprintCallable, Category="Player")
         int playerFrame(int playerNumber);
 };

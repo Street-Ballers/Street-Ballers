@@ -228,7 +228,7 @@ void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetF
 }
 
 void AFightInput::ClientButtons_Implementation(int8 buttonsPressed, int8 buttonsReleased, int targetFrame) {
-  MYLOG(Display, "ClientButtons");
+  //MYLOG(Display, "ClientButtons");
   buttons(buttonsPressed, buttonsReleased, targetFrame);
 }
 

@@ -231,7 +231,6 @@ const Hitbox& HCharacter::collision() const {
 }
 
 HAction HCharacter::idle() const {
-  check(h == 0);
   return characters[h].idle;
 }
 
@@ -448,7 +447,7 @@ void ALogic::reset(bool flipSpawns) {
   p1Input->reset();
   p2Input->reset();
   // construct initial frame
-  Frame f (Player(flipSpawns ? rightStart : leftStart, HActionIdle), Player(flipSpawns ? leftStart : rightStart, HActionIdle));
+  Frame f (Player(flipSpawns ? rightStart : leftStart, HActionIdle), Player(flipSpawns ? leftStart : rightStart, HActionGRIdle));
   f.p1.isFacingRight = IsP1OnLeft(f);
   f.p2.isFacingRight = !IsP1OnLeft(f);
   frames.clear();
@@ -795,7 +794,7 @@ int ALogic::playerHealth(int playerNumber) {
   return getPlayer(playerNumber).health;
 }
 
-enum EAnimation ALogic::playerAnimation(int playerNumber) {
+int ALogic::playerAnimation(int playerNumber) {
   return getPlayer(playerNumber).action.animation();
 }
 

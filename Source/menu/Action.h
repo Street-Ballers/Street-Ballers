@@ -6,7 +6,10 @@
 #include <map>
 
 UENUM(BlueprintType)
-enum EAnimation { Idle, WalkBackward, WalkForward, FJump, Damaged, Block, StHP, StLP };
+enum EAnimation {
+  Idle, WalkBackward, WalkForward, FJump, Damaged, Block, StHP, StLP,
+  GRIdle, GRWalkBackward, GRWalkForward, GRFJump, GRDamaged, GRBlock, GRStHP, GRStLP,
+};
 
 enum class ActionType { Idle, Walk, Jump, Other };
 
@@ -99,7 +102,15 @@ enum IAction {
   IActionBlock = 4,
   IActionStHP = 5,
   IActionStLP = 6,
-  IActionFJump = 7
+  IActionFJump = 7,
+  IActionGRIdle,
+  IActionGRWalkForward,
+  IActionGRWalkBackward,
+  IActionGRDamaged,
+  IActionGRBlock,
+  IActionGRStHP,
+  IActionGRStLP,
+  IActionGRFJump
 };
 
 // this is to assign HActions to action names. All other code should
@@ -112,6 +123,14 @@ enum IAction {
 #define HActionStHP (HAction(IActionStHP))
 #define HActionStLP (HAction(IActionStLP))
 #define HActionFJump (HAction(IActionFJump))
+#define HActionGRIdle (HAction(IActionGRIdle))
+#define HActionGRWalkForward (HAction(IActionGRWalkForward))
+#define HActionGRWalkBackward (HAction(IActionGRWalkBackward))
+#define HActionGRDamaged (HAction(IActionGRDamaged))
+#define HActionGRBlock (HAction(IActionGRBlock))
+#define HActionGRStHP (HAction(IActionGRStHP))
+#define HActionGRStLP (HAction(IActionGRStLP))
+#define HActionGRFJump (HAction(IActionGRFJump))
 
 // Actions themselves are defined in HAction::actions[] in Logic.cpp,
 // for now
@@ -162,10 +181,12 @@ public:
 };
 
 enum ICharacter {
-  IChar1 = 0
+  IChar1 = 0,
+  ICharGR
 };
 
 #define HChar1 (HCharacter(IChar1))
+#define HCharGR (HCharacter(ICharGR))
 
 // This function needs to be called early in the game startup to
 // populate the actions and character arrays
