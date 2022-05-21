@@ -7,11 +7,11 @@
 
 UENUM(BlueprintType)
 enum EAnimation {
-  Idle, WalkBackward, WalkForward, FJump, Damaged, Block, StHP, StLP,
-  GRIdle, GRWalkBackward, GRWalkForward, GRFJump, GRDamaged, GRBlock, GRStHP, GRStLP,
+  Idle, WalkBackward, WalkForward, FJump, Damaged, Block, StHP, StLP, Grab, Throw, Thrown, ThrownGR, KD, Defeat, Special,
+  GRIdle, GRWalkBackward, GRWalkForward, GRFJump, GRDamaged, GRBlock, GRStHP, GRStLP, GRGrab, GRThrow, GRThrown, GRThrownGR, GRKD, GRDefeat,
 };
 
-enum class ActionType { Idle, Walk, Jump, Other };
+enum class ActionType { Idle, Walk, Jump, Grab, Throw, KD, Other };
 
 class HAction;
 
@@ -19,7 +19,7 @@ class HAction;
 // - animation
 // - hitboxes
 // - hurtboxes
-// - could map select inputs to other Actions in the case of e.g.
+// - map select inputs to other Actions in the case of e.g.
 //   target combos
 class Action {
 public:
@@ -107,6 +107,13 @@ enum IAction {
   IActionStHP = 5,
   IActionStLP = 6,
   IActionFJump = 7,
+  IActionGrab,
+  IActionThrow,
+  IActionThrown,
+  IActionThrownGR,
+  IActionKD,
+  IActionDefeat,
+  IActionSpecial,
   IActionGRIdle,
   IActionGRWalkForward,
   IActionGRWalkBackward,
@@ -114,11 +121,16 @@ enum IAction {
   IActionGRBlock,
   IActionGRStHP,
   IActionGRStLP,
-  IActionGRFJump
+  IActionGRFJump,
+  IActionGRThrown,
+  IActionGRKD,
+  IActionGRDefeat,
 };
 
-// this is to assign HActions to action names. All other code should
-// use these symbols to reference Actions
+// this section is to assign HActions to action names. All other code
+// should use these symbols to reference Actions. the line below is a
+// regexp for generating this automatically.
+// - (replace-regexp "^ *I\\(\\w+\\).*$" "#define H\\1 (HAction(I\\1))")
 #define HActionIdle (HAction(IActionIdle))
 #define HActionWalkForward (HAction(IActionWalkForward))
 #define HActionWalkBackward (HAction(IActionWalkBackward))
@@ -127,6 +139,13 @@ enum IAction {
 #define HActionStHP (HAction(IActionStHP))
 #define HActionStLP (HAction(IActionStLP))
 #define HActionFJump (HAction(IActionFJump))
+#define HActionGrab (HAction(IActionGrab))
+#define HActionThrow (HAction(IActionThrow))
+#define HActionThrown (HAction(IActionThrown))
+#define HActionThrownGR (HAction(IActionThrownGR))
+#define HActionKD (HAction(IActionKD))
+#define HActionDefeat (HAction(IActionDefeat))
+#define HActionSpecial (HAction(IActionSpecial))
 #define HActionGRIdle (HAction(IActionGRIdle))
 #define HActionGRWalkForward (HAction(IActionGRWalkForward))
 #define HActionGRWalkBackward (HAction(IActionGRWalkBackward))
@@ -135,6 +154,9 @@ enum IAction {
 #define HActionGRStHP (HAction(IActionGRStHP))
 #define HActionGRStLP (HAction(IActionGRStLP))
 #define HActionGRFJump (HAction(IActionGRFJump))
+#define HActionGRThrown (HAction(IActionGRThrown))
+#define HActionGRKD (HAction(IActionGRKD))
+#define HActionGRDefeat (HAction(IActionGRDefeat))
 
 // Actions themselves are defined in HAction::actions[] in Logic.cpp,
 // for now
@@ -154,11 +176,17 @@ public:
   HAction block;
   HAction sthp;
   HAction stlp;
+  HAction grab;
+  HAction throw_;
+  HAction thrown;
+  HAction thrownGR;
+  HAction kd;
+  HAction defeat;
 
-  Character(Hitbox collision, HAction idle, HAction walkForward, HAction walkBackward, HAction fJump, HAction damaged, HAction block, HAction sthp, HAction stlp): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), fJump(fJump), damaged(damaged), block(block), sthp(sthp), stlp(stlp) {};
+  Character(Hitbox collision, HAction idle, HAction walkForward, HAction walkBackward, HAction fJump, HAction damaged, HAction block, HAction sthp, HAction stlp, HAction grab, HAction throw_, HAction thrown, HAction thrownGR, HAction kd, HAction defeat): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), fJump(fJump), damaged(damaged), block(block), sthp(sthp), stlp(stlp), grab(grab), throw_(throw_), thrown(thrown), thrownGR(thrownGR), kd(kd), defeat(defeat) {};
 
   // don't use this constructor
-  Character(): Character(Hitbox({Box(0, 0, 0, 0)}), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction()) {};
+  Character(): Character(Hitbox({Box(0, 0, 0, 0)}), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction()) {};
 };
 
 class HCharacter {
@@ -179,6 +207,12 @@ public:
   HAction block() const;
   HAction sthp() const;
   HAction stlp() const;
+  HAction grab() const;
+  HAction throw_() const;
+  HAction thrown() const;
+  HAction thrownGR() const;
+  HAction kd() const;
+  HAction defeat() const;
 
   bool operator==(const HCharacter& b) const;
   bool operator!=(const HCharacter& b) const;
@@ -198,5 +232,9 @@ extern void init_actions();
 
 #define JUMP_LENGTH 22
 extern float jumpHeights[JUMP_LENGTH];
+#define BOXER_THROW_LENGTH 36
+extern FVector thrownBoxerPositions[BOXER_THROW_LENGTH];
+#define GR_THROW_LENGTH 36
+extern FVector thrownGRPositions[GR_THROW_LENGTH];
 
 extern std::map<enum Button, std::vector<std::vector<enum Button>>> motionCommands;
