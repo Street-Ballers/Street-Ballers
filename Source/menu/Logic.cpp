@@ -186,6 +186,14 @@ int HAction::damage() const {
   return actions[h].damage;
 }
 
+int HAction::blockAdvantage() const {
+  return actions[h].blockAdvantage;
+}
+
+int HAction::hitAdvantage() const {
+  return actions[h].hitAdvantage;
+}
+
 int HAction::lockedFrames() const {
   return actions[h].lockedFrames;
 }
@@ -587,27 +595,29 @@ void ALogic::computeFrame(int targetFrame) {
     int p1Damage = 0;
     bool p2Hit = false, p2Block = false;
     int p2Damage = 0;
+    const float chipDamageMultiplier = 0.1;
     if (collides(p1.action.hitbox(), p2.action.hurtbox(), newFrame, targetFrame) ||
         collides(p1.action.hitbox(), p2.action.collision(), newFrame, targetFrame)) {
       // hit p2
       MYLOG(Display, "P2 was hit");
       p2Hit = true;
       p2.hitstun = p1.action.lockedFrames() - (targetFrame-p1.actionStart);
+      p2Damage = p1.action.damage();
       if (p2Input->isGuarding(!isP1OnLeft, targetFrame)){
         p2Block = true;
-        // later we could make hitstun a property of an attack so that
-        // we can control the frame advantage. For now, we set the
-        // victim to recover one frame after the attacker on block
-        p2.hitstun += 1;
+        if (p1.action.blockAdvantage() >= 0)
+          p2.hitstun += p1.action.blockAdvantage();
+        else
+          p1.hitstun += p1.action.blockAdvantage();
+        p2.health -= p2Damage * chipDamageMultiplier; // chip damage
       }
       else {
-        p2Damage = p1.action.damage();
-        // later we could make hitstun a property of an attack so that
-        // we can control the frame advantage. For now, we set the
-        // victim to recover three frames after the attacker on hit
-        p2.hitstun += 3;
+        if (p1.action.hitAdvantage() >= 0)
+          p2.hitstun += p1.action.hitAdvantage();
+        else
+          p1.hitstun += p1.action.hitAdvantage();
+        p2.health -= p2Damage;
       }
-      p2.health -= p2Damage;
     }
     if (collides(p1.action.hurtbox(), p2.action.hitbox(), newFrame, targetFrame) ||
         collides(p1.action.collision(), p2.action.hitbox(), newFrame, targetFrame)) {
@@ -615,21 +625,22 @@ void ALogic::computeFrame(int targetFrame) {
       MYLOG(Display, "P1 was hit");
       p1Hit = true;
       p1.hitstun = p2.action.lockedFrames() - (targetFrame-p2.actionStart);
+      p1Damage = p2.action.damage();
       if (p1Input->isGuarding(isP1OnLeft, targetFrame)){
         p1Block = true;
-        // later we could make hitstun a property of an attack so that
-        // we can control the frame advantage. For now, we set the
-        // victim to recover one frame after the attacker on block
-        p1.hitstun += 1;
+        if (p2.action.blockAdvantage() >= 0)
+          p1.hitstun += p2.action.blockAdvantage();
+        else
+          p2.hitstun += p2.action.blockAdvantage();
+        p1.health -= p1Damage * chipDamageMultiplier; // chip damage
       }
       else {
-        p1Damage = p2.action.damage();
-        // later we could make hitstun a property of an attack so that
-        // we can control the frame advantage. For now, we set the
-        // victim to recover three frames after the attacker on hit
-        p1.hitstun += 3;
+        if (p2.action.hitAdvantage() >= 0)
+          p1.hitstun += p2.action.hitAdvantage();
+        else
+          p2.hitstun += p2.action.hitAdvantage();
+        p1.health -= p1Damage;
       }
-      p1.health -= p1Damage;
     }
 
     // TODO: should spawn special FX on hit/block here
@@ -653,7 +664,8 @@ void ALogic::computeFrame(int targetFrame) {
       }
       newFrame.hitPlayer = 2;
     }
-    newFrame.hitstop = std::max(p1Damage, p2Damage)/5;
+    newFrame.hitstop = std::min(1, std::max(p1Damage, p2Damage)/5);
+    newFrame.pushbackPerFrame = 35.0 / newFrame.hitstop;
     if (p1Hit && p2Hit) {
       newFrame.hitPlayer = 0;
       // add the hitstop because we won't do real hitstop when ties
@@ -666,11 +678,11 @@ void ALogic::computeFrame(int targetFrame) {
     // keep the attacking player frozen, do pushback, keep players in bounds
     if ((newFrame.hitPlayer == 1) || (newFrame.hitPlayer == 0)) {
       // do pushback
-      p1.pos.Y += (isP1OnLeft ? -1 : 1) * 10;
+      p1.pos.Y += (isP1OnLeft ? -1 : 1) * newFrame.pushbackPerFrame;
     }
     if ((newFrame.hitPlayer == 2) || (newFrame.hitPlayer == 0)) {
       // do pushback
-      p2.pos.Y += (!isP1OnLeft ? -1 : 1) * 10;
+      p2.pos.Y += (!isP1OnLeft ? -1 : 1) * newFrame.pushbackPerFrame;
     }
     if (newFrame.hitPlayer == 1) {
       // this causes the freeze on the attacker's animation

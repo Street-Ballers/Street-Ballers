@@ -32,6 +32,8 @@ public:
   Hitbox hitbox;
   Hitbox hurtbox;
   int damage;
+  int blockAdvantage;
+  int hitAdvantage;
   int lockedFrames; // number of frames that the player is locked into
                     // this action
   int animationLength; // length of the actual animation. The player
@@ -54,10 +56,10 @@ public:
                                          // after specialCancelFrames
                                          // have passed
 
-  Action(int character, enum EAnimation animation, std::optional<Hitbox> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int lockedFrames, int animationLength, enum ActionType type = ActionType::Other, FVector velocity = FVector(0.0, 0.0, 0.0), int specialCancelFrames = 0, std::map<enum Button, HAction> chains = {}): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), lockedFrames(lockedFrames), animationLength(animationLength), type(type), velocity(velocity), specialCancelFrames(specialCancelFrames), chains(chains) {};
+  Action(int character, enum EAnimation animation, std::optional<Hitbox> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int blockAdvantage, int hitAdvantage, int lockedFrames, int animationLength, enum ActionType type = ActionType::Other, FVector velocity = FVector(0.0, 0.0, 0.0), int specialCancelFrames = 0, std::map<enum Button, HAction> chains = {}): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), blockAdvantage(blockAdvantage), hitAdvantage(hitAdvantage), lockedFrames(lockedFrames), animationLength(animationLength), type(type), velocity(velocity), specialCancelFrames(specialCancelFrames), chains(chains) {};
 
   // don't use this constructor
-  Action(): Action(-1, EAnimation::Idle, Hitbox(), Hitbox(), Hitbox(), 0, 0, 0) {};
+  Action(): Action(-1, EAnimation::Idle, Hitbox(), Hitbox(), Hitbox(), 0, 0, 0, 0, 0) {};
 };
 
 class HCharacter;
@@ -80,6 +82,8 @@ public:
   const Hitbox& hitbox() const;
   const Hitbox& hurtbox() const;
   int damage() const;
+  int blockAdvantage() const;
+  int hitAdvantage() const;
   int lockedFrames() const;
   int animationLength() const;
   FVector velocity() const;
