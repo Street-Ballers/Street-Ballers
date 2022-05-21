@@ -108,6 +108,10 @@ HAction HCharacter::kd() const {
   return characters[h].kd;
 }
 
+HAction HCharacter::defeat() const {
+  return characters[h].defeat;
+}
+
 bool HCharacter::operator==(const HCharacter& b) const {
   return h == b.h;
 }

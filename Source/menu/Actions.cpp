@@ -199,6 +199,20 @@ void HAction::init() {
              ActionType::KD
              );
 
+  actions[IActionDefeat]
+    = Action(IChar1, // character
+             EAnimation::Defeat, // animation
+             {}, // collision box (note that this is an std::optional)
+             Hitbox(), // hitbox
+             Hitbox(), // hurtbox
+             0, // damage
+             0,
+             0,
+             150, // lockedFrames (number of frames before player can cancel)
+             150, // animationLength
+             ActionType::KD
+             );
+
   // Grave robber
 
   actions[IActionGRIdle]
@@ -348,6 +362,20 @@ void HAction::init() {
              30, // animationLength
              ActionType::KD
              );
+
+  actions[IActionGRDefeat]
+    = Action(ICharGR, // character
+             EAnimation::GRDefeat, // animation
+             {}, // collision box (note that this is an std::optional)
+             Hitbox(), // hitbox
+             Hitbox(), // hurtbox
+             0, // damage
+             0,
+             0,
+             150, // lockedFrames (number of frames before player can cancel)
+             150, // animationLength
+             ActionType::KD
+             );
 }
 
 void HCharacter::init() {
@@ -365,7 +393,8 @@ void HCharacter::init() {
                 HActionThrow,
                 HActionThrown,
                 HActionThrownGR,
-                HActionKD);
+                HActionKD,
+                HActionDefeat);
 
   characters[ICharGR]
     = Character(Hitbox({Box::make_centeredx(100.0, 200.0)}),
@@ -381,7 +410,8 @@ void HCharacter::init() {
                 HActionGRIdle,
                 HActionGRThrown,
                 HActionGRIdle,
-                HActionGRKD);
+                HActionGRKD,
+                HActionGRDefeat);
 }
 
 // set xrange [0:22]
