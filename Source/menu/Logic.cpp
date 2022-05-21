@@ -415,7 +415,7 @@ void ALogic::reset(bool flipSpawns) {
   p1Input->reset();
   p2Input->reset();
   // construct initial frame
-  Frame f (Player(flipSpawns ? rightStart : leftStart, HActionIdle), Player(flipSpawns ? leftStart : rightStart, HActionIdle));
+  Frame f (Player(flipSpawns ? rightStart : leftStart, HActionIdle), Player(flipSpawns ? leftStart : rightStart, HActionGRIdle));
   f.p1.isFacingRight = IsP1OnLeft(f);
   f.p2.isFacingRight = !IsP1OnLeft(f);
   frames.clear();
