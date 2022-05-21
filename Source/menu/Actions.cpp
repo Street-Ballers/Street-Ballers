@@ -4,6 +4,8 @@
 Action HAction::actions[N_ACTIONS];
 Character HCharacter::characters[N_CHARACTERS];
 
+const float jumpXVel = 14.0;
+
 void HAction::init() {
   actions[IActionIdle]
     = Action(IChar1,
@@ -11,6 +13,8 @@ void HAction::init() {
              {},
              Hitbox(),
              Hitbox(),
+             0,
+             0,
              0,
              0,
              8,
@@ -22,6 +26,8 @@ void HAction::init() {
              {},
              Hitbox(),
              Hitbox(),
+             0,
+             0,
              0,
              0,
              16,
@@ -38,6 +44,8 @@ void HAction::init() {
              Hitbox(),
              0,
              0,
+             0,
+             0,
              16,
              ActionType::Walk,
              FVector(0.0,
@@ -52,6 +60,8 @@ void HAction::init() {
              Hitbox(),
              0,
              0,
+             0,
+             0,
              8);
 
   actions[IActionBlock]
@@ -61,6 +71,8 @@ void HAction::init() {
              Hitbox(),
              Hitbox(),
              0, // leave these all 0s
+             0,
+             0,
              0,
              0);
 
@@ -73,6 +85,8 @@ void HAction::init() {
                  Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
              Hitbox(), // hurtbox
              10, // damage
+             0, // blockAdvantage
+             0, // hitAdvantage
              9, // lockedFrames (number of frames before player can cancel)
              12, // animationLength
              ActionType::Other, // ActionType
@@ -90,6 +104,8 @@ void HAction::init() {
                  Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
              Hitbox(), // hurtbox
              5, // damage
+             0,
+             0,
              5, // lockedFrames (number of frames before player can cancel)
              7, // animationLength
              ActionType::Other, // ActionType
@@ -101,14 +117,16 @@ void HAction::init() {
   actions[IActionFJump]
     = Action(IChar1,
              EAnimation::FJump,
-             {},
-             {},
+             Hitbox({Box::make_centeredx(50.0, 200.0)}),
              Hitbox(),
+             Hitbox(),
+             0,
+             0,
              0,
              JUMP_LENGTH,
              JUMP_LENGTH,
              ActionType::Jump,
-             FVector(0.0, 7.0, 0.0));
+             FVector(0.0, jumpXVel, 0.0));
 
   // Grave robber
 
@@ -120,6 +138,8 @@ void HAction::init() {
              Hitbox(),
              0,
              0,
+             0,
+             0,
              16,
              ActionType::Idle);
 
@@ -129,6 +149,8 @@ void HAction::init() {
              {},
              Hitbox(),
              Hitbox(),
+             0,
+             0,
              0,
              0,
              16,
@@ -145,6 +167,8 @@ void HAction::init() {
              Hitbox(),
              0,
              0,
+             0,
+             0,
              16,
              ActionType::Walk,
              FVector(0.0,
@@ -159,6 +183,8 @@ void HAction::init() {
              Hitbox(),
              0,
              0,
+             0,
+             0,
              8);
 
   actions[IActionGRBlock]
@@ -168,6 +194,8 @@ void HAction::init() {
              Hitbox(),
              Hitbox(),
              0, // leave these all 0s
+             0,
+             0,
              0,
              0);
 
@@ -180,6 +208,8 @@ void HAction::init() {
                  Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
              Hitbox(), // hurtbox
              10, // damage
+             0,
+             0,
              9, // lockedFrames (number of frames before player can cancel)
              9, // animationLength
              ActionType::Other, // ActionType
@@ -197,6 +227,8 @@ void HAction::init() {
                  Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
              Hitbox(), // hurtbox
              5, // damage
+             0,
+             3,
              5, // lockedFrames (number of frames before player can cancel)
              8, // animationLength
              ActionType::Other, // ActionType
@@ -208,14 +240,16 @@ void HAction::init() {
   actions[IActionGRFJump]
     = Action(ICharGR,
              EAnimation::GRFJump,
-             {},
-             {},
+             Hitbox({Box::make_centeredx(50.0, 200.0)}),
              Hitbox(),
+             Hitbox(),
+             0,
+             0,
              0,
              JUMP_LENGTH,
              JUMP_LENGTH,
              ActionType::Jump,
-             FVector(0.0, 7.0, 0.0));
+             FVector(0.0, jumpXVel, 0.0));
 }
 
 void HCharacter::init() {

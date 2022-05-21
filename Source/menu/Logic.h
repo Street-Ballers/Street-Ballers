@@ -42,6 +42,7 @@ public:
   Player p1;
   Player p2;
   int hitstop = 0; // number of frames of hitstop left
+  float pushbackPerFrame;
   int hitPlayer; // when hitstop>0, 0=both, 1=p1, 2=p2
 
   Frame(Player p1, Player p2): p1(p1), p2(p2) {};
