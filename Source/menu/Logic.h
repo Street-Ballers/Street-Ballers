@@ -26,15 +26,19 @@ public:
   int actionStart;
   int health;
   int hitstun = 0;
+  float knockdownVelocity;
 
   Player(FVector pos, HAction action): pos(pos), action(action), actionStart(0), health(100) {};
   Player() {};
 
+  void startNewAction(int frame, HAction newAction, bool isOnLeft);
   void TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft);
   float collidesWithBoundary(float boundary, bool isRightBound, int targetFrame);
   void doDamagedAction(int frame);
   void doBlockAction(int frame);
-  void maybeDoJump(int frame);
+  void doKdAction(int frame, bool isOnLeft, float knockdownDistance);
+  void doThrownAction(int frame, bool isOnLeft, float knockdownDistance, HAction newAction, Player& q);
+  void doMotion(int frame);
 };
 
 class Frame {

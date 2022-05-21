@@ -44,6 +44,10 @@ const std::map<enum Button, HAction>& HAction::chains() const {
   return actions[h].chains;
 }
 
+float HAction::knockdownDistance() const {
+  return actions[h].knockdownDistance;
+}
+
 bool HAction::operator==(const HAction& b) const {
   return h == b.h;
 }

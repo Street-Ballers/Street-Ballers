@@ -26,7 +26,8 @@ Example action:
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
              6, // specialCancelFrames
-             {{Button::QCFP, HActionFJump}} // chains
+             {{Button::QCFP, HActionSpecial}}, // chains
+             200.0 // knockdownDistance
              );
 #+end_src
 
@@ -132,3 +133,8 @@ Note that all the remaining fields are optional.
 
     means that if the player performs a LP after ~specialCancelFrames~
     have passed, they will do a StLP.
+
+15. ~knockdownDistance~ is the distance that the player who is hit
+    gets launched over. A value of -1 (default) means no knockdown.
+    a nonzero value means that the player who is hit will enter the
+    knockdown action and fly ~knockdownDistance~ away.

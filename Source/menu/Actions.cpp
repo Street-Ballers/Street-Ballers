@@ -136,27 +136,29 @@ void HAction::init() {
                  Hitbox::make_pair(1, {}),
                  Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
              Hitbox(), // hurtbox
-             0, // damage
+             30, // damage
              0,
              0,
              15, // lockedFrames (number of frames before player can cancel)
              15, // animationLength
-             ActionType::Grab // ActionType
+             ActionType::Grab, // ActionType
+             FVector(0, 0, 0),
+             15,
+             {},
+             200.0
              );
 
   actions[IActionThrow]
     = Action(IChar1, // character
              EAnimation::Throw, // animation
              {}, // collision box (note that this is an std::optional)
-             Hitbox({ // hitbox
-                 Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
+             Hitbox(),
              Hitbox(), // hurtbox
-             15, // damage
+             0, // damage
              0,
              0,
-             BOXER_THROW_LENGTH, // lockedFrames (number of frames before player can cancel)
-             BOXER_THROW_LENGTH // animationLength
+             32, // lockedFrames (number of frames before player can cancel)
+             32 // animationLength
              );
 
   actions[IActionThrown]
@@ -168,8 +170,9 @@ void HAction::init() {
              0, // damage
              0,
              0,
-             11, // lockedFrames (number of frames before player can cancel)
-             11 // animationLength
+             THROWN_BOXER_LENGTH, // lockedFrames (number of frames before player can cancel)
+             THROWN_BOXER_LENGTH, // animationLength
+             ActionType::Thrown
              );
 
   actions[IActionThrownGR]
@@ -181,8 +184,9 @@ void HAction::init() {
              0, // damage
              0,
              0,
-             11, // lockedFrames (number of frames before player can cancel)
-             11 // animationLength
+             THROWN_GR_LENGTH, // lockedFrames (number of frames before player can cancel)
+             THROWN_GR_LENGTH, // animationLength
+             ActionType::Thrown
              );
 
   actions[IActionKD]
@@ -345,8 +349,9 @@ void HAction::init() {
              0, // damage
              0,
              0,
-             11, // lockedFrames (number of frames before player can cancel)
-             11 // animationLength
+             THROWN_BOXER_LENGTH, // lockedFrames (number of frames before player can cancel)
+             THROWN_BOXER_LENGTH, // animationLength
+             ActionType::Thrown
              );
 
   actions[IActionGRKD]
@@ -467,7 +472,21 @@ float jumpHeights[JUMP_LENGTH] = {
   0.0
 };
 
-FVector thrownBoxerPositions[BOXER_THROW_LENGTH] = {
+float knockdownAirborneHeights[knockdownAirborneLength] = {
+  130.0,
+  130.0,
+  130.0,
+  120.0,
+  110.0,
+  90.0,
+  70.0,
+  50.0,
+  20.0,
+  0.0
+};
+
+FVector thrownBoxerPositions[THROWN_BOXER_LENGTH+1] = {
+  FVector(0.0, 0.0, 0.0),
   FVector(0.0, 50.0, 0.0),
   FVector(0.0, 45.0, 0.0),
   FVector(0.0, 40.0, 0.0),
@@ -478,30 +497,10 @@ FVector thrownBoxerPositions[BOXER_THROW_LENGTH] = {
   FVector(0.0, 30.0, 0.0),
   FVector(0.0, 30.0, 0.0),
   FVector(0.0, 30.0, 0.0),
-  FVector(0.0, 60.0, 130.0),
-  FVector(0.0, 60.0, 130.0),
-  FVector(0.0, 90.0, 170.0),
-  FVector(0.0, 90.0, 170.0),
-  FVector(0.0, 120.0, 180.0),
-  FVector(0.0, 120.0, 180.0),
-  FVector(0.0, 130.0, 170.0),
-  FVector(0.0, 130.0, 170.0),
-  FVector(0.0, 150.0, 100.0),
-  FVector(0.0, 150.0, 100.0),
-  FVector(0.0, 170.0, 50.0),
-  FVector(0.0, 170.0, 50.0),
-  FVector(0.0, 180.0, 0.0),
-  FVector(0.0, 180.0, 0.0),
-  FVector(0.0, 180.0, 0.0),
-  FVector(0.0, 180.0, 0.0),
-  FVector(0.0, 180.0, 0.0),
-  FVector(0.0, 180.0, 0.0),
-  FVector(0.0, 180.0, 0.0),
-  FVector(0.0, 180.0, 0.0),
-  FVector(0.0, 180.0, 0.0),
-  FVector(0.0, 180.0, 0.0)
+  FVector(0.0, 60.0, 0.0)
 };
-// FVector thrownGRPositions[GR_THROW_LENGTH];
+
+// FVector thrownGRPositions[THROWN_GR_LENGTH];
 
 std::map<enum Button, std::vector<std::vector<enum Button>>> motionCommands;
 
