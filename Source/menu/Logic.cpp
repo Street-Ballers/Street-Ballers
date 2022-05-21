@@ -196,26 +196,38 @@ const Hitbox& HAction::hurtbox() const {
   return actions[h].hurtbox;
 }
 
+void Player::startNewAction(int frame, HAction newAction, bool isOnLeft) {
+  action = newAction;
+  actionStart = frame;
+  isFacingRight = isOnLeft;
+}
+
 void Player::TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft) {
-  if (frame - actionStart >= action.specialCancelFrames()) {
-    HAction newAction = input.action(action, isOnLeft, frame, actionStart);
-    // don't interrupt current action if the new action is just an idle unless we are walking
-    if (!((action.isWalkOrIdle() &&
-           (newAction == action) &&
-           (frame - actionStart < action.animationLength())) ||
-          (!action.isWalkOrIdle() &&
-           (newAction.type() == ActionType::Idle) &&
-           (frame - actionStart < action.animationLength())))) {
-      action = newAction;
-      actionStart = frame;
-      isFacingRight = isOnLeft;
+  if (action.type() == ActionType::Thrown) {
+    if ((frame - actionStart) == action.animationLength()) {
+      float knockdownVelocityp = knockdownVelocity;
+      doKdAction(frame, isOnLeft, knockdownVelocityp);
     }
-    // do update player direction if we are merely continuing
-    // walk/idle
-    else if (action.isWalkOrIdle() &&
+  }
+  else {
+    if (frame - actionStart >= action.specialCancelFrames()) {
+      HAction newAction = input.action(action, isOnLeft, frame, actionStart);
+      // don't interrupt current action if the new action is just an idle unless we are walking
+      if (!((action.isWalkOrIdle() &&
              (newAction == action) &&
-             (frame - actionStart < action.animationLength())) {
-      isFacingRight = isOnLeft;
+             (frame - actionStart < action.animationLength())) ||
+            (!action.isWalkOrIdle() &&
+             (newAction.type() == ActionType::Idle) &&
+             (frame - actionStart < action.animationLength())))) {
+        startNewAction(frame, newAction, isOnLeft);
+      }
+      // do update player direction if we are merely continuing
+      // walk/idle
+      else if (action.isWalkOrIdle() &&
+               (newAction == action) &&
+               (frame - actionStart < action.animationLength())) {
+        isFacingRight = isOnLeft;
+      }
     }
   }
 }
@@ -228,6 +240,17 @@ void Player::doDamagedAction(int frame) {
 void Player::doBlockAction(int frame) {
   action = action.character().block();
   actionStart = frame;
+}
+
+void Player::doKdAction(int frame, bool isOnLeft, float knockdownDistance) {
+  knockdownVelocity = knockdownDistance / knockdownAirborneLength;
+  startNewAction(frame, action.character().kd(), isOnLeft);
+}
+
+void Player::doThrownAction(int frame, bool isOnLeft, float knockdownDistance, HAction newAction, Player& q) {
+  startNewAction(frame, newAction, isOnLeft);
+  knockdownVelocity = knockdownDistance;
+  pos = q.pos + (isOnLeft ? -1 : 1) * thrownBoxerPositions[1];
 }
 
 // returns the amount of correction needed to move player out of the bound
@@ -252,9 +275,18 @@ float Player::collidesWithBoundary(float boundary, bool isRightBound, int target
   }
 }
 
-void Player::maybeDoJump(int targetFrame) {
+void Player::doMotion(int targetFrame) {
   if (action.type() == ActionType::Jump) {
     pos.Z = 33*jumpHeights[targetFrame - actionStart];
+  }
+  if (action.type() == ActionType::Thrown) {
+    pos += thrownBoxerPositions[targetFrame - actionStart + 1] - thrownBoxerPositions[targetFrame - actionStart];
+  }
+  if (action.type() == ActionType::KD) {
+    if ((targetFrame - actionStart) < knockdownAirborneLength) {
+      pos.Z = knockdownAirborneHeights[targetFrame - actionStart];
+      pos.Y += (isFacingRight ? -1 : 1) * knockdownVelocity;
+    }
   }
 }
 
@@ -298,9 +330,17 @@ bool ALogic::collides(const Hitbox &p1b, const Hitbox &p2b, const Frame &f, int 
 
 // returns the amount of adjustment player P needs
 float ALogic::playerCollisionExtent(const Player &p, const Player &q, int targetFrame) {
-  const Box &pb = p.action.collision().at(targetFrame)->at(0);
-  const Box &qb = q.action.collision().at(targetFrame)->at(0);
-  return qb.collisionExtent(pb, p.pos.Y, p.pos.Z, q.pos.Y, q.pos.Z, p.isFacingRight, q.isFacingRight);
+  if ((p.action.type() == ActionType::Thrown) ||
+        (q.action.type() == ActionType::Thrown) ||
+        ((p.action.type() == ActionType::KD) && (frame - p.actionStart) < knockdownAirborneLength) ||
+        ((q.action.type() == ActionType::KD) && (frame - q.actionStart) < knockdownAirborneLength)) {
+    return 0.0;
+  }
+  else {
+    const Box &pb = p.action.collision().at(targetFrame)->at(0);
+    const Box &qb = q.action.collision().at(targetFrame)->at(0);
+    return qb.collisionExtent(pb, p.pos.Y, p.pos.Z, q.pos.Y, q.pos.Z, p.isFacingRight, q.isFacingRight);
+  }
 }
 
 void ALogic::HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRightBoundary) {
@@ -375,7 +415,7 @@ void ALogic::reset(bool flipSpawns) {
   p1Input->reset();
   p2Input->reset();
   // construct initial frame
-  Frame f (Player(flipSpawns ? rightStart : leftStart, HActionIdle), Player(flipSpawns ? leftStart : rightStart, HActionGRIdle));
+  Frame f (Player(flipSpawns ? rightStart : leftStart, HActionIdle), Player(flipSpawns ? leftStart : rightStart, HActionIdle));
   f.p1.isFacingRight = IsP1OnLeft(f);
   f.p2.isFacingRight = !IsP1OnLeft(f);
   frames.clear();
@@ -470,8 +510,8 @@ void ALogic::computeFrame(int targetFrame) {
   FVector p2v = p2Direction*p2.action.velocity();
   p1.pos += p1v;
   p2.pos += p2v;
-  p1.maybeDoJump(targetFrame);
-  p2.maybeDoJump(targetFrame);
+  p1.doMotion(targetFrame);
+  p2.doMotion(targetFrame);
   // recompute who is on left, useful in the case of a jumping cross
   // up
   isP1OnLeft = IsP1OnLeft(newFrame);
@@ -511,87 +551,136 @@ void ALogic::computeFrame(int targetFrame) {
   // check hitboxes, compute damage. Don't forget the case of ties.
   //MYLOG(Display, "hitstop %i", newFrame.hitstop);
   if (newFrame.hitstop == 0) { // only check hitboxes if we are not in hitstop
-    bool p1Hit = false, p1Block = false;
-    int p1Damage = 0;
-    bool p2Hit = false, p2Block = false;
-    int p2Damage = 0;
-    const float chipDamageMultiplier = 0.1;
-    if (collides(p1.action.hitbox(), p2.action.hurtbox(), newFrame, targetFrame) ||
-        collides(p1.action.hitbox(), p2.action.collision(), newFrame, targetFrame)) {
-      // hit p2
-      MYLOG(Display, "P2 was hit");
-      p2Hit = true;
-      p2.hitstun = p1.action.lockedFrames() - (targetFrame-p1.actionStart);
-      p2Damage = p1.action.damage();
-      if (p2Input->isGuarding(!isP1OnLeft, targetFrame)){
-        p2Block = true;
-        if (p1.action.blockAdvantage() >= 0)
-          p2.hitstun += p1.action.blockAdvantage();
-        else
-          p1.hitstun += p1.action.blockAdvantage();
-        p2.health -= p2Damage * chipDamageMultiplier; // chip damage
+    if ((p1.action.type() != ActionType::KD) && (p2.action.type() != ActionType::KD)) {
+      bool p1Hit = false, p1Block = false, p1Grabbed = false;
+      int p1Damage = 0;
+      bool p2Hit = false, p2Block = false, p2Grabbed = false;
+      int p2Damage = 0;
+      float p1KnockdownDistance = -1, p2KnockdownDistance = -1;
+      const float chipDamageMultiplier = 0.1;
+      if (collides(p1.action.hitbox(), p2.action.hurtbox(), newFrame, targetFrame) ||
+          collides(p1.action.hitbox(), p2.action.collision(), newFrame, targetFrame)) {
+        // hit p2
+        MYLOG(Display, "P2 was hit");
+        if (p1.action.type() == ActionType::Grab){
+          p2Grabbed = true;
+          p2KnockdownDistance = p1.action.knockdownDistance();
+          p2Damage = p1.action.damage();
+        }
+        else {
+          p2Hit = true;
+          p2.hitstun = p1.action.lockedFrames() - (targetFrame-p1.actionStart);
+          p2Damage = p1.action.damage();
+          if (p2Input->isGuarding(!isP1OnLeft, targetFrame)){
+            p2Block = true;
+            if (p1.action.blockAdvantage() >= 0)
+              p2.hitstun += p1.action.blockAdvantage();
+            else
+              p1.hitstun += p1.action.blockAdvantage();
+            p2.health -= p2Damage * chipDamageMultiplier; // chip damage
+          }
+          else {
+            if (p1.action.hitAdvantage() >= 0)
+              p2.hitstun += p1.action.hitAdvantage();
+            else
+              p1.hitstun += p1.action.hitAdvantage();
+            p2.health -= p2Damage;
+            p2KnockdownDistance = p1.action.knockdownDistance();
+          }
+        }
       }
-      else {
-        if (p1.action.hitAdvantage() >= 0)
-          p2.hitstun += p1.action.hitAdvantage();
-        else
-          p1.hitstun += p1.action.hitAdvantage();
-        p2.health -= p2Damage;
+      if (collides(p1.action.hurtbox(), p2.action.hitbox(), newFrame, targetFrame) ||
+          collides(p1.action.collision(), p2.action.hitbox(), newFrame, targetFrame)) {
+        // hit p1
+        MYLOG(Display, "P1 was hit");
+        if (p2.action.type() == ActionType::Grab) {
+          p1Grabbed = true;
+          p1KnockdownDistance = p2.action.knockdownDistance();
+          p1Damage = p2.action.damage();
+        }
+        else {
+          p1Hit = true;
+          p1.hitstun = p2.action.lockedFrames() - (targetFrame-p2.actionStart);
+          p1Damage = p2.action.damage();
+          if (p1Input->isGuarding(isP1OnLeft, targetFrame)){
+            p1Block = true;
+            if (p2.action.blockAdvantage() >= 0)
+              p1.hitstun += p2.action.blockAdvantage();
+            else
+              p2.hitstun += p2.action.blockAdvantage();
+            p1.health -= p1Damage * chipDamageMultiplier; // chip damage
+          }
+          else {
+            if (p2.action.hitAdvantage() >= 0)
+              p1.hitstun += p2.action.hitAdvantage();
+            else
+              p2.hitstun += p2.action.hitAdvantage();
+            p1.health -= p1Damage;
+            p1KnockdownDistance = p2.action.knockdownDistance();
+          }
+        }
       }
-    }
-    if (collides(p1.action.hurtbox(), p2.action.hitbox(), newFrame, targetFrame) ||
-        collides(p1.action.collision(), p2.action.hitbox(), newFrame, targetFrame)) {
-      // hit p1
-      MYLOG(Display, "P1 was hit");
-      p1Hit = true;
-      p1.hitstun = p2.action.lockedFrames() - (targetFrame-p2.actionStart);
-      p1Damage = p2.action.damage();
-      if (p1Input->isGuarding(isP1OnLeft, targetFrame)){
-        p1Block = true;
-        if (p2.action.blockAdvantage() >= 0)
-          p1.hitstun += p2.action.blockAdvantage();
-        else
-          p2.hitstun += p2.action.blockAdvantage();
-        p1.health -= p1Damage * chipDamageMultiplier; // chip damage
-      }
-      else {
-        if (p2.action.hitAdvantage() >= 0)
-          p1.hitstun += p2.action.hitAdvantage();
-        else
-          p2.hitstun += p2.action.hitAdvantage();
-        p1.health -= p1Damage;
-      }
-    }
+      if (p1Hit || p2Hit)
+        p1Grabbed = p2Grabbed = false; // grabs lose to attacks
 
-    // TODO: should spawn special FX on hit/block here
-    if (p1Hit) {
-      p1.pos.Z = 0;
-      if (p1Block) {
+      // TODO: should spawn special FX on hit/block here
+      if (p1Hit) {
+        p1.pos.Z = 0;
+        if (p1Block) {
+          p1.doBlockAction(targetFrame);
+        }
+        else {
+          if (p1KnockdownDistance >= 0)
+            p1.doKdAction(targetFrame, isP1OnLeft, p1KnockdownDistance);
+          else
+            p1.doDamagedAction(targetFrame);
+        }
+        newFrame.hitPlayer = 1;
+      }
+      if (p2Hit) {
+        p2.pos.Z = 0;
+        if (p2Block) {
+          p2.doBlockAction(targetFrame);
+        }
+        else {
+          if (p2KnockdownDistance >= 0)
+            p2.doKdAction(targetFrame, !isP1OnLeft, p2KnockdownDistance);
+          else
+            p2.doDamagedAction(targetFrame);
+        }
+        newFrame.hitPlayer = 2;
+      }
+      if (p1Grabbed && p2Grabbed) {
+        // both players grabbed at same time; no tech animation so just
+        // do block animation with pushback
         p1.doBlockAction(targetFrame);
-      }
-      else {
-        p1.doDamagedAction(targetFrame);
-      }
-      newFrame.hitPlayer = 1;
-    }
-    if (p2Hit) {
-      p2.pos.Z = 0;
-      if (p2Block) {
         p2.doBlockAction(targetFrame);
+        newFrame.hitstop = 10;
+        newFrame.pushbackPerFrame = 10.0;
       }
       else {
-        p2.doDamagedAction(targetFrame);
+        newFrame.hitstop = std::min(1, std::max(p1Damage, p2Damage)/5);
+        newFrame.pushbackPerFrame = 35.0 / newFrame.hitstop;
       }
-      newFrame.hitPlayer = 2;
-    }
-    newFrame.hitstop = std::min(1, std::max(p1Damage, p2Damage)/5);
-    newFrame.pushbackPerFrame = 35.0 / newFrame.hitstop;
-    if (p1Hit && p2Hit) {
-      newFrame.hitPlayer = 0;
-      // add the hitstop because we won't do real hitstop when ties
-      // happen, only pushback
-      p1.hitstun += newFrame.hitstop;
-      p2.hitstun += newFrame.hitstop;
+      if ((p1Hit && p2Hit) || (p1Grabbed && p2Grabbed)) {
+        newFrame.hitPlayer = 0;
+        // add the hitstop because we won't do real hitstop when ties
+        // happen, only pushback
+        p1.hitstun += newFrame.hitstop;
+        p2.hitstun += newFrame.hitstop;
+      }
+      if (!(p1Grabbed && p2Grabbed)) {
+        if (p1Grabbed) {
+          p1.doThrownAction(targetFrame, isP1OnLeft, p1KnockdownDistance, p1.action.character().thrown(), p2);
+          p1.health -= p1Damage;
+          p2.startNewAction(targetFrame, p2.action.character().throw_(), !isP1OnLeft);
+        }
+        if (p2Grabbed) {
+          p1.startNewAction(targetFrame, p1.action.character().throw_(), isP1OnLeft);
+          p2.doThrownAction(targetFrame, !isP1OnLeft, p2KnockdownDistance, p2.action.character().thrown(), p1);
+          p2.health -= p2Damage;
+        }
+      }
     }
   }
   else { // we are in hitstop
@@ -630,7 +719,7 @@ void ALogic::computeFrame(int targetFrame) {
   // check if anyone died, and if so, start new round or end game and
   // stuff. when in online multiplayer, this should also wait for both
   // clients to be at a consistent state
-  if ((p1.health == 0) || (p2.health == 0)) {
+  if ((p1.health <= 0) || (p2.health <= 0)) {
     endRound();
     // do stuff on end fight; declare winner, display message, call
     // reset(roundNumber%2) and beginFight()

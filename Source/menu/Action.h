@@ -11,7 +11,7 @@ enum EAnimation {
   GRIdle, GRWalkBackward, GRWalkForward, GRFJump, GRDamaged, GRBlock, GRStHP, GRStLP, GRGrab, GRThrow, GRThrown, GRThrownGR, GRKD, GRDefeat,
 };
 
-enum class ActionType { Idle, Walk, Jump, Grab, Throw, KD, Other };
+enum class ActionType { Idle, Walk, Jump, Grab, Throw, Thrown, KD, Other };
 
 class HAction;
 
@@ -56,7 +56,9 @@ public:
                                          // after specialCancelFrames
                                          // have passed
 
-  Action(int character, enum EAnimation animation, std::optional<Hitbox> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int blockAdvantage, int hitAdvantage, int lockedFrames, int animationLength, enum ActionType type = ActionType::Other, FVector velocity = FVector(0.0, 0.0, 0.0), int specialCancelFrames = 0, std::map<enum Button, HAction> chains = {}): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), blockAdvantage(blockAdvantage), hitAdvantage(hitAdvantage), lockedFrames(lockedFrames), animationLength(animationLength), type(type), velocity(velocity), specialCancelFrames(specialCancelFrames), chains(chains) {};
+  float knockdownDistance;
+
+  Action(int character, enum EAnimation animation, std::optional<Hitbox> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int blockAdvantage, int hitAdvantage, int lockedFrames, int animationLength, enum ActionType type = ActionType::Other, FVector velocity = FVector(0.0, 0.0, 0.0), int specialCancelFrames = 0, std::map<enum Button, HAction> chains = {}, float knockdownDistance = -1): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), blockAdvantage(blockAdvantage), hitAdvantage(hitAdvantage), lockedFrames(lockedFrames), animationLength(animationLength), type(type), velocity(velocity), specialCancelFrames(specialCancelFrames), chains(chains), knockdownDistance(knockdownDistance) {};
 
   // don't use this constructor
   Action(): Action(-1, EAnimation::Idle, Hitbox(), Hitbox(), Hitbox(), 0, 0, 0, 0, 0) {};
@@ -90,6 +92,7 @@ public:
   bool isWalkOrIdle() const;
   enum ActionType type() const;
   int specialCancelFrames() const;
+  float knockdownDistance() const;
   const std::map<enum Button, HAction>& chains() const;
 
   bool operator==(const HAction& b) const;
@@ -230,11 +233,14 @@ enum ICharacter {
 // populate the actions and character arrays
 extern void init_actions();
 
+const int knockdownAirborneLength = 10;
+extern float knockdownAirborneHeights[knockdownAirborneLength];
+
 #define JUMP_LENGTH 22
 extern float jumpHeights[JUMP_LENGTH];
-#define BOXER_THROW_LENGTH 36
-extern FVector thrownBoxerPositions[BOXER_THROW_LENGTH];
-#define GR_THROW_LENGTH 36
-extern FVector thrownGRPositions[GR_THROW_LENGTH];
+#define THROWN_BOXER_LENGTH 11
+extern FVector thrownBoxerPositions[THROWN_BOXER_LENGTH+1];
+#define THROWN_GR_LENGTH 11
+extern FVector thrownGRPositions[THROWN_GR_LENGTH+1];
 
 extern std::map<enum Button, std::vector<std::vector<enum Button>>> motionCommands;
