@@ -4,6 +4,8 @@
 Action HAction::actions[N_ACTIONS];
 Character HCharacter::characters[N_CHARACTERS];
 
+const float jumpXVel = 14.0;
+
 void HAction::init() {
   actions[IActionIdle]
     = Action(IChar1,
@@ -115,8 +117,8 @@ void HAction::init() {
   actions[IActionFJump]
     = Action(IChar1,
              EAnimation::FJump,
-             {},
-             {},
+             Hitbox({Box::make_centeredx(50.0, 200.0)}),
+             Hitbox(),
              Hitbox(),
              0,
              0,
@@ -124,7 +126,7 @@ void HAction::init() {
              JUMP_LENGTH,
              JUMP_LENGTH,
              ActionType::Jump,
-             FVector(0.0, 7.0, 0.0));
+             FVector(0.0, jumpXVel, 0.0));
 
   // Grave robber
 
@@ -226,7 +228,7 @@ void HAction::init() {
              Hitbox(), // hurtbox
              5, // damage
              0,
-             0,
+             3,
              5, // lockedFrames (number of frames before player can cancel)
              8, // animationLength
              ActionType::Other, // ActionType
@@ -238,8 +240,8 @@ void HAction::init() {
   actions[IActionGRFJump]
     = Action(ICharGR,
              EAnimation::GRFJump,
-             {},
-             {},
+             Hitbox({Box::make_centeredx(50.0, 200.0)}),
+             Hitbox(),
              Hitbox(),
              0,
              0,
@@ -247,7 +249,7 @@ void HAction::init() {
              JUMP_LENGTH,
              JUMP_LENGTH,
              ActionType::Jump,
-             FVector(0.0, 7.0, 0.0));
+             FVector(0.0, jumpXVel, 0.0));
 }
 
 void HCharacter::init() {

@@ -93,13 +93,27 @@ float Box::collisionExtent(const Box& b, float offsetax, float offsetay, float o
       return 0.0;
     }
     else if (ax <= bx) {
-      // A overlaps the left side of B; suggest move A left
-      return bx-axend;
+      if (axend >= bxend) {
+        // B is inside A; move left/right based on centers
+        if ((bx+bxend) <= (ax+axend))
+          return bx-axend;
+        else
+          return ax-bxend;
+      }
+      else
+        // A overlaps the left side of B; suggest move A left
+        return bx-axend;
     }
-    else // (axend >= bxend)
-           {
+    else if (axend >= bxend) {
       // A overlaps the right side of B; suggest move A right
       return bxend-ax;
+    }
+    else /* (ax < bx) && (axend < bxend) */ {
+      // A is inside B; move left/right based on centers
+      if ((bx+bxend) <= (ax+axend))
+        return bx-axend;
+      else
+        return ax-bxend;
     }
   }
   else {
@@ -280,21 +294,23 @@ bool HCharacter::operator!=(const HCharacter& b) const {
 
 void Player::TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft) {
   if (frame - actionStart >= action.specialCancelFrames()) {
-    std::optional<HAction> newActionO = input.action(action, isOnLeft, frame, actionStart);
-    if (newActionO.has_value()) {
-      HAction newAction = newActionO.value();
-      // don't interrupt current action if the new action is just an idle unless we are walking
-      if (!((action.isWalkOrIdle() &&
+    HAction newAction = input.action(action, isOnLeft, frame, actionStart);
+    // don't interrupt current action if the new action is just an idle unless we are walking
+    if (!((action.isWalkOrIdle() &&
+           (newAction == action) &&
+           (frame - actionStart < action.animationLength())) ||
+          (!action.isWalkOrIdle() &&
+           (newAction.type() == ActionType::Idle) &&
+           (frame - actionStart < action.animationLength())))) {
+      action = newAction;
+      actionStart = frame;
+      isFacingRight = isOnLeft;
+    }
+    // do update player direction if we are merely continuing
+    // walk/idle
+    else if (action.isWalkOrIdle() &&
              (newAction == action) &&
-             (frame - actionStart < action.animationLength())) ||
-            (!action.isWalkOrIdle() &&
-             (newAction.type() == ActionType::Idle) &&
-             (frame - actionStart < action.animationLength())))) {
-        action = newAction;
-        actionStart = frame;
-      }
-      // do update player direction regardless if we are merely
-      // continuing walk/idle
+             (frame - actionStart < action.animationLength())) {
       isFacingRight = isOnLeft;
     }
   }
@@ -334,7 +350,7 @@ float Player::collidesWithBoundary(float boundary, bool isRightBound, int target
 
 void Player::maybeDoJump(int targetFrame) {
   if (action.type() == ActionType::Jump) {
-    pos.Z = 35*jumpHeights[targetFrame - actionStart];
+    pos.Z = 33*jumpHeights[targetFrame - actionStart];
   }
 }
 
