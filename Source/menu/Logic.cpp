@@ -4,6 +4,7 @@
 #include "Box.h"
 #include "Action.h"
 #include <algorithm>
+#include <cmath>
 #include <limits>
 
 #define MYLOG(category, message, ...) UE_LOG(LogTemp, category, TEXT("ALogic (%s) " message), (GetWorld()->IsNetMode(NM_ListenServer)) ? TEXT("server") : TEXT("client"), ##__VA_ARGS__)
@@ -509,8 +510,21 @@ void ALogic::computeFrame(int targetFrame) {
   int p2Direction = p2.isFacingRight ? 1 : -1;
   FVector p1v = p1Direction*p1.action.velocity();
   FVector p2v = p2Direction*p2.action.velocity();
+  FVector oldP1Posv = p1.pos,
+    oldP2Posv = p2.pos;
+  double oldP1Pos = p1.pos.Y,
+    oldP2Pos = p2.pos.Y,
+    oldPos = (oldP1Pos + oldP2Pos)/2;
   p1.pos += p1v;
   p2.pos += p2v;
+  if (std::abs(p1.pos.Y - p2.pos.Y) > 610.0) {
+    if (std::abs(p1.pos.Y - oldPos) > std::abs(oldP1Pos - oldPos)) {
+      p1.pos = oldP1Posv;
+    }
+    if (std::abs(p2.pos.Y - oldPos) > std::abs(oldP2Pos - oldPos)) {
+      p2.pos = oldP2Posv;
+    }
+  }
   p1.doMotion(targetFrame);
   p2.doMotion(targetFrame);
   // recompute who is on left, useful in the case of a jumping cross
