@@ -282,7 +282,7 @@ void Player::doMotion(int targetFrame) {
     pos.Z = 5*jumpHeights[targetFrame - actionStart];
   }
   if (action.type() == ActionType::Thrown) {
-    pos += thrownBoxerPositions[targetFrame - actionStart + 1] - thrownBoxerPositions[targetFrame - actionStart];
+    pos += (isFacingRight ? -1 : 1) * (thrownBoxerPositions[targetFrame - actionStart + 1] - thrownBoxerPositions[targetFrame - actionStart]);
   }
   if (action.type() == ActionType::KD) {
     if ((targetFrame - actionStart) < knockdownAirborneLength) {
