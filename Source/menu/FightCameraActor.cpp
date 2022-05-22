@@ -3,7 +3,9 @@
 
 #include "FightCameraActor.h"
 #include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
 #include <algorithm>
+#include <cmath>
 
 AFightCameraActor::AFightCameraActor() {
   PrimaryActorTick.bCanEverTick = true;
@@ -14,11 +16,17 @@ void AFightCameraActor::BeginPlay() {
   Super::BeginPlay();
 
   RegisterAllActorTickFunctions(true, false);
-}
 
-void AFightCameraActor::SetFighters(AFighter* fighter1_, AFighter* fighter2_) {
-  fighter1 = fighter1_;
-  fighter2 = fighter2_;
+  // set the camera for the local player to this camera
+  APlayerController* pc = UGameplayStatics::GetPlayerController(this, 0);
+  if (pc) {
+    pc->SetViewTarget(this);
+  }
+
+  scale = 1.2;
+  min = 750.0;
+  height = 100.0;
+  boundAdjust = 300.0;
 }
 
 void AFightCameraActor::Tick(float DeltaTime) {
@@ -28,12 +36,15 @@ void AFightCameraActor::Tick(float DeltaTime) {
   FVector pos2 = fighter2->GetActorLocation();
 
   FVector pos = (pos1+pos2) * 0.5;
-  UE_LOG(LogTemp, Warning, TEXT("The distance is: %f"), FVector::Distance(FVector(1,0,0), FVector(0,0,0)));
 
-  // 1.732 = cot(30 degrees). 30 deg is half our FOV
-  pos.X = std::min(-1.732 * FVector::Distance(pos1, pos2),
-                   // don't move closer than this
-                   -500.0);
+  pos.Y = std::max(pos.Y, stageBoundLeft + boundAdjust);
+  pos.Y = std::min(pos.Y, stageBoundRight - boundAdjust);
+
+  pos.X = std::min(-1 * scale * std::abs(pos1.Y - pos2.Y),
+                   -1 * min);
+
+  // Adjust camera to mid level of fighters
+  pos.Z = std::max(pos.Z, height);
 
   SetActorLocation(pos, false, nullptr, ETeleportType::None);
 }

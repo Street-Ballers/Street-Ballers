@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "Input.h"
+#include "FightInput.h"
 #include "LogicPlayerController.generated.h"
 
 UCLASS()
@@ -14,12 +14,44 @@ class MENU_API ALogicPlayerController : public APlayerController
 
 private:
   int playerNumber;
-  Input* input;
+  bool readiedUp;
+  AFightInput* input;
+  int8 buttonsPressed;
+  int8 buttonsReleased;
+
+protected:
+	virtual void SetupInputComponent() override;
 
 public:
   ALogicPlayerController();
 
-  void PostLogin(int playerNumber_);
+  UFUNCTION (Server, Reliable)
+  void ServerPostLogin(int playerNumber_);
+  UFUNCTION (Client, Reliable)
+  void ClientPostLogin(int playerNumber_);
   void BeginPlay();
+
+  UFUNCTION (Server, Reliable)
+  void ServerReadyUp();
+
   void Tick(float deltaSeconds);
+
+  UFUNCTION (Server, Reliable)
+  void ServerButtons(int8 _buttonsPressed, int8 _buttonsReleased, int targetFrame);
+
+  UFUNCTION (BlueprintCallable, Category="Player")
+  int getPlayerNumber();
+
+  void ButtonRightPressed();
+  void ButtonLeftPressed();
+  void ButtonUpPressed();
+  void ButtonDownPressed();
+  void ButtonRightReleased();
+  void ButtonLeftReleased();
+  void ButtonUpReleased();
+  void ButtonDownReleased();
+  void ButtonHP();
+  void ButtonLP();
+  void ButtonHK();
+  void ButtonLK();
 };
