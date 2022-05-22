@@ -81,6 +81,7 @@ public:
   HCharacter character() const;
   enum EAnimation animation() const;
   const Hitbox& collision() const;
+  const Box& collision(int frame) const;
   const Hitbox& hitbox() const;
   const Hitbox& hurtbox() const;
   int damage() const;

@@ -177,26 +177,6 @@ bool Hitbox::collides(const Hitbox& b, int aframe, int bframe, float offsetax, f
   return false;
 }
 
-HCharacter HAction::character() const {
-  return HCharacter(actions[h].character);
-}
-
-const Hitbox& HAction::collision() const {
-  const std::optional<Hitbox>& b = actions[h].collision;
-  if (b.has_value())
-    return b.value();
-  else
-    return character().collision();
-}
-
-const Hitbox& HAction::hitbox() const {
-  return actions[h].hitbox;
-}
-
-const Hitbox& HAction::hurtbox() const {
-  return actions[h].hurtbox;
-}
-
 void Player::startNewAction(int frame, HAction newAction, bool isOnLeft) {
   actionNumber++;
   action = newAction;
@@ -257,7 +237,7 @@ void Player::doThrownAction(int frame, bool isOnLeft, float knockdownDistance, H
 
 // returns the amount of correction needed to move player out of the bound
 float Player::collidesWithBoundary(float boundary, bool isRightBound, int targetFrame) {
-  const Box& b = action.collision().at(targetFrame)->at(0);
+  const Box& b = action.collision(targetFrame);
   float x = b.x, xend = b.xend;
   if (!isFacingRight) {
     x *= -1;
@@ -339,8 +319,8 @@ float ALogic::playerCollisionExtent(const Player &p, const Player &q, int target
     return 0.0;
   }
   else {
-    const Box &pb = p.action.collision().at(targetFrame)->at(0);
-    const Box &qb = q.action.collision().at(targetFrame)->at(0);
+    const Box &pb = p.action.collision(targetFrame);
+    const Box &qb = q.action.collision(targetFrame);
     return qb.collisionExtent(pb, p.pos.Y, p.pos.Z, q.pos.Y, q.pos.Z, p.isFacingRight, q.isFacingRight);
   }
 }
@@ -585,7 +565,7 @@ void ALogic::computeFrame(int targetFrame) {
       float p1KnockdownDistance = -1, p2KnockdownDistance = -1;
       const float chipDamageMultiplier = 0.1;
       if (collides(p1.action.hitbox(), p2.action.hurtbox(), newFrame, targetFrame) ||
-          collides(p1.action.hitbox(), p2.action.collision(), newFrame, targetFrame)) {
+          collides(p1.action.hitbox(), Hitbox({p2.action.collision(targetFrame)}), newFrame, targetFrame)) {
         // hit p2
         MYLOG(Display, "P2 was hit");
         if (p1.action.type() == ActionType::Grab){
@@ -617,7 +597,7 @@ void ALogic::computeFrame(int targetFrame) {
         }
       }
       if (collides(p1.action.hurtbox(), p2.action.hitbox(), newFrame, targetFrame) ||
-          collides(p1.action.collision(), p2.action.hitbox(), newFrame, targetFrame)) {
+          collides(Hitbox({p1.action.collision(targetFrame)}), p2.action.hitbox(), newFrame, targetFrame)) {
         // hit p1
         MYLOG(Display, "P1 was hit");
         if (p2.action.type() == ActionType::Grab) {
