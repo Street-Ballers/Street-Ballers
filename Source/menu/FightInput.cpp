@@ -84,7 +84,7 @@ void AFightInput::init(int _maxRollback, int _buffer, int _delay) {
   maxRollback = _maxRollback;
   buffer = _buffer;
   delay = _delay;
-  n = maxRollback+buffer+delay+1;
+  n = maxRollback+buffer+delay+20;
   buttonHistory.reserve(n);
   directionHistoryX.reserve(n);
   directionHistoryY.reserve(n);
@@ -337,7 +337,7 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft, in
 bool AFightInput::checkMotionCommand(std::vector<enum Button>& motion, int m, int frame, bool isOnLeft) {
   if (m == motion.size())
     return true;
-  if (frame >= n)
+  if (frame >= n-3)
     return false;
 
   check(frame >= 0);

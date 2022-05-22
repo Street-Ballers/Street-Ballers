@@ -129,6 +129,9 @@ private:
         int maxRollback = 10; // keep around 10 frames or so for rollback
         RingBuffer frames;
         int frame;
+        int rollbackStopFrame; // When starting a new round, we don't
+                               // want to rollback past the first
+                               // frame.
 
         enum LogicMode mode;
         bool inPreRound; // setting this to true will cause Tick() to

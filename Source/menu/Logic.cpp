@@ -422,6 +422,7 @@ void ALogic::reset(bool flipSpawns) {
   f.p2.isFacingRight = !IsP1OnLeft(f);
   frames.clear();
   frames.push(f);
+  frames.push(f);
 }
 
 void ALogic::setMode(enum LogicMode m) {
@@ -432,15 +433,17 @@ void ALogic::setMode(enum LogicMode m) {
 
 void ALogic::preRound() {
   MYLOG(Display, "preRound");
-  if (skipPreRound) {
-    reset(false);
-    beginRound();
-  }
-  else {
+  if (!skipPreRound) {
     setMode(LogicMode::Idle);
     inPreRound = true;
     roundStartFrame = ((frame+PREROUND_TIME)/15)*15;
-    reset(false);
+  }
+  reset(false);
+  rollbackStopFrame = frame;
+  if (skipPreRound) {
+    beginRound();
+  }
+  else {
     if(OnPreRound.IsBound()) {
       OnPreRound.Broadcast();
     }
@@ -448,6 +451,7 @@ void ALogic::preRound() {
 }
 void ALogic::beginRound() {
   MYLOG(Display, "beginRound");
+  rollbackStopFrame = frame;
   setMode(LogicMode::Fight);
   if(OnBeginRound.IsBound()) {
     OnBeginRound.Broadcast();
@@ -459,6 +463,7 @@ void ALogic::endRound() {
   setMode(LogicMode::Idle);
   inEndRound = true;
   roundStartFrame = ((frame+ENDROUND_TIME)/15)*15;
+  rollbackStopFrame = frame;
   if(OnEndRound.IsBound()) {
     OnEndRound.Broadcast();
   }
@@ -765,11 +770,12 @@ void ALogic::FightTick() {
   int latestInputFrame = std::max(p1Input->getCurrentFrame(), p2Input->getCurrentFrame());
   int targetFrame = std::max(latestInputFrame, frame+1);
 
-  if ((alwaysRollback && frame > maxRollback) || p1Input->needsRollback() || p2Input->needsRollback()) {
+  if (alwaysRollback || p1Input->needsRollback() || p2Input->needsRollback()) {
     MYLOG(Warning, "Rollback");
     // rollbackToFrame is the frame just before the input
     int rollbackToFrame = std::min(p1Input->getNeedsRollbackToFrame(), p2Input->getNeedsRollbackToFrame());
     if (alwaysRollback) rollbackToFrame = frame - maxRollback + 1;
+    rollbackToFrame = std::max(rollbackStopFrame, rollbackToFrame);
     if ((frame - rollbackToFrame + 1) > maxRollback) {
       // exceeded maximum rollback. we do not have data old enough to
       // rollback, simulate the fight and guarantee consistency.
