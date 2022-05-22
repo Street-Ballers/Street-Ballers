@@ -62,7 +62,8 @@ void HAction::init() {
              0,
              0,
              0,
-             8);
+             8,
+             ActionType::DamageReaction);
 
   actions[IActionBlock]
     = Action(IChar1,
@@ -74,7 +75,8 @@ void HAction::init() {
              0,
              0,
              0,
-             0);
+             0,
+             ActionType::DamageReaction);
 
   actions[IActionStHP]
     = Action(IChar1, // character
@@ -274,7 +276,8 @@ void HAction::init() {
              0,
              0,
              0,
-             8);
+             8,
+             ActionType::DamageReaction);
 
   actions[IActionGRBlock]
     = Action(ICharGR,
@@ -286,7 +289,8 @@ void HAction::init() {
              0,
              0,
              0,
-             0);
+             0,
+             ActionType::DamageReaction);
 
   actions[IActionGRStHP]
     = Action(ICharGR, // character

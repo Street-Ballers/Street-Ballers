@@ -11,7 +11,7 @@ enum EAnimation {
   GRIdle, GRWalkBackward, GRWalkForward, GRFJump, GRDamaged, GRBlock, GRStHP, GRStLP, GRGrab, GRThrow, GRThrown, GRThrownGR, GRKD, GRDefeat,
 };
 
-enum class ActionType { Idle, Walk, Jump, Grab, Throw, Thrown, KD, Other };
+enum class ActionType { Idle, Walk, Jump, Grab, Throw, Thrown, KD, DamageReaction, Other };
 
 class HAction;
 

@@ -27,6 +27,7 @@ public:
   int health;
   int hitstun = 0;
   float knockdownVelocity;
+  int actionNumber = 0; // used to prevent a lingering hitbox from hitting every frame
 
   Player(FVector pos, HAction action): pos(pos), action(action), actionStart(0), health(100) {};
   Player() {};

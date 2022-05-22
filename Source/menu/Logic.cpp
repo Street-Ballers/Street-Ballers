@@ -197,6 +197,7 @@ const Hitbox& HAction::hurtbox() const {
 }
 
 void Player::startNewAction(int frame, HAction newAction, bool isOnLeft) {
+  actionNumber++;
   action = newAction;
   actionStart = frame;
   isFacingRight = isOnLeft;
@@ -551,7 +552,9 @@ void ALogic::computeFrame(int targetFrame) {
   // check hitboxes, compute damage. Don't forget the case of ties.
   //MYLOG(Display, "hitstop %i", newFrame.hitstop);
   if (newFrame.hitstop == 0) { // only check hitboxes if we are not in hitstop
-    if ((p1.action.type() != ActionType::KD) && (p2.action.type() != ActionType::KD)) {
+    if ((p1.action.type() != ActionType::KD) && (p2.action.type() != ActionType::KD) &&
+        ((p1.action.type() != ActionType::DamageReaction) || (p1.actionNumber != p2.actionNumber)) &&
+        ((p2.action.type() != ActionType::DamageReaction) || (p2.actionNumber != p1.actionNumber))) {
       bool p1Hit = false, p1Block = false, p1Grabbed = false;
       int p1Damage = 0;
       bool p2Hit = false, p2Block = false, p2Grabbed = false;
@@ -569,6 +572,8 @@ void ALogic::computeFrame(int targetFrame) {
         }
         else {
           p2Hit = true;
+          ++p1.actionNumber;
+          p2.actionNumber = p1.actionNumber;
           p2.hitstun = p1.action.lockedFrames() - (targetFrame-p1.actionStart);
           p2Damage = p1.action.damage();
           if (p2Input->isGuarding(!isP1OnLeft, targetFrame)){
@@ -600,6 +605,8 @@ void ALogic::computeFrame(int targetFrame) {
         }
         else {
           p1Hit = true;
+          ++p1.actionNumber;
+          p2.actionNumber = p1.actionNumber;
           p1.hitstun = p2.action.lockedFrames() - (targetFrame-p2.actionStart);
           p1Damage = p2.action.damage();
           if (p1Input->isGuarding(isP1OnLeft, targetFrame)){
