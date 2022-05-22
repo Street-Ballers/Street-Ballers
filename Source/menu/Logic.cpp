@@ -590,7 +590,7 @@ void ALogic::computeFrame(int targetFrame) {
           p2.actionNumber = p1.actionNumber;
           p2.hitstun = p1.action.lockedFrames() - (targetFrame-p1.actionStart);
           p2Damage = p1.action.damage();
-          if (p2Input->isGuarding(!isP1OnLeft, targetFrame)){
+          if ((p2.action.type() != ActionType::Jump) && p2Input->isGuarding(!isP1OnLeft, targetFrame)){
             p2Block = true;
             if (p1.action.blockAdvantage() >= 0)
               p2.hitstun += p1.action.blockAdvantage();
@@ -623,7 +623,7 @@ void ALogic::computeFrame(int targetFrame) {
           p2.actionNumber = p1.actionNumber;
           p1.hitstun = p2.action.lockedFrames() - (targetFrame-p2.actionStart);
           p1Damage = p2.action.damage();
-          if (p1Input->isGuarding(isP1OnLeft, targetFrame)){
+          if ((p1.action.type() != ActionType::Jump) && p1Input->isGuarding(isP1OnLeft, targetFrame)){
             p1Block = true;
             if (p2.action.blockAdvantage() >= 0)
               p1.hitstun += p2.action.blockAdvantage();
