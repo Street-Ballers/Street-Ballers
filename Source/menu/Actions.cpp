@@ -4,7 +4,7 @@
 Action HAction::actions[N_ACTIONS];
 Character HCharacter::characters[N_CHARACTERS];
 
-const float jumpXVel = 14.0;
+const float jumpXVel = 2.33;
 
 void HAction::init() {
   actions[IActionIdle]
@@ -33,7 +33,7 @@ void HAction::init() {
              16,
              ActionType::Walk,
              FVector(0.0,
-                     -6.0,
+                     -1.0,
                      0.0));
 
   actions[IActionWalkForward]
@@ -49,7 +49,7 @@ void HAction::init() {
              16,
              ActionType::Walk,
              FVector(0.0,
-                     6.0,
+                     1.0,
                      0.0));
 
   actions[IActionDamaged]
@@ -84,7 +84,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
+                 Hitbox::make_pair(2, {Box(0.0, 17.0, 22.0, 34.0)})}),
              Hitbox(), // hurtbox
              10, // damage
              0, // blockAdvantage
@@ -103,7 +103,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
+                 Hitbox::make_pair(2, {Box(0.0, 17.0, 22.0, 34.0)})}),
              Hitbox(), // hurtbox
              5, // damage
              0,
@@ -119,7 +119,7 @@ void HAction::init() {
   actions[IActionFJump]
     = Action(IChar1,
              EAnimation::FJump,
-             Hitbox({Box::make_centeredx(50.0, 200.0)}),
+             Hitbox({Box::make_centeredx(11.0, 34.0)}),
              Hitbox(),
              Hitbox(),
              0,
@@ -136,7 +136,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
+                 Hitbox::make_pair(2, {Box(0.0, 17.0, 18.0, 34.0)})}),
              Hitbox(), // hurtbox
              0, // damage
              0,
@@ -147,7 +147,7 @@ void HAction::init() {
              FVector(0, 0, 0),
              15,
              {},
-             200.0
+             44.0
              );
 
   actions[IActionThrow]
@@ -225,7 +225,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(3, {Box(0.0, 100.0, 150.0, 200.0)})}),
+                 Hitbox::make_pair(3, {Box(0.0, 17.0, 22.0, 34.0)})}),
              Hitbox(), // hurtbox
              50, // damage
              0, // blockAdvantage
@@ -236,7 +236,7 @@ void HAction::init() {
              FVector(0, 0, 0), // velocity
              0,
              {}, // chains
-             270.0
+             66.0
              );
 
   // Grave robber
@@ -267,7 +267,7 @@ void HAction::init() {
              16,
              ActionType::Walk,
              FVector(0.0,
-                     -6.0,
+                     -1.0,
                      0.0));
 
   actions[IActionGRWalkForward]
@@ -283,7 +283,7 @@ void HAction::init() {
              16,
              ActionType::Walk,
              FVector(0.0,
-                     6.0,
+                     1.0,
                      0.0));
 
   actions[IActionGRDamaged]
@@ -318,7 +318,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
+                 Hitbox::make_pair(2, {Box(0.0, 17.0, 22.0, 34.0)})}),
              Hitbox(), // hurtbox
              10, // damage
              0,
@@ -337,7 +337,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
+                 Hitbox::make_pair(2, {Box(0.0, 17.0, 22.0, 34.0)})}),
              Hitbox(), // hurtbox
              5, // damage
              0,
@@ -353,7 +353,7 @@ void HAction::init() {
   actions[IActionGRFJump]
     = Action(ICharGR,
              EAnimation::GRFJump,
-             Hitbox({Box::make_centeredx(50.0, 200.0)}),
+             Hitbox({Box::make_centeredx(11.0, 34.0)}),
              Hitbox(),
              Hitbox(),
              0,
@@ -409,7 +409,7 @@ void HAction::init() {
 
 void HCharacter::init() {
   characters[IChar1]
-    = Character(Hitbox({Box::make_centeredx(100.0, 200.0)}),
+    = Character(Hitbox({Box::make_centeredx(22.0, 34.0)}),
                 HActionIdle,
                 HActionWalkForward,
                 HActionWalkBackward,
@@ -427,7 +427,7 @@ void HCharacter::init() {
                 {{Button::QCFP, HActionSpecial}});
 
   characters[ICharGR]
-    = Character(Hitbox({Box::make_centeredx(100.0, 200.0)}),
+    = Character(Hitbox({Box::make_centeredx(22.0, 34.0)}),
                 HActionGRIdle,
                 HActionGRWalkForward,
                 HActionGRWalkBackward,
@@ -499,31 +499,31 @@ float jumpHeights[JUMP_LENGTH] = {
 };
 
 float knockdownAirborneHeights[knockdownAirborneLength] = {
-  130.0,
-  130.0,
-  130.0,
-  120.0,
-  110.0,
-  90.0,
-  70.0,
-  50.0,
-  20.0,
+  28.0,
+  28.0,
+  28.0,
+  27.0,
+  26.0,
+  24.0,
+  19.0,
+  14.0,
+  8.0,
   0.0
 };
 
 FVector thrownBoxerPositions[THROWN_BOXER_LENGTH+1] = {
   FVector(0.0, 0.0, 0.0),
-  FVector(0.0, 50.0, 0.0),
-  FVector(0.0, 45.0, 0.0),
-  FVector(0.0, 40.0, 0.0),
-  FVector(0.0, 35.0, 0.0),
-  FVector(0.0, 30.0, 0.0),
-  FVector(0.0, 30.0, 0.0),
-  FVector(0.0, 30.0, 0.0),
-  FVector(0.0, 30.0, 0.0),
-  FVector(0.0, 30.0, 0.0),
-  FVector(0.0, 30.0, 0.0),
-  FVector(0.0, 60.0, 0.0)
+  FVector(0.0, 22.0, 0.0),
+  FVector(0.0, 19.0, 0.0),
+  FVector(0.0, 17.0, 0.0),
+  FVector(0.0, 16.0, 0.0),
+  FVector(0.0, 15.0, 0.0),
+  FVector(0.0, 15.0, 0.0),
+  FVector(0.0, 15.0, 0.0),
+  FVector(0.0, 15.0, 0.0),
+  FVector(0.0, 15.0, 0.0),
+  FVector(0.0, 15.0, 0.0),
+  FVector(0.0, 27.0, 0.0)
 };
 
 // FVector thrownGRPositions[THROWN_GR_LENGTH];

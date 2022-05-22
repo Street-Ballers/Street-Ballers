@@ -279,7 +279,7 @@ float Player::collidesWithBoundary(float boundary, bool isRightBound, int target
 
 void Player::doMotion(int targetFrame) {
   if (action.type() == ActionType::Jump) {
-    pos.Z = 33*jumpHeights[targetFrame - actionStart];
+    pos.Z = 5*jumpHeights[targetFrame - actionStart];
   }
   if (action.type() == ActionType::Thrown) {
     pos += thrownBoxerPositions[targetFrame - actionStart + 1] - thrownBoxerPositions[targetFrame - actionStart];
@@ -526,7 +526,7 @@ void ALogic::computeFrame(int targetFrame) {
     oldPos = (oldP1Pos + oldP2Pos)/2;
   p1.pos += p1v;
   p2.pos += p2v;
-  if (std::abs(p1.pos.Y - p2.pos.Y) > 610.0) {
+  if (std::abs(p1.pos.Y - p2.pos.Y) > 121.0) {
     if (std::abs(p1.pos.Y - oldPos) > std::abs(oldP1Pos - oldPos)) {
       p1.pos = oldP1Posv;
     }
@@ -684,11 +684,11 @@ void ALogic::computeFrame(int targetFrame) {
         p1.doBlockAction(targetFrame);
         p2.doBlockAction(targetFrame);
         newFrame.hitstop = 10;
-        newFrame.pushbackPerFrame = 10.0;
+        newFrame.pushbackPerFrame = 3.0;
       }
       else {
         newFrame.hitstop = std::min(1, std::max(p1Damage, p2Damage)/5);
-        newFrame.pushbackPerFrame = 35.0 / newFrame.hitstop;
+        newFrame.pushbackPerFrame = 10.0 / newFrame.hitstop;
       }
       if ((p1Hit && p2Hit) || (p1Grabbed && p2Grabbed)) {
         newFrame.hitPlayer = 0;
