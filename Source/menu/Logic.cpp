@@ -740,7 +740,17 @@ void ALogic::computeFrame(int targetFrame) {
   // check if anyone died, and if so, start new round or end game and
   // stuff. when in online multiplayer, this should also wait for both
   // clients to be at a consistent state
-  if ((p1.health <= 0) || (p2.health <= 0)) {
+  if ((!inEndRound) && ((p1.health <= 0) || (p2.health <= 0))) {
+    if (p1.health <= 0) {
+      if (p1.action.type() != ActionType::KD)
+        p1.knockdownVelocity = 10.0;
+      p1.startNewAction(targetFrame, p1.action.character().defeat(), isP1OnLeft);
+    }
+    if (p2.health <= 0){
+      if (p2.action.type() != ActionType::KD)
+        p2.knockdownVelocity = 10.0;
+      p2.startNewAction(targetFrame, p2.action.character().defeat(), !isP1OnLeft);
+    }
     endRound();
     // do stuff on end fight; declare winner, display message, call
     // reset(roundNumber%2) and beginFight()
@@ -798,8 +808,6 @@ void ALogic::Tick(float DeltaTime)
       inEndRound = false;
       preRound();
     }
-    ++frame;
-    break;
   case LogicMode::Fight:
     FightTick();
     break;

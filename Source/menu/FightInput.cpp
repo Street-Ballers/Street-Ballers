@@ -163,7 +163,7 @@ bool AFightInput::decodeButton(enum Button b, int8 encoded) {
 }
 
 void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetFrame) {
-  if (mode != LogicMode::Fight) return;
+  if ((mode != LogicMode::Fight) && (mode != LogicMode::Idle)) return;
   // MYLOG(Display,
   //       TEXT("buttons(): (current frame %i) (target frame %i) (buttonsPressed %s) (buttonsReleased %s)"),
   //       currentFrame,
@@ -354,6 +354,9 @@ bool AFightInput::checkMotionCommand(std::vector<enum Button>& motion, int m, in
 }
 
 HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFrame, int actionStart) {
+  if (mode == LogicMode::Idle)
+    return currentAction.character().idle();
+
   int frameBefore = currentFrame;
   int actionFrame = targetFrame - actionStart;
   ensureFrame(targetFrame);
