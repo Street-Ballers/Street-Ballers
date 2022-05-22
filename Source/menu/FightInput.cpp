@@ -258,10 +258,11 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft, in
   const HCharacter& c = currentAction.character();
   // MYLOG(Warning, "_action(): %s (frame %i) (button %s)", *GetActorLabel(false), frame, directionHistory.nthlast(frame).has_value() ? ((directionHistory.nthlast(frame).value() == Button::RIGHT) ? TEXT("right") : TEXT("not right")) : TEXT("none"));
 
-  // first we will determine the "button"
-  enum Button newButton = Button::NEUTRAL;
+  // first we will determine the "button".
+  std::vector<enum Button> buttons;
 
   // first try motion commands; they have the highest priority
+  enum Button newButton = Button::NEUTRAL;
   if (buttonHistory.nthlast(frame).has_value()) {
     for (auto i = motionCommands.begin(); i != motionCommands.end(); ++i) {
       for (auto j = i->second.begin(); j != i->second.end(); ++j) {
@@ -274,24 +275,25 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft, in
       }
     }
   }
+  if (newButton != Button::NEUTRAL)
+    buttons.push_back(newButton);
 
   // try a normal attack
-  if (newButton == Button::NEUTRAL) {
-    if (buttonHistory.nthlast(frame).has_value()) {
-      newButton = buttonHistory.nthlast(frame).value();
-    }
+  if (buttonHistory.nthlast(frame).has_value()) {
+    buttons.push_back(buttonHistory.nthlast(frame).value());
   }
 
   // try directional input
-  if (newButton == Button::NEUTRAL)
-    newButton = toSingleDirection(translateDirection(directionHistoryX.nthlast(frame), isOnLeft), directionHistoryY.nthlast(frame));
+  buttons.push_back(toSingleDirection(translateDirection(directionHistoryX.nthlast(frame), isOnLeft), directionHistoryY.nthlast(frame)));
 
   // now with our "button" we pick an action
 
   // first try chains; these have highest priority
-  if (actionFrame >= currentAction.specialCancelFrames()) {
-    auto i = currentAction.chains().find(newButton);
-    if (i != currentAction.chains().end()) return i->second;
+  for (auto b : buttons) {
+    if (actionFrame >= currentAction.specialCancelFrames()) {
+      auto i = currentAction.chains().find(b);
+      if (i != currentAction.chains().end()) return i->second;
+    }
   }
 
   if (actionFrame < currentAction.lockedFrames())
@@ -300,24 +302,26 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft, in
                                              // safe as a "do nothing"
                                              // return value
 
-  switch (newButton) {
-  case Button::NEUTRAL:
-  case Button::DOWNFORWARD:
-  case Button::DOWNBACK:
-    return c.idle();
-  case Button::FORWARD:
-    return c.walkForward();
-  case Button::BACK:
-  case Button::UPBACK:
-    return c.walkBackward();
-  case Button::UPFORWARD:
-    return c.fJump();
-  case Button::HP:
-    return c.sthp();
-  case Button::LP:
-    return c.stlp();
-  case Button::LK:
-    return c.grab();
+  for (auto b : buttons) {
+    switch (b) {
+    case Button::NEUTRAL:
+    case Button::DOWNFORWARD:
+    case Button::DOWNBACK:
+      return c.idle();
+    case Button::FORWARD:
+      return c.walkForward();
+    case Button::BACK:
+    case Button::UPBACK:
+      return c.walkBackward();
+    case Button::UPFORWARD:
+      return c.fJump();
+    case Button::HP:
+      return c.sthp();
+    case Button::LP:
+      return c.stlp();
+    case Button::LK:
+      return c.grab();
+    }
   }
 
   // just idle if no other action was chosen
