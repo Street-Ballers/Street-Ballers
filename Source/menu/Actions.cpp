@@ -138,7 +138,7 @@ void HAction::init() {
                  Hitbox::make_pair(1, {}),
                  Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
              Hitbox(), // hurtbox
-             30, // damage
+             0, // damage
              0,
              0,
              15, // lockedFrames (number of frames before player can cancel)
@@ -156,7 +156,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox(),
              Hitbox(), // hurtbox
-             0, // damage
+             30, // damage
              0,
              0,
              32, // lockedFrames (number of frames before player can cancel)

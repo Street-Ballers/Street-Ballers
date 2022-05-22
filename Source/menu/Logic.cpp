@@ -494,6 +494,10 @@ void ALogic::computeFrame(int targetFrame) {
   // If the player can act and there is a new action waiting, then
   // start the new action
   bool isP1OnLeft = IsP1OnLeft(newFrame);
+  if ((p1.action.type() == ActionType::Thrown) && ((targetFrame - p1.actionStart) == p1.action.animationLength()))
+    p1.health -= p2.action.damage();
+  if ((p2.action.type() == ActionType::Thrown) && ((targetFrame - p2.actionStart) == p2.action.animationLength()))
+    p2.health -= p1.action.damage();
   if (p1.hitstun == 0)
     p1.TryStartingNewAction(targetFrame, *p1Input, isP1OnLeft);
   else
@@ -582,7 +586,6 @@ void ALogic::computeFrame(int targetFrame) {
         if (p1.action.type() == ActionType::Grab){
           p2Grabbed = true;
           p2KnockdownDistance = p1.action.knockdownDistance();
-          p2Damage = p1.action.damage();
         }
         else {
           p2Hit = true;
@@ -615,7 +618,6 @@ void ALogic::computeFrame(int targetFrame) {
         if (p2.action.type() == ActionType::Grab) {
           p1Grabbed = true;
           p1KnockdownDistance = p2.action.knockdownDistance();
-          p1Damage = p2.action.damage();
         }
         else {
           p1Hit = true;
@@ -693,13 +695,11 @@ void ALogic::computeFrame(int targetFrame) {
       if (!(p1Grabbed && p2Grabbed)) {
         if (p1Grabbed) {
           p1.doThrownAction(targetFrame, isP1OnLeft, p1KnockdownDistance, p1.action.character().thrown(), p2);
-          p1.health -= p1Damage;
           p2.startNewAction(targetFrame, p2.action.character().throw_(), !isP1OnLeft);
         }
         if (p2Grabbed) {
           p1.startNewAction(targetFrame, p1.action.character().throw_(), isP1OnLeft);
           p2.doThrownAction(targetFrame, !isP1OnLeft, p2KnockdownDistance, p2.action.character().thrown(), p1);
-          p2.health -= p2Damage;
         }
       }
     }
