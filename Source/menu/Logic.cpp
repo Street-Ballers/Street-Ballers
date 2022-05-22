@@ -335,7 +335,7 @@ void ALogic::HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRig
     // if p2 collides with p1, also move p2
     float collisionAdj = playerCollisionExtent(f.p2, f.p1, targetFrame);
     //f.p2.pos.Y += collisionAdj;
-    MYLOG(Display, "HandlePlayerBoundaryCollision: p1 collides with %s", doRightBoundary ? TEXT("right") : TEXT("left"));
+    // MYLOG(Display, "HandlePlayerBoundaryCollision: p1 collides with %s", doRightBoundary ? TEXT("right") : TEXT("left"));
   }
   if ((p2CollisionAdj != 0.0) && (p1CollisionAdj == 0.0)) {
     // if p1 collides with p2, also move p1
