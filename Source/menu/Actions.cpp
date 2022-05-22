@@ -83,9 +83,14 @@ void HAction::init() {
              EAnimation::StHP, // animation
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
-                 Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 17.0, 22.0, 34.0)})}),
-             Hitbox(), // hurtbox
+                 Hitbox::make_pair(8, {}),
+                 Hitbox::make_pair(11, {Box(0.0, 17.0, 22.0, 40.0)}),
+                 }),
+             Hitbox({ // hurtbox
+                 Hitbox::make_pair(2, {Box(0.0, 17.0, 26.0, 30.0)}),
+                 Hitbox::make_pair(5, {Box(0.0, 17.0, 16.0, 25.0)}),
+                 Hitbox::make_pair(11, {Box(0.0, 17.0, 20.0, 39.0),
+                                       Box(-13.0, 25.0, 0.0, 36.0)})}),
              10, // damage
              0, // blockAdvantage
              0, // hitAdvantage
@@ -102,9 +107,12 @@ void HAction::init() {
              EAnimation::StLP, // animation
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
-                 Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 17.0, 22.0, 34.0)})}),
-             Hitbox(), // hurtbox
+                 Hitbox::make_pair(2, {}),
+                 Hitbox::make_pair(4, {Box(0.0, 21.0, 25.0, 29.0)})}),
+             Hitbox({ // hurtbox
+                 Hitbox::make_pair(2, {}),
+                 Hitbox::make_pair(4, {Box(0.0, 17.0, 26.0, 30.0)}),
+                 Hitbox::make_pair(6, {Box(0.0, 17.0, 20.0, 30.0)})}),
              5, // damage
              0,
              0,
@@ -119,7 +127,9 @@ void HAction::init() {
   actions[IActionFJump]
     = Action(IChar1,
              EAnimation::FJump,
-             Hitbox({Box::make_centeredx(11.0, 34.0)}),
+             Hitbox({
+                 Hitbox::make_pair(8, {Box::make_centeredx(11.0, 50.0)}),
+                 Hitbox::make_pair(JUMP_LENGTH-1, {Box(-6.0, 4.0, 11.0, 35.0)})}),
              Hitbox(),
              Hitbox(),
              0,
@@ -135,9 +145,12 @@ void HAction::init() {
              EAnimation::Grab, // animation
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
-                 Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 17.0, 18.0, 34.0)})}),
-             Hitbox(), // hurtbox
+                 Hitbox::make_pair(3, {}),
+                 Hitbox::make_pair(4, {Box(0.0, 21.0, 20.0, 29.0)})}),
+             Hitbox({ // hurtbox
+                 Hitbox::make_pair(3, {Box(0.0, 17.0, 26.0, 30.0)}),
+                 Hitbox::make_pair(9, {Box(0.0, 17.0, 26.0, 30.0)}),
+                 Hitbox::make_pair(14, {Box(0.0, 17.0, 16.0, 25.0)})}),
              0, // damage
              0,
              0,
@@ -194,7 +207,7 @@ void HAction::init() {
   actions[IActionKD]
     = Action(IChar1, // character
              EAnimation::KD, // animation
-             {}, // collision box (note that this is an std::optional)
+             Hitbox({Box(-16, 0, 23, 10)}), // collision box (note that this is an std::optional)
              Hitbox(), // hitbox
              Hitbox(), // hurtbox
              0, // damage
@@ -208,7 +221,7 @@ void HAction::init() {
   actions[IActionDefeat]
     = Action(IChar1, // character
              EAnimation::Defeat, // animation
-             {}, // collision box (note that this is an std::optional)
+             Hitbox({Box(-16, 0, 23, 10)}), // collision box (note that this is an std::optional)
              Hitbox(), // hitbox
              Hitbox(), // hurtbox
              0, // damage
@@ -224,9 +237,14 @@ void HAction::init() {
              EAnimation::StHP, // animation
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
-                 Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(3, {Box(0.0, 17.0, 22.0, 34.0)})}),
-             Hitbox(), // hurtbox
+                 Hitbox::make_pair(8, {}),
+                 Hitbox::make_pair(11, {Box(0.0, 17.0, 22.0, 40.0)}),
+                 }),
+             Hitbox({ // hurtbox
+                 Hitbox::make_pair(2, {Box(0.0, 17.0, 26.0, 30.0)}),
+                 Hitbox::make_pair(5, {Box(0.0, 17.0, 16.0, 25.0)}),
+                 Hitbox::make_pair(11, {Box(0.0, 17.0, 20.0, 39.0),
+                                       Box(-13.0, 25.0, 0.0, 36.0)})}),
              50, // damage
              0, // blockAdvantage
              0, // hitAdvantage
