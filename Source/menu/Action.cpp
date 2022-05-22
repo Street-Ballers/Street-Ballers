@@ -116,6 +116,10 @@ HAction HCharacter::defeat() const {
   return characters[h].defeat;
 }
 
+const std::map<enum Button, HAction>& HCharacter::specials() const {
+  return characters[h].specials;
+}
+
 bool HCharacter::operator==(const HCharacter& b) const {
   return h == b.h;
 }

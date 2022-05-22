@@ -94,7 +94,7 @@ void HAction::init() {
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
              6, // specialCancelFrames
-             {{Button::QCFP, HActionFJump}} // chains
+             {{Button::QCFP, HActionSpecial}} // chains
              );
 
   actions[IActionStLP]
@@ -217,6 +217,26 @@ void HAction::init() {
              150, // lockedFrames (number of frames before player can cancel)
              150, // animationLength
              ActionType::KD
+             );
+
+  actions[IActionSpecial]
+    = Action(IChar1, // character
+             EAnimation::StHP, // animation
+             {}, // collision box (note that this is an std::optional)
+             Hitbox({ // hitbox
+                 Hitbox::make_pair(1, {}),
+                 Hitbox::make_pair(3, {Box(0.0, 100.0, 150.0, 200.0)})}),
+             Hitbox(), // hurtbox
+             50, // damage
+             0, // blockAdvantage
+             0, // hitAdvantage
+             9, // lockedFrames (number of frames before player can cancel)
+             12, // animationLength
+             ActionType::Other, // ActionType
+             FVector(0, 0, 0), // velocity
+             0,
+             {}, // chains
+             270.0
              );
 
   // Grave robber
@@ -403,7 +423,8 @@ void HCharacter::init() {
                 HActionThrown,
                 HActionThrownGR,
                 HActionKD,
-                HActionDefeat);
+                HActionDefeat,
+                {{Button::QCFP, HActionSpecial}});
 
   characters[ICharGR]
     = Character(Hitbox({Box::make_centeredx(100.0, 200.0)}),
@@ -420,7 +441,8 @@ void HCharacter::init() {
                 HActionGRThrown,
                 HActionGRIdle,
                 HActionGRKD,
-                HActionGRDefeat);
+                HActionGRDefeat,
+                {});
 }
 
 // set xrange [0:22]

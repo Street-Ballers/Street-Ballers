@@ -303,6 +303,12 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft, in
                                              // return value
 
   for (auto b : buttons) {
+    // try specials
+    for (auto i : currentAction.character().specials()) {
+      if (i.first == b) return i.second;
+    }
+
+    // try normals and motion
     switch (b) {
     case Button::NEUTRAL:
     case Button::DOWNFORWARD:
