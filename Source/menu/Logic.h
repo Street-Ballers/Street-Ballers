@@ -140,6 +140,8 @@ private:
                          // beginRound().
         bool inEndRound;
         int roundStartFrame;
+        int startFrame_;
+        float acc, acc2;
         void setMode(enum LogicMode);
 
         // Reset the fight; put players back at start with full

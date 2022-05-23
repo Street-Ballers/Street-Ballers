@@ -398,6 +398,7 @@ void ALogic::BeginPlay()
   inEndRound = false;
   frame = 0;
   reset(false);
+  acc = acc2 = 0;
 }
 
 void ALogic::reset(bool flipSpawns) {
@@ -783,9 +784,9 @@ void ALogic::FightTick() {
 }
 
 // Called every frame
-void ALogic::Tick(float DeltaTime)
+void ALogic::Tick(float DeltaSeconds)
 {
-  Super::Tick(DeltaTime);
+  Super::Tick(DeltaSeconds);
 
   // MYLOG(Display, "Tick");
   switch (mode) {
@@ -800,6 +801,12 @@ void ALogic::Tick(float DeltaTime)
     }
   case LogicMode::Fight:
     FightTick();
+    acc2 += DeltaSeconds;
+    if (acc2 >= 1.0) {
+      MYLOG(Display, "FPS: %i", frame - startFrame_);
+      startFrame_ = frame;
+      acc2 = 0.0;
+    }
     break;
   }
 }
