@@ -84,7 +84,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(6, {}),
-                 Hitbox::make_pair(8, {Box(0.0, 17.0, 22.0, 40.0)}),
+                 Hitbox::make_pair(8, {Box(0.0, 17.0, 21.0, 40.0)}),
                  }),
              Hitbox({ // hurtbox
                  Hitbox::make_pair(2, {Box(0.0, 17.0, 26.0, 30.0)}),
@@ -147,7 +147,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(3, {}),
-                 Hitbox::make_pair(4, {Box(0.0, 21.0, 16.0, 29.0)})}),
+                 Hitbox::make_pair(4, {Box(0.0, 21.0, 17.0, 29.0)})}),
              Hitbox({ // hurtbox
                  Hitbox::make_pair(3, {Box(0.0, 17.0, 26.0, 30.0)}),
                  Hitbox::make_pair(9, {Box(0.0, 17.0, 26.0, 30.0)}),
@@ -239,7 +239,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(7, {}),
-                 Hitbox::make_pair(9, {Box(0.0, 17.0, 22.0, 40.0)}),
+                 Hitbox::make_pair(9, {Box(0.0, 17.0, 26.0, 40.0)}),
                  }),
              Hitbox({ // hurtbox
                  Hitbox::make_pair(3, {Box(0.0, 17.0, 26.0, 30.0)}),
@@ -247,10 +247,10 @@ void HAction::init() {
                  Hitbox::make_pair(13, {Box(0.0, 17.0, 20.0, 39.0),
                                        Box(-13.0, 25.0, 0.0, 36.0)})}),
              16, // damage
-             -6, // blockAdvantage
+             -7, // blockAdvantage
              0, // hitAdvantage
-             13, // lockedFrames (number of frames before player can cancel)
-             13, // animationLength
+             18, // lockedFrames (number of frames before player can cancel)
+             18, // animationLength
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
              0,

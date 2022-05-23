@@ -671,7 +671,7 @@ void ALogic::computeFrame(int targetFrame) {
       }
       else {
         newFrame.hitstop = std::min(1, std::max(p1Damage, p2Damage)/5);
-        newFrame.pushbackPerFrame = 5.0 / newFrame.hitstop;
+        newFrame.pushbackPerFrame = 5.5 / newFrame.hitstop;
       }
       if ((p1Hit && p2Hit) || (p1Grabbed && p2Grabbed)) {
         newFrame.hitPlayer = 0;
