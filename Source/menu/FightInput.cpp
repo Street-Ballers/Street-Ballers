@@ -179,7 +179,8 @@ void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetF
     else {
       needsRollbackToFrame = targetFrame-delay;
     }
-    if (targetFrame <= currentFrame+1 - delay - maxRollback) {
+    if // (targetFrame <= currentFrame+1 - delay - maxRollback)
+      ((currentFrame - needsRollbackToFrame) >= maxRollback) {
       return; // there is nothing that this class can do in this
               // situation. We don't have input data going back that
               // far. Let ALogic decide how to reset or quit the

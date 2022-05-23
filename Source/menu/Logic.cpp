@@ -754,11 +754,11 @@ void ALogic::FightTick() {
 
   if (alwaysRollback || p1Input->needsRollback() || p2Input->needsRollback()) {
     MYLOG(Warning, "Rollback");
-    // rollbackToFrame is the frame just before the input
+    // rollbackToFrame is the frame of the input new input
     int rollbackToFrame = std::min(p1Input->getNeedsRollbackToFrame(), p2Input->getNeedsRollbackToFrame());
     if (alwaysRollback) rollbackToFrame = frame - maxRollback + 1;
     rollbackToFrame = std::max(rollbackStopFrame+1, rollbackToFrame);
-    if ((frame - rollbackToFrame + 1) > maxRollback) {
+    if ((frame - rollbackToFrame) >= maxRollback) {
       // exceeded maximum rollback. we do not have data old enough to
       // rollback, simulate the fight and guarantee consistency.
       MYLOG(Warning, "MAXIMUM ROLLBACK EXCEEDED!");
