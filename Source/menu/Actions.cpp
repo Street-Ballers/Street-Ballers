@@ -84,7 +84,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(6, {}),
-                 Hitbox::make_pair(9, {Box(0.0, 17.0, 22.0, 40.0)}),
+                 Hitbox::make_pair(8, {Box(0.0, 17.0, 22.0, 40.0)}),
                  }),
              Hitbox({ // hurtbox
                  Hitbox::make_pair(2, {Box(0.0, 17.0, 26.0, 30.0)}),
@@ -94,7 +94,7 @@ void HAction::init() {
              10, // damage
              -4, // blockAdvantage
              2, // hitAdvantage
-             14, // lockedFrames (number of frames before player can cancel)
+             15, // lockedFrames (number of frames before player can cancel)
              16, // animationLength
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
@@ -237,13 +237,20 @@ void HAction::init() {
     = Action(IChar1, // character
              EAnimation::Special, // animation
              {}, // collision box (note that this is an std::optional)
-             HActionStHP.hitbox(),
-             HActionStHP.hurtbox(),
+             Hitbox({ // hitbox
+                 Hitbox::make_pair(7, {}),
+                 Hitbox::make_pair(9, {Box(0.0, 17.0, 22.0, 40.0)}),
+                 }),
+             Hitbox({ // hurtbox
+                 Hitbox::make_pair(3, {Box(0.0, 17.0, 26.0, 30.0)}),
+                 Hitbox::make_pair(7, {Box(0.0, 17.0, 16.0, 25.0)}),
+                 Hitbox::make_pair(13, {Box(0.0, 17.0, 20.0, 39.0),
+                                       Box(-13.0, 25.0, 0.0, 36.0)})}),
              50, // damage
              -6, // blockAdvantage
              0, // hitAdvantage
-             HActionStHP.lockedFrames(), // lockedFrames (number of frames before player can cancel)
-             HActionStHP.animationLength(), // animationLength
+             13, // lockedFrames (number of frames before player can cancel)
+             13, // animationLength
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
              0,
