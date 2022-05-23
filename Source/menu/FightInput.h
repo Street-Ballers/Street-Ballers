@@ -33,6 +33,8 @@ public:
   std::optional<enum Button>& last();
 
   std::optional<enum Button>& nthlast(int i);
+
+  FString toString();
 };
 
 // This class will decode input sequences and support replaying input

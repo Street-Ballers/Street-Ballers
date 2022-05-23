@@ -7,8 +7,36 @@
 
 UENUM(BlueprintType)
 enum EAnimation {
-  Idle, WalkBackward, WalkForward, FJump, Damaged, Block, StHP, StLP, Grab, Throw, Thrown, ThrownGR, KD, Defeat, Special, TC,
-  GRIdle, GRWalkBackward, GRWalkForward, GRFJump, GRDamaged, GRBlock, GRStHP, GRStLP, GRGrab, GRThrow, GRThrown, GRThrownGR, GRKD, GRDefeat,
+Idle = 0,
+WalkBackward = 1,
+WalkForward = 2,
+FJump = 3,
+Damaged = 4,
+Block = 5,
+StHP = 6,
+StLP = 7,
+Grab = 8,
+Throw = 9,
+Thrown = 10,
+ThrownGR = 11,
+KD = 12,
+Defeat = 13,
+Special = 14,
+TC = 15,
+GRIdle = 16,
+GRWalkBackward = 17,
+GRWalkForward = 18,
+GRFJump = 19,
+GRDamaged = 20,
+GRBlock = 21,
+GRStHP = 22,
+GRStLP = 23,
+GRGrab = 24,
+GRThrow = 25,
+GRThrown = 26,
+GRThrownGR = 27,
+GRKD = 28,
+GRDefeat = 29
 };
 
 enum class ActionType { Idle, Walk, Jump, Grab, Throw, Thrown, KD, DamageReaction, Other };

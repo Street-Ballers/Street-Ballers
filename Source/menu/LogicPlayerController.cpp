@@ -125,21 +125,21 @@ void ALogicPlayerController::ServerPostLogin_Implementation(int playerNumber_) {
   MYLOG(Warning, "ServerPostLogin");
   //UE_LOG(LogTemp, Warning, "ALogicPlayerController ServerPostLogin: Logging in Player %i (%s)", playerNumber, GetLocalPlayer() ? "local player" : "networked player");
 
-  ALogic *l = FindLogic(GetWorld());
+  ALogic *l_ = FindLogic(GetWorld());
   AFightInput* opponentInput;
   switch (playerNumber) {
   case 0:
-    input = l->p1Input;
-    opponentInput = l->p2Input;
+    input = l_->p1Input;
+    opponentInput = l_->p2Input;
     break;
   case 1:
-    input = l->p2Input;
-    opponentInput = l->p1Input;
+    input = l_->p2Input;
+    opponentInput = l_->p1Input;
     break;
 
   default:
       MYLOG(Warning, "Something went wrong");
-      opponentInput = l->p1Input;
+      opponentInput = l_->p1Input;
   }
 
   opponentInput->SetOwner(this);
@@ -153,7 +153,7 @@ void ALogicPlayerController::ClientPostLogin_Implementation(int playerNumber_) {
   playerNumber = playerNumber_;
   MYLOG(Display, "ClientPostLogin");
 
-  ALogic *l = FindLogic(GetWorld());
+  l = FindLogic(GetWorld());
   switch (playerNumber) {
   case 0:
     input = l->p1Input;
@@ -184,14 +184,20 @@ void ALogicPlayerController::Tick(float deltaSeconds) {
   if (GetWorld()->IsPaused())
     return;
 
-  // MYLOG(Display, "Tick");
 
   if (!readiedUp) {
+    MYLOG(Display, "ReadyUp");
     ServerReadyUp();
     readiedUp = true;
+    l->addPlayerController(this);
   }
 
-  int targetFrame = input->getCurrentFrame() + 1;
+  // MYLOG(Display, "Tick");
+}
+
+void ALogicPlayerController::sendButtons() {
+  // MYLOG(Display, "sendButtons");
+  int targetFrame = l->getCurrentFrame() + 1;
   input->buttons(buttonsPressed, buttonsReleased, targetFrame);
   ServerButtons(buttonsPressed, buttonsReleased, targetFrame);
   buttonsPressed = 0;

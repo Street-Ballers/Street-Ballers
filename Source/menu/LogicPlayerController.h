@@ -7,6 +7,8 @@
 #include "FightInput.h"
 #include "LogicPlayerController.generated.h"
 
+class ALogic;
+
 UCLASS()
 class MENU_API ALogicPlayerController : public APlayerController
 {
@@ -16,6 +18,7 @@ private:
   int playerNumber;
   bool readiedUp;
   AFightInput* input;
+  ALogic *l;
   int8 buttonsPressed;
   int8 buttonsReleased;
 
@@ -35,6 +38,7 @@ public:
   void ServerReadyUp();
 
   void Tick(float deltaSeconds);
+  void sendButtons();
 
   UFUNCTION (Server, Reliable)
   void ServerButtons(int8 _buttonsPressed, int8 _buttonsReleased, int targetFrame);

@@ -9,6 +9,7 @@
 #include "FightInput.h"
 #include "FightGameState.h"
 #include "LogicMode.h"
+#include "LogicPlayerController.h"
 #include "Logic.generated.h"
 
 // Important fight sequence events. It should be possible to bind to
@@ -49,6 +50,7 @@ public:
   int hitstop = 0; // number of frames of hitstop left
   float pushbackPerFrame;
   int hitPlayer; // when hitstop>0, 0=both, 1=p1, 2=p2
+  int frameNumber;
 
   Frame(Player p1, Player p2): p1(p1), p2(p2) {};
   Frame() {};
@@ -140,8 +142,11 @@ private:
                          // beginRound().
         bool inEndRound;
         int roundStartFrame;
+
+        std::vector<ALogicPlayerController*> pcs;
         int startFrame_;
         float acc, acc2;
+
         void setMode(enum LogicMode);
 
         // Reset the fight; put players back at start with full
@@ -149,10 +154,6 @@ private:
         void reset(bool flipSpawns);
 
         // a bunch of convenience functions for computeFrame()
-        bool collides(const Box &p1b, const Box &p2b, const Frame &f, int targetFrame);
-        bool collides(const Hitbox &p1b, const Box &p2b, const Frame &f, int targetFrame);
-        bool collides(const Box &p1b, const Hitbox &p2b, const Frame &f, int targetFrame);
-        bool collides(const Hitbox &p1b, const Hitbox &p2b, const Frame &f, int targetFrame);
         float playerCollisionExtent(const Player &p, const Player &q, int targetFrame);
         void HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRightBoundary);
         bool IsPlayerOnLeft(const Player& p1, const Player& p2);
@@ -168,6 +169,8 @@ protected:
         virtual void BeginPlay() override;
 
 public:
+        void addPlayerController(ALogicPlayerController* pc);
+
         // reset() and Enter FightMode::Idle mode. Trigger OnPreRound
         // event.
         UFUNCTION (BlueprintCallable, Category="Fight Sequence")
@@ -203,6 +206,8 @@ public:
         int playerAnimation(int playerNumber);
         UFUNCTION (BlueprintCallable, Category="Player")
         int playerFrame(int playerNumber);
+
+        int getCurrentFrame();
 };
 
 static inline ALogic* FindLogic(UWorld *world) {

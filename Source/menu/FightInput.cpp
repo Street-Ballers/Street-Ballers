@@ -84,7 +84,7 @@ void AFightInput::init(int _maxRollback, int _buffer, int _delay) {
   maxRollback = _maxRollback;
   buffer = _buffer;
   delay = _delay;
-  n = maxRollback+buffer+delay+20;
+  n = maxRollback+buffer+delay+30;
   buttonHistory.reserve(n);
   directionHistoryX.reserve(n);
   directionHistoryY.reserve(n);
@@ -136,6 +136,19 @@ auto buttonToString(enum Button b) {
   case Button::QCFP: return TEXT("QCFP"); break;
   default: return TEXT("0");
   }
+}
+
+FString ButtonRingBuffer::toString() {
+  FString s;
+  for (int i = 0; i < n; ++i) {
+    std::optional<enum Button> o = nthlast(i);
+    if (o.has_value())
+      s.Append(buttonToString(o.value()));
+    else
+      s.Append(FString("None"));
+    s.Append(FString(" "));
+  }
+  return s;
 }
 
 FString AFightInput::encodedButtonsToString(int8 e) {
@@ -379,9 +392,17 @@ HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFram
   // MYLOG(Warning, "action(): %s (current frame %i) (target frame %i) (action: %s)", *GetActorLabel(false), currentFrame, targetFrame, (mostRecentAction == HActionIdle) ? TEXT("idle") : TEXT("not idle"));
   HAction action = mostRecentAction;
 
-  while (action.isWalkOrIdle() && (++frame < (delay+buffer))) {
-    action = _action(currentAction, frame, isOnLeft, actionFrame);
+  for (int i = 1; (i < buffer) && action.isWalkOrIdle(); ++i) {
+    action = _action(currentAction, frame+i, isOnLeft, actionFrame);
   }
+  // MYLOG(Display,
+  //       "action() (action %i) (current frame %i) (target frame %i) (actionFrame %i) (new action %i)",
+  //       currentAction.animation(),
+  //       currentFrame,
+  //       targetFrame,
+  //       actionFrame,
+  //       (action.isWalkOrIdle() ? mostRecentAction : action).animation());
+  // MYLOG(Display, "buttonHistory: %s", *(buttonHistory.toString()));
   return action.isWalkOrIdle() ? mostRecentAction : action;
 }
 
