@@ -17,7 +17,7 @@ void HAction::init() {
              0,
              0,
              0,
-             8,
+             16,
              ActionType::Idle);
 
   actions[IActionWalkForward]
