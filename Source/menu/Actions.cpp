@@ -539,23 +539,33 @@ float jumpHeights[JUMP_LENGTH] = {
 };
 
 float knockdownAirborneHeights[knockdownAirborneLength] = {
-  28.0,
-  28.0,
-  28.0,
-  27.0,
-  26.0,
-  24.0,
+  22.0,
+  22.0,
+  22.0,
+  21.0,
   19.0,
-  14.0,
+  17.0,
+  15.0,
+  12.0,
   8.0,
   0.0
+  // 28.0,
+  // 28.0,
+  // 28.0,
+  // 27.0,
+  // 26.0,
+  // 24.0,
+  // 19.0,
+  // 14.0,
+  // 8.0,
+  // 0.0
 };
 
 FVector thrownBoxerPositions[THROWN_BOXER_LENGTH+1] = {
   FVector(0.0, 0.0, 0.0),
   FVector(0.0, 22.0, 0.0),
-  FVector(0.0, 19.0, 0.0),
-  FVector(0.0, 17.0, 0.0),
+  FVector(0.0, 18.0, 0.0),
+  FVector(0.0, 16.0, 0.0),
   FVector(0.0, 16.0, 0.0),
   FVector(0.0, 15.0, 0.0),
   FVector(0.0, 15.0, 0.0),

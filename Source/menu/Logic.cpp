@@ -405,7 +405,6 @@ void ALogic::reset(bool flipSpawns) {
   f.p2.isFacingRight = !IsP1OnLeft(f);
   frames.clear();
   frames.push(f);
-  frames.push(f);
 }
 
 void ALogic::setMode(enum LogicMode m) {
@@ -731,12 +730,12 @@ void ALogic::computeFrame(int targetFrame) {
   if ((!inEndRound) && ((p1.health <= 0) || (p2.health <= 0))) {
     if (p1.health <= 0) {
       if (p1.action.type() != ActionType::KD)
-        p1.knockdownVelocity = 10.0;
+        p1.knockdownVelocity = 2.3;
       p1.startNewAction(targetFrame, p1.action.character().defeat(), isP1OnLeft);
     }
     if (p2.health <= 0){
       if (p2.action.type() != ActionType::KD)
-        p2.knockdownVelocity = 10.0;
+        p2.knockdownVelocity = 2.3;
       p2.startNewAction(targetFrame, p2.action.character().defeat(), !isP1OnLeft);
     }
     endRound();
@@ -758,7 +757,7 @@ void ALogic::FightTick() {
     // rollbackToFrame is the frame just before the input
     int rollbackToFrame = std::min(p1Input->getNeedsRollbackToFrame(), p2Input->getNeedsRollbackToFrame());
     if (alwaysRollback) rollbackToFrame = frame - maxRollback + 1;
-    rollbackToFrame = std::max(rollbackStopFrame, rollbackToFrame);
+    rollbackToFrame = std::max(rollbackStopFrame+1, rollbackToFrame);
     if ((frame - rollbackToFrame + 1) > maxRollback) {
       // exceeded maximum rollback. we do not have data old enough to
       // rollback, simulate the fight and guarantee consistency.

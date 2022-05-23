@@ -25,7 +25,7 @@ void AFightCameraActor::BeginPlay() {
 
   scale = 1.0;
   min = 125.0;
-  height = 20.0;
+  height = 22.0;
   boundAdjust = 50.0;
 }
 
