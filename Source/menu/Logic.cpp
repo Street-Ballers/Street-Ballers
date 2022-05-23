@@ -185,30 +185,36 @@ void Player::startNewAction(int frame, HAction newAction, bool isOnLeft) {
 }
 
 void Player::TryStartingNewAction(int frame, AFightInput& input, bool isOnLeft) {
-  if (action.type() == ActionType::Thrown) {
-    if ((frame - actionStart) == action.animationLength()) {
-      float knockdownVelocityp = knockdownVelocity;
-      doKdAction(frame, isOnLeft, knockdownVelocityp);
-    }
+  if (hitstun != 0) {
+    if ((frame - actionStart) == action.animationLength())
+      ++actionStart;
   }
   else {
-    if (frame - actionStart >= action.specialCancelFrames()) {
-      HAction newAction = input.action(action, isOnLeft, frame, actionStart);
-      // don't interrupt current action if the new action is just an idle unless we are walking
-      if (!((action.isWalkOrIdle() &&
-             (newAction == action) &&
-             (frame - actionStart < action.animationLength())) ||
-            (!action.isWalkOrIdle() &&
-             (newAction.type() == ActionType::Idle) &&
-             (frame - actionStart < action.animationLength())))) {
-        startNewAction(frame, newAction, isOnLeft);
+    if (action.type() == ActionType::Thrown) {
+      if ((frame - actionStart) == action.animationLength()) {
+        float knockdownVelocityp = knockdownVelocity;
+        doKdAction(frame, isOnLeft, knockdownVelocityp);
       }
-      // do update player direction if we are merely continuing
-      // walk/idle
-      else if (action.isWalkOrIdle() &&
+    }
+    else {
+      if (frame - actionStart >= action.specialCancelFrames()) {
+        HAction newAction = input.action(action, isOnLeft, frame, actionStart);
+        // don't interrupt current action if the new action is just an idle unless we are walking
+        if (!((action.isWalkOrIdle() &&
                (newAction == action) &&
-               (frame - actionStart < action.animationLength())) {
-        isFacingRight = isOnLeft;
+               (frame - actionStart < action.animationLength())) ||
+              (!action.isWalkOrIdle() &&
+               (newAction.type() == ActionType::Idle) &&
+               (frame - actionStart < action.animationLength())))) {
+          startNewAction(frame, newAction, isOnLeft);
+        }
+        // do update player direction if we are merely continuing
+        // walk/idle
+        else if (action.isWalkOrIdle() &&
+                 (newAction == action) &&
+                 (frame - actionStart < action.animationLength())) {
+          isFacingRight = isOnLeft;
+        }
       }
     }
   }
@@ -230,6 +236,7 @@ void Player::doKdAction(int frame, bool isOnLeft, float knockdownDistance) {
 }
 
 void Player::doThrownAction(int frame, bool isOnLeft, float knockdownDistance, HAction newAction, Player& q) {
+  hitstun = 0;
   startNewAction(frame, newAction, isOnLeft);
   knockdownVelocity = knockdownDistance;
   pos = q.pos + (isOnLeft ? -1 : 1) * thrownBoxerPositions[1];
@@ -269,9 +276,6 @@ void Player::doMotion(int targetFrame) {
       pos.Z = knockdownAirborneHeights[targetFrame - actionStart];
       pos.Y += (isFacingRight ? -1 : 1) * knockdownVelocity;
     }
-  }
-  if ((action.type() == ActionType::DamageReaction) && ((targetFrame - actionStart) == action.animationLength())) {
-    ++actionStart;
   }
 }
 
@@ -485,10 +489,8 @@ void ALogic::computeFrame(int targetFrame) {
     p1.health -= p2.action.damage();
   if ((p2.action.type() == ActionType::Thrown) && ((targetFrame - p2.actionStart) == p2.action.animationLength()))
     p2.health -= p1.action.damage();
-  if (p1.hitstun == 0)
-    p1.TryStartingNewAction(targetFrame, *p1Input, isP1OnLeft);
-  if (p2.hitstun == 0)
-    p2.TryStartingNewAction(targetFrame, *p2Input, !isP1OnLeft);
+  p1.TryStartingNewAction(targetFrame, *p1Input, isP1OnLeft);
+  p2.TryStartingNewAction(targetFrame, *p2Input, !isP1OnLeft);
 
   // compute player positions (if they are in a moving action). This
   // includes checking collision boxes and not letting players walk
