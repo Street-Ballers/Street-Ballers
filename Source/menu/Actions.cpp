@@ -4,7 +4,7 @@
 Action HAction::actions[N_ACTIONS];
 Character HCharacter::characters[N_CHARACTERS];
 
-const float jumpXVel = 2.33;
+const float jumpXVel = 2.3;
 
 void HAction::init() {
   actions[IActionIdle]
@@ -20,22 +20,6 @@ void HAction::init() {
              8,
              ActionType::Idle);
 
-  actions[IActionWalkBackward]
-    = Action(IChar1,
-             EAnimation::WalkBackward,
-             {},
-             Hitbox(),
-             Hitbox(),
-             0,
-             0,
-             0,
-             0,
-             16,
-             ActionType::Walk,
-             FVector(0.0,
-                     -1.0,
-                     0.0));
-
   actions[IActionWalkForward]
     = Action(IChar1,
              EAnimation::WalkForward,
@@ -46,11 +30,25 @@ void HAction::init() {
              0,
              0,
              0,
-             16,
+             24,
              ActionType::Walk,
              FVector(0.0,
-                     1.0,
+                     1.3,
                      0.0));
+
+  actions[IActionWalkBackward]
+    = Action(IChar1,
+             EAnimation::WalkBackward,
+             {},
+             Hitbox(),
+             Hitbox(),
+             0,
+             0,
+             0,
+             0,
+             HActionWalkForward.animationLength(),
+             ActionType::Walk,
+             (-2.0/3.0)*HActionWalkForward.velocity());
 
   actions[IActionDamaged]
     = Action(IChar1,
