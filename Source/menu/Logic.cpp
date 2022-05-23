@@ -487,12 +487,8 @@ void ALogic::computeFrame(int targetFrame) {
     p2.health -= p1.action.damage();
   if (p1.hitstun == 0)
     p1.TryStartingNewAction(targetFrame, *p1Input, isP1OnLeft);
-  else
-    --p1.hitstun;
   if (p2.hitstun == 0)
     p2.TryStartingNewAction(targetFrame, *p2Input, !isP1OnLeft);
-  else
-    --p2.hitstun;
 
   // compute player positions (if they are in a moving action). This
   // includes checking collision boxes and not letting players walk
@@ -557,6 +553,10 @@ void ALogic::computeFrame(int targetFrame) {
   // check hitboxes, compute damage. Don't forget the case of ties.
   //MYLOG(Display, "hitstop %i", newFrame.hitstop);
   if (newFrame.hitstop == 0) { // only check hitboxes if we are not in hitstop
+    // first do hitstun if we are in hitstun
+    if (p1.hitstun) --p1.hitstun;
+    if (p2.hitstun) --p2.hitstun;
+
     if ((p1.action.type() != ActionType::KD) && (p2.action.type() != ActionType::KD) &&
         ((p1.action.type() != ActionType::DamageReaction) || (p1.actionNumber != p2.actionNumber)) &&
         ((p2.action.type() != ActionType::DamageReaction) || (p2.actionNumber != p1.actionNumber))) {
@@ -668,8 +668,8 @@ void ALogic::computeFrame(int targetFrame) {
         newFrame.hitstop = 10;
         newFrame.pushbackPerFrame = 3.0;
       }
-      else {
-        newFrame.hitstop = std::min(1, std::max(p1Damage, p2Damage)/5);
+      else if (p1Hit || p2Hit) {
+        newFrame.hitstop = std::max(1, (int) (std::ceil(std::sqrt(std::max(p1Damage, p2Damage))+2.0)));
         newFrame.pushbackPerFrame = 5.5 / newFrame.hitstop;
       }
       if ((p1Hit && p2Hit) || (p1Grabbed && p2Grabbed)) {
