@@ -270,6 +270,9 @@ void Player::doMotion(int targetFrame) {
       pos.Y += (isFacingRight ? -1 : 1) * knockdownVelocity;
     }
   }
+  if ((action.type() == ActionType::DamageReaction) && ((targetFrame - actionStart) == action.animationLength())) {
+    ++actionStart;
+  }
 }
 
 bool ALogic::collides(const Box &p1b, const Box &p2b, const Frame &f, int targetFrame) {
@@ -583,14 +586,14 @@ void ALogic::computeFrame(int targetFrame) {
             if (p1.action.blockAdvantage() >= 0)
               p2.hitstun += p1.action.blockAdvantage();
             else
-              p1.hitstun += p1.action.blockAdvantage();
+              p1.hitstun -= p1.action.blockAdvantage();
             p2.health -= p2Damage * chipDamageMultiplier; // chip damage
           }
           else {
             if (p1.action.hitAdvantage() >= 0)
               p2.hitstun += p1.action.hitAdvantage();
             else
-              p1.hitstun += p1.action.hitAdvantage();
+              p1.hitstun -= p1.action.hitAdvantage();
             p2.health -= p2Damage;
             p2KnockdownDistance = p1.action.knockdownDistance();
           }
@@ -615,14 +618,14 @@ void ALogic::computeFrame(int targetFrame) {
             if (p2.action.blockAdvantage() >= 0)
               p1.hitstun += p2.action.blockAdvantage();
             else
-              p2.hitstun += p2.action.blockAdvantage();
+              p2.hitstun -= p2.action.blockAdvantage();
             p1.health -= p1Damage * chipDamageMultiplier; // chip damage
           }
           else {
             if (p2.action.hitAdvantage() >= 0)
               p1.hitstun += p2.action.hitAdvantage();
             else
-              p2.hitstun += p2.action.hitAdvantage();
+              p2.hitstun -= p2.action.hitAdvantage();
             p1.health -= p1Damage;
             p1KnockdownDistance = p2.action.knockdownDistance();
           }
