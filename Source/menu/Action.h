@@ -7,7 +7,7 @@
 
 UENUM(BlueprintType)
 enum EAnimation {
-  Idle, WalkBackward, WalkForward, FJump, Damaged, Block, StHP, StLP, Grab, Throw, Thrown, ThrownGR, KD, Defeat, Special,
+  Idle, WalkBackward, WalkForward, FJump, Damaged, Block, StHP, StLP, Grab, Throw, Thrown, ThrownGR, KD, Defeat, Special, TC,
   GRIdle, GRWalkBackward, GRWalkForward, GRFJump, GRDamaged, GRBlock, GRStHP, GRStLP, GRGrab, GRThrow, GRThrown, GRThrownGR, GRKD, GRDefeat,
 };
 
@@ -118,6 +118,7 @@ enum IAction {
   IActionKD,
   IActionDefeat,
   IActionSpecial,
+  IActionTC,
   IActionGRIdle,
   IActionGRWalkForward,
   IActionGRWalkBackward,
@@ -150,6 +151,7 @@ enum IAction {
 #define HActionKD (HAction(IActionKD))
 #define HActionDefeat (HAction(IActionDefeat))
 #define HActionSpecial (HAction(IActionSpecial))
+#define HActionTC (HAction(IActionTC))
 #define HActionGRIdle (HAction(IActionGRIdle))
 #define HActionGRWalkForward (HAction(IActionGRWalkForward))
 #define HActionGRWalkBackward (HAction(IActionGRWalkBackward))

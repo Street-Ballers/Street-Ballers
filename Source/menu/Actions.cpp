@@ -83,22 +83,22 @@ void HAction::init() {
              EAnimation::StHP, // animation
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
-                 Hitbox::make_pair(8, {}),
-                 Hitbox::make_pair(11, {Box(0.0, 17.0, 22.0, 40.0)}),
+                 Hitbox::make_pair(6, {}),
+                 Hitbox::make_pair(9, {Box(0.0, 17.0, 22.0, 40.0)}),
                  }),
              Hitbox({ // hurtbox
                  Hitbox::make_pair(2, {Box(0.0, 17.0, 26.0, 30.0)}),
                  Hitbox::make_pair(5, {Box(0.0, 17.0, 16.0, 25.0)}),
-                 Hitbox::make_pair(11, {Box(0.0, 17.0, 20.0, 39.0),
+                 Hitbox::make_pair(15, {Box(0.0, 17.0, 20.0, 39.0),
                                        Box(-13.0, 25.0, 0.0, 36.0)})}),
              10, // damage
-             0, // blockAdvantage
-             0, // hitAdvantage
-             9, // lockedFrames (number of frames before player can cancel)
-             12, // animationLength
+             -4, // blockAdvantage
+             2, // hitAdvantage
+             14, // lockedFrames (number of frames before player can cancel)
+             16, // animationLength
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
-             6, // specialCancelFrames
+             9, // specialCancelFrames
              {{Button::QCFP, HActionSpecial}} // chains
              );
 
@@ -114,14 +114,15 @@ void HAction::init() {
                  Hitbox::make_pair(4, {Box(0.0, 17.0, 26.0, 30.0)}),
                  Hitbox::make_pair(6, {Box(0.0, 17.0, 20.0, 30.0)})}),
              5, // damage
-             0,
-             0,
-             5, // lockedFrames (number of frames before player can cancel)
+             2,
+             1,
+             6, // lockedFrames (number of frames before player can cancel)
              7, // animationLength
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
-             3, // specialCancelFrames
-             {{Button::LP, HActionStLP}} // chains
+             4, // specialCancelFrames
+             {{Button::LP, HActionStLP},
+              {Button::HP, HActionTC}} // chains
              );
 
   actions[IActionFJump]
@@ -146,7 +147,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(3, {}),
-                 Hitbox::make_pair(4, {Box(0.0, 21.0, 20.0, 29.0)})}),
+                 Hitbox::make_pair(4, {Box(0.0, 21.0, 16.0, 29.0)})}),
              Hitbox({ // hurtbox
                  Hitbox::make_pair(3, {Box(0.0, 17.0, 26.0, 30.0)}),
                  Hitbox::make_pair(9, {Box(0.0, 17.0, 26.0, 30.0)}),
@@ -234,27 +235,43 @@ void HAction::init() {
 
   actions[IActionSpecial]
     = Action(IChar1, // character
-             EAnimation::StHP, // animation
+             EAnimation::Special, // animation
              {}, // collision box (note that this is an std::optional)
-             Hitbox({ // hitbox
-                 Hitbox::make_pair(8, {}),
-                 Hitbox::make_pair(11, {Box(0.0, 17.0, 22.0, 40.0)}),
-                 }),
-             Hitbox({ // hurtbox
-                 Hitbox::make_pair(2, {Box(0.0, 17.0, 26.0, 30.0)}),
-                 Hitbox::make_pair(5, {Box(0.0, 17.0, 16.0, 25.0)}),
-                 Hitbox::make_pair(11, {Box(0.0, 17.0, 20.0, 39.0),
-                                       Box(-13.0, 25.0, 0.0, 36.0)})}),
+             HActionStHP.hitbox(),
+             HActionStHP.hurtbox(),
              50, // damage
-             0, // blockAdvantage
+             -6, // blockAdvantage
              0, // hitAdvantage
-             9, // lockedFrames (number of frames before player can cancel)
-             12, // animationLength
+             HActionStHP.lockedFrames(), // lockedFrames (number of frames before player can cancel)
+             HActionStHP.animationLength(), // animationLength
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
              0,
              {}, // chains
              66.0
+             );
+
+  actions[IActionTC]
+    = Action(IChar1, // character
+             EAnimation::StHP, // animation
+             {}, // collision box (note that this is an std::optional)
+             Hitbox({ // hitbox
+                 Hitbox::make_pair(2, {}),
+                 Hitbox::make_pair(5, {Box(0.0, 17.0, 22.0, 40.0)}),
+               }),
+             Hitbox({ // hurtbox
+                 Hitbox::make_pair(7, {Box(0.0, 17.0, 16.0, 25.0)}),
+                 Hitbox::make_pair(15, {Box(0.0, 17.0, 20.0, 39.0),
+                                        Box(-13.0, 25.0, 0.0, 36.0)})}),
+             HActionStHP.damage(), // damage
+             -10, // blockAdvantage
+             HActionStHP.hitAdvantage(), // hitAdvantage
+             11, // lockedFrames (number of frames before player can cancel)
+             13, // animationLength
+             ActionType::Other, // ActionType
+             FVector(0, 0, 0), // velocity
+             5,
+             HActionStHP.chains() // chains
              );
 
   // Grave robber
