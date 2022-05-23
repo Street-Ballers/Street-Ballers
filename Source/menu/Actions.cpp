@@ -91,7 +91,7 @@ void HAction::init() {
                  Hitbox::make_pair(5, {Box(0.0, 17.0, 16.0, 25.0)}),
                  Hitbox::make_pair(15, {Box(0.0, 17.0, 20.0, 39.0),
                                        Box(-13.0, 25.0, 0.0, 36.0)})}),
-             10, // damage
+             14, // damage
              -4, // blockAdvantage
              2, // hitAdvantage
              15, // lockedFrames (number of frames before player can cancel)
@@ -113,7 +113,7 @@ void HAction::init() {
                  Hitbox::make_pair(2, {}),
                  Hitbox::make_pair(4, {Box(0.0, 17.0, 26.0, 30.0)}),
                  Hitbox::make_pair(6, {Box(0.0, 17.0, 20.0, 30.0)})}),
-             5, // damage
+             6, // damage
              2,
              1,
              6, // lockedFrames (number of frames before player can cancel)
@@ -170,7 +170,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox(),
              Hitbox(), // hurtbox
-             30, // damage
+             14, // damage
              0,
              0,
              32, // lockedFrames (number of frames before player can cancel)
@@ -246,7 +246,7 @@ void HAction::init() {
                  Hitbox::make_pair(7, {Box(0.0, 17.0, 16.0, 25.0)}),
                  Hitbox::make_pair(13, {Box(0.0, 17.0, 20.0, 39.0),
                                        Box(-13.0, 25.0, 0.0, 36.0)})}),
-             50, // damage
+             16, // damage
              -6, // blockAdvantage
              0, // hitAdvantage
              13, // lockedFrames (number of frames before player can cancel)
@@ -270,7 +270,7 @@ void HAction::init() {
                  Hitbox::make_pair(7, {Box(0.0, 17.0, 16.0, 25.0)}),
                  Hitbox::make_pair(15, {Box(0.0, 17.0, 20.0, 39.0),
                                         Box(-13.0, 25.0, 0.0, 36.0)})}),
-             HActionStHP.damage(), // damage
+             10, // damage
              -10, // blockAdvantage
              HActionStHP.hitAdvantage(), // hitAdvantage
              11, // lockedFrames (number of frames before player can cancel)
