@@ -81,8 +81,8 @@ void HAction::init() {
              EAnimation::StHP, // animation
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
-                 Hitbox::make_pair(6, {}),
-                 Hitbox::make_pair(8, {Box(0.0, 17.0, 21.0, 40.0)}),
+                 Hitbox::make_pair(5, {}),
+                 Hitbox::make_pair(7, {Box(0.0, 17.0, 21.0, 40.0)}),
                  }),
              Hitbox({ // hurtbox
                  Hitbox::make_pair(2, {Box(0.0, 17.0, 26.0, 30.0)}),
@@ -105,22 +105,21 @@ void HAction::init() {
              EAnimation::StLP, // animation
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
-                 Hitbox::make_pair(2, {}),
-                 Hitbox::make_pair(4, {Box(0.0, 21.0, 25.0, 29.0)})}),
+                 Hitbox::make_pair(1, {}),
+                 Hitbox::make_pair(2, {Box(0.0, 21.0, 25.0, 29.0)})}),
              Hitbox({ // hurtbox
-                 Hitbox::make_pair(2, {}),
-                 Hitbox::make_pair(4, {Box(0.0, 17.0, 26.0, 30.0)}),
-                 Hitbox::make_pair(6, {Box(0.0, 17.0, 20.0, 30.0)})}),
+                 Hitbox::make_pair(1, {}),
+                 Hitbox::make_pair(2, {Box(0.0, 17.0, 26.0, 30.0)}),
+                 Hitbox::make_pair(5, {Box(0.0, 17.0, 20.0, 30.0)})}),
              6, // damage
              2,
              1,
              6, // lockedFrames (number of frames before player can cancel)
-             7, // animationLength
+             6, // animationLength
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
              4, // specialCancelFrames
-             {{Button::LP, HActionStLP},
-              {Button::HP, HActionTC}} // chains
+             {{Button::HP, HActionTC}} // chains
              );
 
   actions[IActionFJump]
@@ -159,7 +158,7 @@ void HAction::init() {
              FVector(0, 0, 0),
              15,
              {},
-             44.0
+             15.0
              );
 
   actions[IActionThrow]
@@ -253,20 +252,20 @@ void HAction::init() {
              FVector(0, 0, 0), // velocity
              0,
              {}, // chains
-             66.0
+             35.0
              );
 
   actions[IActionTC]
     = Action(IChar1, // character
-             EAnimation::StHP, // animation
+             EAnimation::TC, // animation
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(2, {}),
                  Hitbox::make_pair(5, {Box(0.0, 17.0, 22.0, 40.0)}),
                }),
              Hitbox({ // hurtbox
-                 Hitbox::make_pair(7, {Box(0.0, 17.0, 16.0, 25.0)}),
-                 Hitbox::make_pair(15, {Box(0.0, 17.0, 20.0, 39.0),
+                 Hitbox::make_pair(2, {Box(0.0, 17.0, 16.0, 25.0)}),
+                 Hitbox::make_pair(9, {Box(0.0, 17.0, 20.0, 39.0),
                                         Box(-13.0, 25.0, 0.0, 36.0)})}),
              10, // damage
              -10, // blockAdvantage
@@ -539,26 +538,16 @@ float jumpHeights[JUMP_LENGTH] = {
 };
 
 float knockdownAirborneHeights[knockdownAirborneLength] = {
-  22.0,
-  22.0,
-  22.0,
-  21.0,
-  19.0,
-  17.0,
-  15.0,
-  12.0,
-  8.0,
+  22.0*0.8,
+  22.0*0.8,
+  22.0*0.8,
+  21.0*0.8,
+  19.0*0.8,
+  17.0*0.8,
+  15.0*0.8,
+  12.0*0.8,
+  8.0*0.8,
   0.0
-  // 28.0,
-  // 28.0,
-  // 28.0,
-  // 27.0,
-  // 26.0,
-  // 24.0,
-  // 19.0,
-  // 14.0,
-  // 8.0,
-  // 0.0
 };
 
 FVector thrownBoxerPositions[THROWN_BOXER_LENGTH+1] = {
