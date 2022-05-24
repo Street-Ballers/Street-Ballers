@@ -296,42 +296,14 @@ float Player::collidesWithBoundary(float boundary, bool isRightBound, int target
   }
 }
 
-static bool collides(const Box &p1b, const Box &p2b, const Frame &f, int targetFrame) {
+static bool collides(const Hitbox &p1b, const Hitbox &p2b, const Player &p1, const Player& p2, int targetFrame) {
   return p1b.collides(p2b,
-                      f.p1.pos.Y, f.p1.pos.Z,
-                      f.p2.pos.Y, f.p2.pos.Z,
-                      f.p1.isFacingRight,
-                      f.p2.isFacingRight);
-}
-
-static bool collides(const Hitbox &p1b, const Box &p2b, const Frame &f, int targetFrame) {
-  return p1b.collides(p2b,
-                      targetFrame - f.p1.actionStart,
-                      targetFrame - f.p2.actionStart,
-                      f.p1.pos.Y, f.p1.pos.Z,
-                      f.p2.pos.Y, f.p2.pos.Z,
-                      f.p1.isFacingRight,
-                      f.p2.isFacingRight);
-}
-
-static bool collides(const Box &p1b, const Hitbox &p2b, const Frame &f, int targetFrame) {
-  return p2b.collides(p1b,
-                      targetFrame - f.p2.actionStart,
-                      targetFrame - f.p1.actionStart,
-                      f.p2.pos.Y, f.p2.pos.Z,
-                      f.p1.pos.Y, f.p1.pos.Z,
-                      f.p2.isFacingRight,
-                      f.p1.isFacingRight);
-}
-
-static bool collides(const Hitbox &p1b, const Hitbox &p2b, const Frame &f, int targetFrame) {
-  return p1b.collides(p2b,
-                      targetFrame - f.p1.actionStart,
-                      targetFrame - f.p2.actionStart,
-                      f.p1.pos.Y, f.p1.pos.Z,
-                      f.p2.pos.Y, f.p2.pos.Z,
-                      f.p1.isFacingRight,
-                      f.p2.isFacingRight);
+                      targetFrame - p1.actionStart,
+                      targetFrame - p2.actionStart,
+                      p1.pos.Y, p1.pos.Z,
+                      p2.pos.Y, p2.pos.Z,
+                      p1.isFacingRight,
+                      p2.isFacingRight);
 }
 
 // returns the amount of adjustment player P needs
@@ -351,8 +323,8 @@ float ALogic::playerCollisionExtent(const Player &p, const Player &q, int target
 
 static void computeDamage(Player& q, Player &p, AFightInput& qInput, const Frame& newFrame, int targetFrame, bool isOnLeft, struct PlayerDamageResult &r) {
   const float chipDamageMultiplier = 0.1;
-  if (collides(p.action.hitbox(), q.action.hurtbox(), newFrame, targetFrame) ||
-      collides(p.action.hitbox(), Hitbox({q.action.collision(targetFrame)}), newFrame, targetFrame)) {
+  if (collides(p.action.hitbox(), q.action.hurtbox(), p, q, targetFrame) ||
+      collides(p.action.hitbox(), Hitbox({q.action.collision(targetFrame)}), p, q, targetFrame)) {
     // hit q
     if (p.action.type() == ActionType::Grab) {
       r.grabbed = true;
