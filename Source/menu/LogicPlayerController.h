@@ -17,6 +17,7 @@ class MENU_API ALogicPlayerController : public APlayerController
 private:
   int playerNumber;
   bool readiedUp;
+  bool addedPC;
   AFightInput* input;
   ALogic *l;
   int8 buttonsPressed;

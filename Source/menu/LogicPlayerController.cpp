@@ -22,6 +22,7 @@ void ALogicPlayerController::BeginPlay()
   MYLOG(Warning, "BeginPlay");
   buttonsPressed = 0;
   buttonsReleased = 0;
+  addedPC = false;
 }
 
 void ALogicPlayerController::SetupInputComponent() {
@@ -184,12 +185,17 @@ void ALogicPlayerController::Tick(float deltaSeconds) {
   if (GetWorld()->IsPaused())
     return;
 
-
   if (!readiedUp) {
     MYLOG(Display, "ReadyUp");
     ServerReadyUp();
     readiedUp = true;
-    l->addPlayerController(this);
+  }
+
+  if (!addedPC) {
+    if (GetWorld()->HasBegunPlay()) {
+      l->addPlayerController(this);
+      addedPC = true;
+    }
   }
 
   // MYLOG(Display, "Tick");
