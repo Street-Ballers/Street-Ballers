@@ -2,8 +2,11 @@
 
 #include "FightInput.h"
 #include <algorithm>
+#include <limits>
 
 #define MYLOG(category, message, ...) UE_LOG(LogTemp, category, TEXT("AFightInput (%s %s) " message), *GetActorLabel(false), (GetWorld()->IsNetMode(NM_ListenServer)) ? TEXT("server") : TEXT("client"), ##__VA_ARGS__)
+
+#define LATENCY_HISTORY_SIZE 10
 
 void ButtonRingBuffer::reserve(int size) {
   n = size;
@@ -27,6 +30,39 @@ std::optional<enum Button>& ButtonRingBuffer::last() {
 }
 
 std::optional<enum Button>& ButtonRingBuffer::nthlast(int i) {
+  int j = end-i;
+  if (j < 0) j += n;
+  check(j >= 0);
+  check(j < n);
+  return v.at(j);
+}
+
+void intRingBuffer::reserve(int size) {
+  n = size;
+  clear();
+}
+
+void intRingBuffer::clear() {
+  v.clear();
+  v.resize(n, 0);
+  end = 0;
+}
+
+void intRingBuffer::push(int x) {
+  end = end+1;
+  if (end == n) end = 0;
+  v.at(end) = x;
+}
+
+int intRingBuffer::last() {
+  return v.at(end);
+}
+
+int intRingBuffer::first() {
+  return nthlast(n-1);
+}
+
+int intRingBuffer::nthlast(int i) {
   int j = end-i;
   if (j < 0) j += n;
   check(j >= 0);
@@ -90,11 +126,13 @@ void AFightInput::init(int _maxRollback, int _buffer, int _delay) {
   directionHistoryY.reserve(n);
   mode = LogicMode::Wait;
   currentFrame = 0;
+  latencyHistory.reserve(LATENCY_HISTORY_SIZE);
+  avgLatency = avgLatency = 0;
   reset();
 }
 
 void AFightInput::reset() {
-  needsRollbackToFrame = -1;
+  clearRollbackFlags();
   buttonHistory.clear();
   directionHistoryX.clear();
   directionHistoryY.clear();
@@ -186,12 +224,7 @@ void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetF
 
   // check if a rollback will be needed
   if (targetFrame <= (currentFrame-delay)) {
-    if (getNeedsRollbackToFrame()) {
-      needsRollbackToFrame = std::min(needsRollbackToFrame, targetFrame-delay);
-    }
-    else {
-      needsRollbackToFrame = targetFrame-delay;
-    }
+    needsRollbackToFrame = std::min(needsRollbackToFrame, targetFrame+delay);
     if // (targetFrame <= currentFrame+1 - delay - maxRollback)
       ((currentFrame - needsRollbackToFrame) >= maxRollback) {
       return; // there is nothing that this class can do in this
@@ -217,12 +250,18 @@ void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetF
         bh = std::make_optional(b);
   }
   for (auto b: {Button::LEFT, Button::RIGHT}) {
-    if (decodeButton(b, buttonsPressed))
+    if (decodeButton(b, buttonsPressed)) {
       dxh = std::make_optional(b);
+      for (int j = 1; j <= i; ++j)
+        directionHistoryX.nthlast(i-j) = dxh;
+    }
   }
   for (auto b: {Button::UP, Button::DOWN}) {
-    if (decodeButton(b, buttonsPressed))
+    if (decodeButton(b, buttonsPressed)) {
       dyh = std::make_optional(b);
+      for (int j = 1; j <= i; ++j)
+        directionHistoryY.nthlast(i-j) = dyh;
+    }
   }
 
   // handle releases. this should probably just ignore everything
@@ -232,17 +271,27 @@ void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetF
   // one of the other currently held ones. _action() will have to pick
   // between which directions to prioritize.
   for (auto b: {Button::LEFT, Button::RIGHT}) {
-    if (decodeButton(b, buttonsReleased) && (directionHistoryX.last() == b))
+    if (decodeButton(b, buttonsReleased) && (directionHistoryX.last() == b)) {
       dxh = {};
+      for (int j = 1; j <= i; ++j)
+        directionHistoryX.nthlast(i-j) = {};
+    }
   }
   for (auto b: {Button::UP, Button::DOWN}) {
-    if (decodeButton(b, buttonsReleased) && (directionHistoryY.last() == b))
+    if (decodeButton(b, buttonsReleased) && (directionHistoryY.last() == b)) {
       dyh = {};
+      for (int j = 1; j <= i; ++j)
+        directionHistoryY.nthlast(i-j) = {};
+    }
   }
 }
 
-void AFightInput::ClientButtons_Implementation(int8 buttonsPressed, int8 buttonsReleased, int targetFrame) {
+void AFightInput::ClientButtons_Implementation(int8 buttonsPressed, int8 buttonsReleased, int targetFrame, int avgLatencyOther_) {
   //MYLOG(Display, "ClientButtons");
+  avgLatencyOther = avgLatencyOther_;
+  int latency = currentFrame - targetFrame;
+  avgLatency += latency - latencyHistory.first();
+  latencyHistory.push(latency);
   buttons(buttonsPressed, buttonsReleased, targetFrame);
 }
 
@@ -418,7 +467,7 @@ int AFightInput::getCurrentFrame() {
 }
 
 bool AFightInput::needsRollback() {
-  return needsRollbackToFrame != -1;
+  return needsRollbackToFrame != std::numeric_limits<int>::max();
 }
 
 int AFightInput::getNeedsRollbackToFrame() {
@@ -426,5 +475,13 @@ int AFightInput::getNeedsRollbackToFrame() {
 }
 
 void AFightInput::clearRollbackFlags() {
-  needsRollbackToFrame = -1;
+  needsRollbackToFrame = std::numeric_limits<int>::max();
+}
+
+int AFightInput::getAvgLatency() const {
+  return avgLatency;
+}
+
+float AFightInput::getDesync() const {
+  return (avgLatencyOther - avgLatency) / ((float) LATENCY_HISTORY_SIZE);
 }

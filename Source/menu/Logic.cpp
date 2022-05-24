@@ -412,6 +412,8 @@ ALogic::ALogic(): frame(0)
   // performance if you don't need them.
   PrimaryActorTick.bCanEverTick = true;
   PrimaryActorTick.TickGroup = TG_PrePhysics;
+  bReplicates = true;
+  init_actions();
 }
 
 // Called when the game starts or when spawned
@@ -422,6 +424,7 @@ void ALogic::BeginPlay()
   MYLOG(Display, TEXT("BeginPlay"));
 
   // initialize some variables
+  init_actions();
 
   frames = RingBuffer();
   frames.reserve(maxRollback+1);
@@ -744,25 +747,42 @@ void ALogic::Tick(float DeltaSeconds)
   // MYLOG(Display, "Tick");
   switch (mode) {
   case LogicMode::Idle:
-    if (inPreRound && (frame == (roundStartFrame-1))) {
+    if (inPreRound && (frame >= (roundStartFrame-1))) {
+      if (frame > (roundStartFrame-1)) {
+        frames.popn(frame - (roundStartFrame-1));
+        frame = (roundStartFrame-1);
+      }
       inPreRound = false;
       beginRound();
     }
-    if (inEndRound && (frame == (roundStartFrame-1))) {
+    if (inEndRound && (frame >= (roundStartFrame-1))) {
+      if (frame > (roundStartFrame-1)) {
+        frames.popn(frame - (roundStartFrame-1));
+        frame = (roundStartFrame-1);
+      }
       inEndRound = false;
       preRound();
     }
   case LogicMode::Fight:
-    // acc += DeltaSeconds;
-    // if (acc >= ((1.0/30.0) - 0.001)) {
+    acc += DeltaSeconds;
+    float desyncAdjustment = 0.0;
+    if (p1Input->getDesync() != 0.0)
+      desyncAdjustment = p1Input->getDesync();
+    if (p2Input->getDesync() != 0.0)
+      desyncAdjustment = p2Input->getDesync();
+    if (std::abs(desyncAdjustment) <= 1.0)
+      desyncAdjustment = 0.0;
+    else
+      desyncAdjustment *= -0.002; // 2ms per frame of desync
+    if (acc >= ((1.0/framerate) + desyncAdjustment - 0.0005)) {
       for (auto pc: pcs)
         pc->sendButtons();
       FightTick();
-    //   acc = 0;
-    // }
+      acc = 0;
+    }
     acc2 += DeltaSeconds;
     if (acc2 >= 1.0) {
-      MYLOG(Display, "FPS: %i", frame - startFrame_);
+      MYLOG(Display, "FPS: %i (frame %i) %f %f %f %s", frame - startFrame_, frame, p1Input->getDesync(), p2Input->getDesync(), desyncAdjustment, (desyncAdjustment == 0.0) ? TEXT("No adj") : TEXT("Yes Adj"));
       startFrame_ = frame;
       acc2 = 0.0;
     }
@@ -810,4 +830,9 @@ int ALogic::playerFrame(int playerNumber) {
 
 int ALogic::getCurrentFrame() {
   return frame;
+}
+
+void ALogic::ClientPlayersReady_Implementation() {
+  MYLOG(Warning, "ClientPlayersReady");
+  preRound();
 }

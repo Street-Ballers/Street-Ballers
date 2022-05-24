@@ -20,10 +20,6 @@ public:
   // ticking. When both players are ticking and call this function,
   // FightGameState will call ClientPlayersReady() on all clients.
   void ServerPlayerReady(int playerNumber);
-
-  // This function will call ALogic::preRound().
-  UFUNCTION (NetMulticast, Reliable)
-  void ClientPlayersReady();
 };
 
 static inline AFightGameState* GetFightGameState(UWorld* world) {

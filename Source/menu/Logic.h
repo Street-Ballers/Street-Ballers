@@ -93,6 +93,8 @@ public:
         // testing purposes
         UPROPERTY(EditAnywhere)
         bool alwaysRollback;
+        UPROPERTY(EditAnywhere)
+        int framerate = 30;
 
         // Invisible objects at the ends of the stages. We will use
         // these just to grab their coordinates and not let players
@@ -208,6 +210,9 @@ public:
         int playerFrame(int playerNumber);
 
         int getCurrentFrame();
+
+        UFUNCTION (Client, Reliable)
+        void ClientPlayersReady();
 };
 
 static inline ALogic* FindLogic(UWorld *world) {

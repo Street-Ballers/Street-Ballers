@@ -18,9 +18,6 @@ ALogicGameMode::ALogicGameMode() {
 
 void ALogicGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) {
   Super::InitGame(MapName, Options, ErrorMessage);
-  init_actions();
-  check(HAction(IActionIdle).character() == HChar1);
-  check(HCharacter(IChar1).idle() == HActionIdle);
   playerCount = 0;
 }
 

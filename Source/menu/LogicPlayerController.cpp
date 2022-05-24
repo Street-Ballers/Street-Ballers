@@ -136,6 +136,7 @@ void ALogicPlayerController::ServerPostLogin_Implementation(int playerNumber_) {
   case 1:
     input = l_->p2Input;
     opponentInput = l_->p1Input;
+    l_->SetOwner(this);
     break;
 
   default:
@@ -186,9 +187,11 @@ void ALogicPlayerController::Tick(float deltaSeconds) {
     return;
 
   if (!readiedUp) {
-    MYLOG(Display, "ReadyUp");
-    ServerReadyUp();
-    readiedUp = true;
+    if (GetWorld()->HasBegunPlay()) {
+      MYLOG(Display, "ReadyUp");
+      ServerReadyUp();
+      readiedUp = true;
+    }
   }
 
   if (!addedPC) {
@@ -205,19 +208,19 @@ void ALogicPlayerController::sendButtons() {
   // MYLOG(Display, "sendButtons");
   int targetFrame = l->getCurrentFrame() + 1;
   input->buttons(buttonsPressed, buttonsReleased, targetFrame);
-  ServerButtons(buttonsPressed, buttonsReleased, targetFrame);
+  ServerButtons(buttonsPressed, buttonsReleased, targetFrame, input->getAvgLatency());
   buttonsPressed = 0;
   buttonsReleased = 0;
 }
 
-void ALogicPlayerController::ServerButtons_Implementation(int8 _buttonsPressed, int8 _buttonsReleased, int targetFrame) {
+void ALogicPlayerController::ServerButtons_Implementation(int8 _buttonsPressed, int8 _buttonsReleased, int targetFrame, int avgLatency) {
   if (GetWorld()->IsNetMode(NM_ListenServer)) {
     //MYLOG(Display, "ServerButtons");
     if (!input) {
       MYLOG(Warning, "ServerButtons: input is NULL");
     }
     else {
-      input->ClientButtons(_buttonsPressed, _buttonsReleased, targetFrame);
+      input->ClientButtons(_buttonsPressed, _buttonsReleased, targetFrame, avgLatency);
     }
   }
 }

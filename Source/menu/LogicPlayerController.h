@@ -42,7 +42,7 @@ public:
   void sendButtons();
 
   UFUNCTION (Server, Reliable)
-  void ServerButtons(int8 _buttonsPressed, int8 _buttonsReleased, int targetFrame);
+    void ServerButtons(int8 _buttonsPressed, int8 _buttonsReleased, int targetFrame, int avgLatency);
 
   UFUNCTION (BlueprintCallable, Category="Player")
   int getPlayerNumber();
