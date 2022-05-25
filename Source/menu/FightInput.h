@@ -94,6 +94,7 @@ private:
 
   enum LogicMode mode;
 
+  int lastInputFrame;
   intRingBuffer latencyHistory;
   int avgLatency;
   int avgLatencyOther;
@@ -157,4 +158,5 @@ public:
   void clearRollbackFlags();
   int getAvgLatency() const;
   float getDesync() const;
+  bool hasRecievedInputForFrame(int frame) const;
 };

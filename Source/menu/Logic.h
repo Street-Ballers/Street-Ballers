@@ -144,6 +144,7 @@ private:
                          // beginRound().
         bool inEndRound;
         int roundStartFrame;
+        int roundEndFrame;
 
         std::vector<ALogicPlayerController*> pcs;
         int startFrame_;

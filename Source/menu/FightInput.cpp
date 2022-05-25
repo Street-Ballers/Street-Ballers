@@ -125,7 +125,7 @@ void AFightInput::init(int _maxRollback, int _buffer, int _delay) {
   directionHistoryX.reserve(n);
   directionHistoryY.reserve(n);
   mode = LogicMode::Wait;
-  currentFrame = 0;
+  lastInputFrame = currentFrame = 0;
   latencyHistory.reserve(LATENCY_HISTORY_SIZE);
   avgLatency = avgLatency = 0;
   reset();
@@ -221,6 +221,8 @@ void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetF
   //       targetFrame,
   //       *encodedButtonsToString(buttonsPressed),
   //       *encodedButtonsToString(buttonsReleased));
+
+  lastInputFrame = targetFrame; // assumes calls maintain order
 
   // check if a rollback will be needed
   if (targetFrame <= (currentFrame-delay)) {
@@ -484,4 +486,8 @@ int AFightInput::getAvgLatency() const {
 
 float AFightInput::getDesync() const {
   return (avgLatencyOther - avgLatency) / ((float) LATENCY_HISTORY_SIZE);
+}
+
+bool AFightInput::hasRecievedInputForFrame(int frame) const {
+  return frame <= (lastInputFrame+delay);
 }

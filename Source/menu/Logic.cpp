@@ -437,6 +437,7 @@ void ALogic::BeginPlay()
   mode = LogicMode::Wait;
   inPreRound = false;
   inEndRound = false;
+  roundEndFrame = -1;
   frame = 0;
   reset(false);
   acc = acc2 = 0;
@@ -470,9 +471,11 @@ void ALogic::preRound() {
   if (!skipPreRound) {
     setMode(LogicMode::Idle);
     inPreRound = true;
-    roundStartFrame = ((frame+PREROUND_TIME)/15)*15;
+    roundStartFrame = ((roundEndFrame == -1) ? 0 : roundEndFrame) + ENDROUND_TIME + PREROUND_TIME;
+    MYLOG(Display, "preRound %i", roundStartFrame);
   }
   reset(false);
+  roundEndFrame = -1;
   rollbackStopFrame = frame;
   if (skipPreRound) {
     beginRound();
@@ -493,11 +496,14 @@ void ALogic::beginRound() {
 }
 
 void ALogic::endRound() {
-  MYLOG(Display, "endRound");
+  MYLOG(Display, "endRound %i", roundEndFrame);
   setMode(LogicMode::Idle);
   inEndRound = true;
-  roundStartFrame = ((frame+ENDROUND_TIME)/15)*15;
-  rollbackStopFrame = frame;
+  roundStartFrame = roundEndFrame+ENDROUND_TIME;
+  rollbackStopFrame = roundEndFrame; // we need this because when we
+                                     // set AFightInput to idle, a
+                                     // rollback could result in an
+                                     // attack turning into an idle.
   if(OnEndRound.IsBound()) {
     OnEndRound.Broadcast();
   }
@@ -524,6 +530,7 @@ bool ALogic::IsP1OnLeft(const Frame& f) {
 // just before the targetFrame.
 void ALogic::computeFrame(int targetFrame) {
   const Frame& lastFrame = frames.last();
+
   // make a copy of the most recent frame. we will update the values
   // in this newFrame and keep the last one.
   Frame newFrame (lastFrame);
@@ -680,23 +687,32 @@ void ALogic::computeFrame(int targetFrame) {
     --newFrame.hitstop;
   }
 
-  // check if anyone died, and if so, start new round or end game and
-  // stuff. when in online multiplayer, this should also wait for both
-  // clients to be at a consistent state
-  if ((!inEndRound) && ((p1.health <= 0) || (p2.health <= 0))) {
-    if (p1.health <= 0) {
-      if (p1.action.type() != ActionType::KD)
-        p1.knockdownVelocity = 2.3;
-      p1.startNewAction(targetFrame, p1.action.character().defeat(), isP1OnLeft);
+  if (!inEndRound) {
+    if ((roundEndFrame == -1) || (targetFrame <= roundEndFrame)) {
+      // if we are not past the end of the round
+      if ((p1.health <= 0) || (p2.health <= 0)) {
+        if (p1.health <= 0) {
+          if (p1.action.type() != ActionType::KD)
+            p1.knockdownVelocity = 2.3;
+          p1.startNewAction(targetFrame, p1.action.character().defeat(), isP1OnLeft);
+        }
+        if (p2.health <= 0){
+          if (p2.action.type() != ActionType::KD)
+            p2.knockdownVelocity = 2.3;
+          p2.startNewAction(targetFrame, p2.action.character().defeat(), !isP1OnLeft);
+        }
+        // round ended; update roundEndFrame. this could be the first
+        // time we set it or it could be setting it to an earlier time
+        roundEndFrame = targetFrame;
+      }
+      else if (roundEndFrame != targetFrame)
+        // round did not end on roundEndFrame; unset it
+        roundEndFrame = -1;
     }
-    if (p2.health <= 0){
-      if (p2.action.type() != ActionType::KD)
-        p2.knockdownVelocity = 2.3;
-      p2.startNewAction(targetFrame, p2.action.character().defeat(), !isP1OnLeft);
+    if ((roundEndFrame != -1) && p1Input->hasRecievedInputForFrame(roundEndFrame) && p2Input->hasRecievedInputForFrame(roundEndFrame)) {
+      endRound(); // don't actually end round until players are synced
+                  // up to round end
     }
-    endRound();
-    // do stuff on end fight; declare winner, display message, call
-    // reset(roundNumber%2) and beginFight()
   }
 
   newFrame.frameNumber = frame;
@@ -751,15 +767,19 @@ void ALogic::Tick(float DeltaSeconds)
       if (frame > (roundStartFrame-1)) {
         frames.popn(frame - (roundStartFrame-1));
         frame = (roundStartFrame-1);
+        // TODO: we rewind FRAME here but this actually messes up
+        // AFightPlayerController::sendButtons(), which will put the
+        // buttons that belong on a later frame to the roundStartFrame
+        // instead
       }
       inPreRound = false;
       beginRound();
     }
     if (inEndRound && (frame >= (roundStartFrame-1))) {
-      if (frame > (roundStartFrame-1)) {
-        frames.popn(frame - (roundStartFrame-1));
-        frame = (roundStartFrame-1);
-      }
+      // if (frame > (roundStartFrame-1)) {
+      //   frames.popn(frame - (roundStartFrame-1));
+      //   frame = (roundStartFrame-1);
+      // }
       inEndRound = false;
       preRound();
     }
