@@ -14,6 +14,8 @@
 // UE doesn't support type aliases
 #define int8 char
 
+class intRingBuffer;
+
 // ideally we'd only have one RingBuffer<T> class but unreal doesn't
 // like templates and I don't want to figure out how to build it as an
 // external library that can still be distributed to many platforms
@@ -33,6 +35,29 @@ public:
   std::optional<enum Button>& last();
 
   std::optional<enum Button>& nthlast(int i);
+
+  FString toString();
+};
+
+class intRingBuffer {
+private:
+  int n;
+  int end;
+
+public:
+  std::vector<int> v;
+  void reserve(int size);
+  void clear();
+
+  void push(int x);
+
+  int last();
+
+  int first();
+
+  int nthlast(int i);
+
+  FString toString();
 };
 
 // This class will decode input sequences and support replaying input
@@ -68,6 +93,11 @@ private:
   ButtonRingBuffer directionHistoryY;
 
   enum LogicMode mode;
+
+  int lastInputFrame;
+  intRingBuffer latencyHistory;
+  int avgLatency;
+  int avgLatencyOther;
 
   bool is_button(const enum Button& b);
   // bool is_none(const Button& b);
@@ -112,7 +142,7 @@ public:
   void buttons(int8 buttonsPressed, int8 buttonsReleased, int targetFrame);
 
   UFUNCTION (Client, Reliable)
-  void ClientButtons(int8 buttonsPressed, int8 buttonsReleased, int targetFrame);
+  void ClientButtons(int8 buttonsPressed, int8 buttonsReleased, int targetFrame, int avgLatencyOther_);
 
   // Returns the decoded action for the given targetFrame.
   HAction action(HAction currentAction, bool isOnLeft, int targetFrame, int actionStart);
@@ -126,4 +156,7 @@ public:
   bool needsRollback();
   int getNeedsRollbackToFrame();
   void clearRollbackFlags();
+  int getAvgLatency() const;
+  float getDesync() const;
+  bool hasRecievedInputForFrame(int frame) const;
 };

@@ -2,8 +2,11 @@
 
 #include "FightInput.h"
 #include <algorithm>
+#include <limits>
 
 #define MYLOG(category, message, ...) UE_LOG(LogTemp, category, TEXT("AFightInput (%s %s) " message), *GetActorLabel(false), (GetWorld()->IsNetMode(NM_ListenServer)) ? TEXT("server") : TEXT("client"), ##__VA_ARGS__)
+
+#define LATENCY_HISTORY_SIZE 10
 
 void ButtonRingBuffer::reserve(int size) {
   n = size;
@@ -27,6 +30,39 @@ std::optional<enum Button>& ButtonRingBuffer::last() {
 }
 
 std::optional<enum Button>& ButtonRingBuffer::nthlast(int i) {
+  int j = end-i;
+  if (j < 0) j += n;
+  check(j >= 0);
+  check(j < n);
+  return v.at(j);
+}
+
+void intRingBuffer::reserve(int size) {
+  n = size;
+  clear();
+}
+
+void intRingBuffer::clear() {
+  v.clear();
+  v.resize(n, 0);
+  end = 0;
+}
+
+void intRingBuffer::push(int x) {
+  end = end+1;
+  if (end == n) end = 0;
+  v.at(end) = x;
+}
+
+int intRingBuffer::last() {
+  return v.at(end);
+}
+
+int intRingBuffer::first() {
+  return nthlast(n-1);
+}
+
+int intRingBuffer::nthlast(int i) {
   int j = end-i;
   if (j < 0) j += n;
   check(j >= 0);
@@ -80,21 +116,28 @@ enum Button toSingleDirection(std::optional<enum Button> dx, std::optional<enum 
 //   return b == Button::NONE;
 // }
 
+// amount of input we keep for looking back for command inputs
+#define LOOKBEHIND_SIZE 30
+// amount of input we keep to cope with inputs from the future
+#define FUTURE_SIZE maxRollback
+
 void AFightInput::init(int _maxRollback, int _buffer, int _delay) {
   maxRollback = _maxRollback;
   buffer = _buffer;
   delay = _delay;
-  n = maxRollback+buffer+delay+1;
+  n = maxRollback+buffer+delay+LOOKBEHIND_SIZE+FUTURE_SIZE;
   buttonHistory.reserve(n);
   directionHistoryX.reserve(n);
   directionHistoryY.reserve(n);
   mode = LogicMode::Wait;
-  currentFrame = 0;
+  lastInputFrame = currentFrame = 0;
+  latencyHistory.reserve(LATENCY_HISTORY_SIZE);
+  avgLatency = avgLatency = 0;
   reset();
 }
 
 void AFightInput::reset() {
-  needsRollbackToFrame = -1;
+  clearRollbackFlags();
   buttonHistory.clear();
   directionHistoryX.clear();
   directionHistoryY.clear();
@@ -138,6 +181,19 @@ auto buttonToString(enum Button b) {
   }
 }
 
+FString ButtonRingBuffer::toString() {
+  FString s;
+  for (int i = 0; i < n; ++i) {
+    std::optional<enum Button> o = nthlast(i);
+    if (o.has_value())
+      s.Append(buttonToString(o.value()));
+    else
+      s.Append(FString("None"));
+    s.Append(FString(" "));
+  }
+  return s;
+}
+
 FString AFightInput::encodedButtonsToString(int8 e) {
   FString r;
   for (auto b : {Button::LP, Button::HP, Button::LK, Button::HK,
@@ -163,7 +219,7 @@ bool AFightInput::decodeButton(enum Button b, int8 encoded) {
 }
 
 void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetFrame) {
-  if (mode != LogicMode::Fight) return;
+  if ((mode != LogicMode::Fight) && (mode != LogicMode::Idle)) return;
   // MYLOG(Display,
   //       TEXT("buttons(): (current frame %i) (target frame %i) (buttonsPressed %s) (buttonsReleased %s)"),
   //       currentFrame,
@@ -171,20 +227,21 @@ void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetF
   //       *encodedButtonsToString(buttonsPressed),
   //       *encodedButtonsToString(buttonsReleased));
 
+  lastInputFrame = targetFrame; // assumes calls maintain order
+
   // check if a rollback will be needed
   if (targetFrame <= (currentFrame-delay)) {
-    if (getNeedsRollbackToFrame()) {
-      needsRollbackToFrame = std::min(needsRollbackToFrame, targetFrame-delay);
-    }
-    else {
-      needsRollbackToFrame = targetFrame-delay;
-    }
-    if (targetFrame <= currentFrame+1 - delay - maxRollback) {
+    needsRollbackToFrame = std::min(needsRollbackToFrame, targetFrame+delay);
+    if (needsRollback() && (currentFrame - needsRollbackToFrame) >= maxRollback) {
       return; // there is nothing that this class can do in this
               // situation. We don't have input data going back that
               // far. Let ALogic decide how to reset or quit the
               // match.
     }
+  }
+  if ((targetFrame - currentFrame) > FUTURE_SIZE) {
+    needsRollbackToFrame = -1;
+    return;
   }
 
   ensureFrame(targetFrame);
@@ -203,12 +260,18 @@ void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetF
         bh = std::make_optional(b);
   }
   for (auto b: {Button::LEFT, Button::RIGHT}) {
-    if (decodeButton(b, buttonsPressed))
+    if (decodeButton(b, buttonsPressed)) {
       dxh = std::make_optional(b);
+      for (int j = 1; j <= i; ++j)
+        directionHistoryX.nthlast(i-j) = dxh;
+    }
   }
   for (auto b: {Button::UP, Button::DOWN}) {
-    if (decodeButton(b, buttonsPressed))
+    if (decodeButton(b, buttonsPressed)) {
       dyh = std::make_optional(b);
+      for (int j = 1; j <= i; ++j)
+        directionHistoryY.nthlast(i-j) = dyh;
+    }
   }
 
   // handle releases. this should probably just ignore everything
@@ -218,17 +281,27 @@ void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetF
   // one of the other currently held ones. _action() will have to pick
   // between which directions to prioritize.
   for (auto b: {Button::LEFT, Button::RIGHT}) {
-    if (decodeButton(b, buttonsReleased) && (directionHistoryX.last() == b))
+    if (decodeButton(b, buttonsReleased) && (directionHistoryX.last() == b)) {
       dxh = {};
+      for (int j = 1; j <= i; ++j)
+        directionHistoryX.nthlast(i-j) = {};
+    }
   }
   for (auto b: {Button::UP, Button::DOWN}) {
-    if (decodeButton(b, buttonsReleased) && (directionHistoryY.last() == b))
+    if (decodeButton(b, buttonsReleased) && (directionHistoryY.last() == b)) {
       dyh = {};
+      for (int j = 1; j <= i; ++j)
+        directionHistoryY.nthlast(i-j) = {};
+    }
   }
 }
 
-void AFightInput::ClientButtons_Implementation(int8 buttonsPressed, int8 buttonsReleased, int targetFrame) {
+void AFightInput::ClientButtons_Implementation(int8 buttonsPressed, int8 buttonsReleased, int targetFrame, int avgLatencyOther_) {
   //MYLOG(Display, "ClientButtons");
+  avgLatencyOther = avgLatencyOther_;
+  int latency = currentFrame - targetFrame;
+  avgLatency += latency - latencyHistory.first();
+  latencyHistory.push(latency);
   buttons(buttonsPressed, buttonsReleased, targetFrame);
 }
 
@@ -258,10 +331,11 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft, in
   const HCharacter& c = currentAction.character();
   // MYLOG(Warning, "_action(): %s (frame %i) (button %s)", *GetActorLabel(false), frame, directionHistory.nthlast(frame).has_value() ? ((directionHistory.nthlast(frame).value() == Button::RIGHT) ? TEXT("right") : TEXT("not right")) : TEXT("none"));
 
-  // first we will determine the "button"
-  enum Button newButton = Button::NEUTRAL;
+  // first we will determine the "button".
+  std::vector<enum Button> buttons;
 
   // first try motion commands; they have the highest priority
+  enum Button newButton = Button::NEUTRAL;
   if (buttonHistory.nthlast(frame).has_value()) {
     for (auto i = motionCommands.begin(); i != motionCommands.end(); ++i) {
       for (auto j = i->second.begin(); j != i->second.end(); ++j) {
@@ -274,24 +348,25 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft, in
       }
     }
   }
+  if (newButton != Button::NEUTRAL)
+    buttons.push_back(newButton);
 
   // try a normal attack
-  if (newButton == Button::NEUTRAL) {
-    if (buttonHistory.nthlast(frame).has_value()) {
-      newButton = buttonHistory.nthlast(frame).value();
-    }
+  if (buttonHistory.nthlast(frame).has_value()) {
+    buttons.push_back(buttonHistory.nthlast(frame).value());
   }
 
   // try directional input
-  if (newButton == Button::NEUTRAL)
-    newButton = toSingleDirection(translateDirection(directionHistoryX.nthlast(frame), isOnLeft), directionHistoryY.nthlast(frame));
+  buttons.push_back(toSingleDirection(translateDirection(directionHistoryX.nthlast(frame), isOnLeft), directionHistoryY.nthlast(frame)));
 
   // now with our "button" we pick an action
 
   // first try chains; these have highest priority
-  if (actionFrame >= currentAction.specialCancelFrames()) {
-    auto i = currentAction.chains().find(newButton);
-    if (i != currentAction.chains().end()) return i->second;
+  for (auto b : buttons) {
+    if (actionFrame >= currentAction.specialCancelFrames()) {
+      auto i = currentAction.chains().find(b);
+      if (i != currentAction.chains().end()) return i->second;
+    }
   }
 
   if (actionFrame < currentAction.lockedFrames())
@@ -300,24 +375,32 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft, in
                                              // safe as a "do nothing"
                                              // return value
 
-  switch (newButton) {
-  case Button::NEUTRAL:
-  case Button::DOWNFORWARD:
-  case Button::DOWNBACK:
-    return c.idle();
-  case Button::FORWARD:
-    return c.walkForward();
-  case Button::BACK:
-  case Button::UPBACK:
-    return c.walkBackward();
-  case Button::UPFORWARD:
-    return c.fJump();
-  case Button::HP:
-    return c.sthp();
-  case Button::LP:
-    return c.stlp();
-  case Button::LK:
-    return c.grab();
+  for (auto b : buttons) {
+    // try specials
+    for (auto i : currentAction.character().specials()) {
+      if (i.first == b) return i.second;
+    }
+
+    // try normals and motion
+    switch (b) {
+    case Button::NEUTRAL:
+    case Button::DOWNFORWARD:
+    case Button::DOWNBACK:
+      return c.idle();
+    case Button::FORWARD:
+      return c.walkForward();
+    case Button::BACK:
+    case Button::UPBACK:
+      return c.walkBackward();
+    case Button::UPFORWARD:
+      return c.fJump();
+    case Button::HP:
+      return c.sthp();
+    case Button::LP:
+      return c.stlp();
+    case Button::LK:
+      return c.grab();
+    }
   }
 
   // just idle if no other action was chosen
@@ -327,7 +410,7 @@ HAction AFightInput::_action(HAction currentAction, int frame, bool isOnLeft, in
 bool AFightInput::checkMotionCommand(std::vector<enum Button>& motion, int m, int frame, bool isOnLeft) {
   if (m == motion.size())
     return true;
-  if (frame >= n)
+  if (frame >= n-3)
     return false;
 
   check(frame >= 0);
@@ -350,6 +433,9 @@ bool AFightInput::checkMotionCommand(std::vector<enum Button>& motion, int m, in
 }
 
 HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFrame, int actionStart) {
+  if (mode == LogicMode::Idle)
+    return currentAction.character().idle();
+
   int frameBefore = currentFrame;
   int actionFrame = targetFrame - actionStart;
   ensureFrame(targetFrame);
@@ -365,13 +451,22 @@ HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFram
   // MYLOG(Warning, "action(): %s (current frame %i) (target frame %i) (action: %s)", *GetActorLabel(false), currentFrame, targetFrame, (mostRecentAction == HActionIdle) ? TEXT("idle") : TEXT("not idle"));
   HAction action = mostRecentAction;
 
-  while (action.isWalkOrIdle() && (++frame < (delay+buffer))) {
-    action = _action(currentAction, frame, isOnLeft, actionFrame);
+  for (int i = 1; (i < buffer) && action.isWalkOrIdle(); ++i) {
+    action = _action(currentAction, frame+i, isOnLeft, actionFrame);
   }
+  // MYLOG(Display,
+  //       "action() (action %i) (current frame %i) (target frame %i) (actionFrame %i) (new action %i)",
+  //       currentAction.animation(),
+  //       currentFrame,
+  //       targetFrame,
+  //       actionFrame,
+  //       (action.isWalkOrIdle() ? mostRecentAction : action).animation());
+  // MYLOG(Display, "buttonHistory: %s", *(buttonHistory.toString()));
   return action.isWalkOrIdle() ? mostRecentAction : action;
 }
 
 bool AFightInput::isGuarding(bool isOnLeft, int targetFrame) {
+  ensureFrame(targetFrame);
   int frame = computeIndex(targetFrame);
   return
     directionHistoryX.nthlast(frame).has_value() &&
@@ -383,7 +478,7 @@ int AFightInput::getCurrentFrame() {
 }
 
 bool AFightInput::needsRollback() {
-  return needsRollbackToFrame != -1;
+  return needsRollbackToFrame != std::numeric_limits<int>::max();
 }
 
 int AFightInput::getNeedsRollbackToFrame() {
@@ -391,5 +486,17 @@ int AFightInput::getNeedsRollbackToFrame() {
 }
 
 void AFightInput::clearRollbackFlags() {
-  needsRollbackToFrame = -1;
+  needsRollbackToFrame = std::numeric_limits<int>::max();
+}
+
+int AFightInput::getAvgLatency() const {
+  return avgLatency;
+}
+
+float AFightInput::getDesync() const {
+  return (avgLatencyOther - avgLatency) / ((float) LATENCY_HISTORY_SIZE);
+}
+
+bool AFightInput::hasRecievedInputForFrame(int frame) const {
+  return frame <= (lastInputFrame+delay);
 }

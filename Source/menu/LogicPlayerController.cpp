@@ -22,6 +22,7 @@ void ALogicPlayerController::BeginPlay()
   MYLOG(Warning, "BeginPlay");
   buttonsPressed = 0;
   buttonsReleased = 0;
+  addedPC = false;
 }
 
 void ALogicPlayerController::SetupInputComponent() {
@@ -125,21 +126,22 @@ void ALogicPlayerController::ServerPostLogin_Implementation(int playerNumber_) {
   MYLOG(Warning, "ServerPostLogin");
   //UE_LOG(LogTemp, Warning, "ALogicPlayerController ServerPostLogin: Logging in Player %i (%s)", playerNumber, GetLocalPlayer() ? "local player" : "networked player");
 
-  ALogic *l = FindLogic(GetWorld());
+  ALogic *l_ = FindLogic(GetWorld());
   AFightInput* opponentInput;
   switch (playerNumber) {
   case 0:
-    input = l->p1Input;
-    opponentInput = l->p2Input;
+    input = l_->p1Input;
+    opponentInput = l_->p2Input;
     break;
   case 1:
-    input = l->p2Input;
-    opponentInput = l->p1Input;
+    input = l_->p2Input;
+    opponentInput = l_->p1Input;
+    l_->SetOwner(this);
     break;
 
   default:
       MYLOG(Warning, "Something went wrong");
-      opponentInput = l->p1Input;
+      opponentInput = l_->p1Input;
   }
 
   opponentInput->SetOwner(this);
@@ -153,7 +155,7 @@ void ALogicPlayerController::ClientPostLogin_Implementation(int playerNumber_) {
   playerNumber = playerNumber_;
   MYLOG(Display, "ClientPostLogin");
 
-  ALogic *l = FindLogic(GetWorld());
+  l = FindLogic(GetWorld());
   switch (playerNumber) {
   case 0:
     input = l->p1Input;
@@ -184,28 +186,41 @@ void ALogicPlayerController::Tick(float deltaSeconds) {
   if (GetWorld()->IsPaused())
     return;
 
-  // MYLOG(Display, "Tick");
-
   if (!readiedUp) {
-    ServerReadyUp();
-    readiedUp = true;
+    if (GetWorld()->HasBegunPlay()) {
+      MYLOG(Display, "ReadyUp");
+      ServerReadyUp();
+      readiedUp = true;
+    }
   }
 
-  int targetFrame = input->getCurrentFrame() + 1;
+  if (!addedPC) {
+    if (GetWorld()->HasBegunPlay()) {
+      l->addPlayerController(this);
+      addedPC = true;
+    }
+  }
+
+  // MYLOG(Display, "Tick");
+}
+
+void ALogicPlayerController::sendButtons() {
+  // MYLOG(Display, "sendButtons");
+  int targetFrame = l->getCurrentFrame() + 1;
   input->buttons(buttonsPressed, buttonsReleased, targetFrame);
-  ServerButtons(buttonsPressed, buttonsReleased, targetFrame);
+  ServerButtons(buttonsPressed, buttonsReleased, targetFrame, input->getAvgLatency());
   buttonsPressed = 0;
   buttonsReleased = 0;
 }
 
-void ALogicPlayerController::ServerButtons_Implementation(int8 _buttonsPressed, int8 _buttonsReleased, int targetFrame) {
+void ALogicPlayerController::ServerButtons_Implementation(int8 _buttonsPressed, int8 _buttonsReleased, int targetFrame, int avgLatency) {
   if (GetWorld()->IsNetMode(NM_ListenServer)) {
     //MYLOG(Display, "ServerButtons");
     if (!input) {
       MYLOG(Warning, "ServerButtons: input is NULL");
     }
     else {
-      input->ClientButtons(_buttonsPressed, _buttonsReleased, targetFrame);
+      input->ClientButtons(_buttonsPressed, _buttonsReleased, targetFrame, avgLatency);
     }
   }
 }

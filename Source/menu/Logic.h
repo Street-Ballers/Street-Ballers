@@ -9,6 +9,7 @@
 #include "FightInput.h"
 #include "FightGameState.h"
 #include "LogicMode.h"
+#include "LogicPlayerController.h"
 #include "Logic.generated.h"
 
 // Important fight sequence events. It should be possible to bind to
@@ -27,6 +28,7 @@ public:
   int health;
   int hitstun = 0;
   float knockdownVelocity;
+  int actionNumber = 0; // used to prevent a lingering hitbox from hitting every frame
 
   Player(FVector pos, HAction action): pos(pos), action(action), actionStart(0), health(100) {};
   Player() {};
@@ -48,6 +50,7 @@ public:
   int hitstop = 0; // number of frames of hitstop left
   float pushbackPerFrame;
   int hitPlayer; // when hitstop>0, 0=both, 1=p1, 2=p2
+  int frameNumber;
 
   Frame(Player p1, Player p2): p1(p1), p2(p2) {};
   Frame() {};
@@ -90,6 +93,8 @@ public:
         // testing purposes
         UPROPERTY(EditAnywhere)
         bool alwaysRollback;
+        UPROPERTY(EditAnywhere)
+        int framerate = 30;
 
         // Invisible objects at the ends of the stages. We will use
         // these just to grab their coordinates and not let players
@@ -125,9 +130,12 @@ public:
         ALogic();
 
 private:
-        int maxRollback = 10; // keep around 10 frames or so for rollback
+        int maxRollback;
         RingBuffer frames;
         int frame;
+        int rollbackStopFrame; // When starting a new round, we don't
+                               // want to rollback past the first
+                               // frame.
 
         enum LogicMode mode;
         bool inPreRound; // setting this to true will cause Tick() to
@@ -136,6 +144,12 @@ private:
                          // beginRound().
         bool inEndRound;
         int roundStartFrame;
+        int roundEndFrame;
+
+        std::vector<ALogicPlayerController*> pcs;
+        int startFrame_;
+        float acc, acc2;
+
         void setMode(enum LogicMode);
 
         // Reset the fight; put players back at start with full
@@ -143,10 +157,6 @@ private:
         void reset(bool flipSpawns);
 
         // a bunch of convenience functions for computeFrame()
-        bool collides(const Box &p1b, const Box &p2b, const Frame &f, int targetFrame);
-        bool collides(const Hitbox &p1b, const Box &p2b, const Frame &f, int targetFrame);
-        bool collides(const Box &p1b, const Hitbox &p2b, const Frame &f, int targetFrame);
-        bool collides(const Hitbox &p1b, const Hitbox &p2b, const Frame &f, int targetFrame);
         float playerCollisionExtent(const Player &p, const Player &q, int targetFrame);
         void HandlePlayerBoundaryCollision(Frame &f, int targetFrame, bool doRightBoundary);
         bool IsPlayerOnLeft(const Player& p1, const Player& p2);
@@ -162,6 +172,8 @@ protected:
         virtual void BeginPlay() override;
 
 public:
+        void addPlayerController(ALogicPlayerController* pc);
+
         // reset() and Enter FightMode::Idle mode. Trigger OnPreRound
         // event.
         UFUNCTION (BlueprintCallable, Category="Fight Sequence")
@@ -197,6 +209,11 @@ public:
         int playerAnimation(int playerNumber);
         UFUNCTION (BlueprintCallable, Category="Player")
         int playerFrame(int playerNumber);
+
+        int getCurrentFrame();
+
+        UFUNCTION (Client, Reliable)
+        void ClientPlayersReady();
 };
 
 static inline ALogic* FindLogic(UWorld *world) {

@@ -4,7 +4,7 @@
 Action HAction::actions[N_ACTIONS];
 Character HCharacter::characters[N_CHARACTERS];
 
-const float jumpXVel = 14.0;
+const float jumpXVel = 2.3;
 
 void HAction::init() {
   actions[IActionIdle]
@@ -17,24 +17,8 @@ void HAction::init() {
              0,
              0,
              0,
-             8,
-             ActionType::Idle);
-
-  actions[IActionWalkBackward]
-    = Action(IChar1,
-             EAnimation::WalkBackward,
-             {},
-             Hitbox(),
-             Hitbox(),
-             0,
-             0,
-             0,
-             0,
              16,
-             ActionType::Walk,
-             FVector(0.0,
-                     -6.0,
-                     0.0));
+             ActionType::Idle);
 
   actions[IActionWalkForward]
     = Action(IChar1,
@@ -46,11 +30,25 @@ void HAction::init() {
              0,
              0,
              0,
-             16,
+             24,
              ActionType::Walk,
              FVector(0.0,
-                     6.0,
+                     1.3,
                      0.0));
+
+  actions[IActionWalkBackward]
+    = Action(IChar1,
+             EAnimation::WalkBackward,
+             {},
+             Hitbox(),
+             Hitbox(),
+             0,
+             0,
+             0,
+             0,
+             HActionWalkForward.animationLength(),
+             ActionType::Walk,
+             (-2.0/3.0)*HActionWalkForward.velocity());
 
   actions[IActionDamaged]
     = Action(IChar1,
@@ -62,7 +60,8 @@ void HAction::init() {
              0,
              0,
              0,
-             8);
+             8,
+             ActionType::DamageReaction);
 
   actions[IActionBlock]
     = Action(IChar1,
@@ -74,25 +73,31 @@ void HAction::init() {
              0,
              0,
              0,
-             0);
+             0,
+             ActionType::DamageReaction);
 
   actions[IActionStHP]
     = Action(IChar1, // character
              EAnimation::StHP, // animation
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
-                 Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
-             Hitbox(), // hurtbox
-             10, // damage
-             0, // blockAdvantage
-             0, // hitAdvantage
-             9, // lockedFrames (number of frames before player can cancel)
-             12, // animationLength
+                 Hitbox::make_pair(5, {}),
+                 Hitbox::make_pair(7, {Box(0.0, 17.0, 21.0, 40.0)}),
+                 }),
+             Hitbox({ // hurtbox
+                 Hitbox::make_pair(2, {Box(0.0, 17.0, 26.0, 30.0)}),
+                 Hitbox::make_pair(5, {Box(0.0, 17.0, 16.0, 25.0)}),
+                 Hitbox::make_pair(15, {Box(0.0, 17.0, 20.0, 39.0),
+                                       Box(-13.0, 25.0, 0.0, 36.0)})}),
+             14, // damage
+             -4, // blockAdvantage
+             2, // hitAdvantage
+             15, // lockedFrames (number of frames before player can cancel)
+             16, // animationLength
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
-             6, // specialCancelFrames
-             {{Button::QCFP, HActionFJump}} // chains
+             9, // specialCancelFrames
+             {{Button::QCFP, HActionSpecial}} // chains
              );
 
   actions[IActionStLP]
@@ -101,23 +106,28 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
-             Hitbox(), // hurtbox
-             5, // damage
-             0,
-             0,
-             5, // lockedFrames (number of frames before player can cancel)
-             7, // animationLength
+                 Hitbox::make_pair(2, {Box(0.0, 21.0, 25.0, 29.0)})}),
+             Hitbox({ // hurtbox
+                 Hitbox::make_pair(1, {}),
+                 Hitbox::make_pair(2, {Box(0.0, 17.0, 26.0, 30.0)}),
+                 Hitbox::make_pair(5, {Box(0.0, 17.0, 20.0, 30.0)})}),
+             6, // damage
+             2,
+             1,
+             6, // lockedFrames (number of frames before player can cancel)
+             6, // animationLength
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
-             3, // specialCancelFrames
-             {{Button::LP, HActionStLP}} // chains
+             4, // specialCancelFrames
+             {{Button::HP, HActionTC}} // chains
              );
 
   actions[IActionFJump]
     = Action(IChar1,
              EAnimation::FJump,
-             Hitbox({Box::make_centeredx(50.0, 200.0)}),
+             Hitbox({
+                 Hitbox::make_pair(8, {Box::make_centeredx(11.0, 50.0)}),
+                 Hitbox::make_pair(JUMP_LENGTH-1, {Box(-6.0, 4.0, 11.0, 35.0)})}),
              Hitbox(),
              Hitbox(),
              0,
@@ -133,10 +143,13 @@ void HAction::init() {
              EAnimation::Grab, // animation
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
-                 Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
-             Hitbox(), // hurtbox
-             30, // damage
+                 Hitbox::make_pair(3, {}),
+                 Hitbox::make_pair(4, {Box(0.0, 21.0, 17.0, 29.0)})}),
+             Hitbox({ // hurtbox
+                 Hitbox::make_pair(3, {Box(0.0, 17.0, 26.0, 30.0)}),
+                 Hitbox::make_pair(9, {Box(0.0, 17.0, 26.0, 30.0)}),
+                 Hitbox::make_pair(14, {Box(0.0, 17.0, 16.0, 25.0)})}),
+             0, // damage
              0,
              0,
              15, // lockedFrames (number of frames before player can cancel)
@@ -145,7 +158,7 @@ void HAction::init() {
              FVector(0, 0, 0),
              15,
              {},
-             200.0
+             15.0
              );
 
   actions[IActionThrow]
@@ -154,7 +167,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox(),
              Hitbox(), // hurtbox
-             0, // damage
+             14, // damage
              0,
              0,
              32, // lockedFrames (number of frames before player can cancel)
@@ -192,7 +205,7 @@ void HAction::init() {
   actions[IActionKD]
     = Action(IChar1, // character
              EAnimation::KD, // animation
-             {}, // collision box (note that this is an std::optional)
+             Hitbox({Box(-16, 0, 23, 10)}), // collision box (note that this is an std::optional)
              Hitbox(), // hitbox
              Hitbox(), // hurtbox
              0, // damage
@@ -206,7 +219,7 @@ void HAction::init() {
   actions[IActionDefeat]
     = Action(IChar1, // character
              EAnimation::Defeat, // animation
-             {}, // collision box (note that this is an std::optional)
+             Hitbox({Box(-16, 0, 23, 10)}), // collision box (note that this is an std::optional)
              Hitbox(), // hitbox
              Hitbox(), // hurtbox
              0, // damage
@@ -215,6 +228,54 @@ void HAction::init() {
              150, // lockedFrames (number of frames before player can cancel)
              150, // animationLength
              ActionType::KD
+             );
+
+  actions[IActionSpecial]
+    = Action(IChar1, // character
+             EAnimation::Special, // animation
+             {}, // collision box (note that this is an std::optional)
+             Hitbox({ // hitbox
+                 Hitbox::make_pair(7, {}),
+                 Hitbox::make_pair(9, {Box(0.0, 17.0, 26.0, 40.0)}),
+                 }),
+             Hitbox({ // hurtbox
+                 Hitbox::make_pair(3, {Box(0.0, 17.0, 26.0, 30.0)}),
+                 Hitbox::make_pair(7, {Box(0.0, 17.0, 16.0, 25.0)}),
+                 Hitbox::make_pair(13, {Box(0.0, 17.0, 20.0, 39.0),
+                                       Box(-13.0, 25.0, 0.0, 36.0)})}),
+             16, // damage
+             -7, // blockAdvantage
+             0, // hitAdvantage
+             18, // lockedFrames (number of frames before player can cancel)
+             18, // animationLength
+             ActionType::Other, // ActionType
+             FVector(0, 0, 0), // velocity
+             0,
+             {}, // chains
+             35.0
+             );
+
+  actions[IActionTC]
+    = Action(IChar1, // character
+             EAnimation::TC, // animation
+             {}, // collision box (note that this is an std::optional)
+             Hitbox({ // hitbox
+                 Hitbox::make_pair(2, {}),
+                 Hitbox::make_pair(5, {Box(0.0, 17.0, 22.0, 40.0)}),
+               }),
+             Hitbox({ // hurtbox
+                 Hitbox::make_pair(2, {Box(0.0, 17.0, 16.0, 25.0)}),
+                 Hitbox::make_pair(9, {Box(0.0, 17.0, 20.0, 39.0),
+                                        Box(-13.0, 25.0, 0.0, 36.0)})}),
+             10, // damage
+             -10, // blockAdvantage
+             HActionStHP.hitAdvantage(), // hitAdvantage
+             11, // lockedFrames (number of frames before player can cancel)
+             13, // animationLength
+             ActionType::Other, // ActionType
+             FVector(0, 0, 0), // velocity
+             5,
+             HActionStHP.chains() // chains
              );
 
   // Grave robber
@@ -245,7 +306,7 @@ void HAction::init() {
              16,
              ActionType::Walk,
              FVector(0.0,
-                     -6.0,
+                     -1.0,
                      0.0));
 
   actions[IActionGRWalkForward]
@@ -261,7 +322,7 @@ void HAction::init() {
              16,
              ActionType::Walk,
              FVector(0.0,
-                     6.0,
+                     1.0,
                      0.0));
 
   actions[IActionGRDamaged]
@@ -274,7 +335,8 @@ void HAction::init() {
              0,
              0,
              0,
-             8);
+             8,
+             ActionType::DamageReaction);
 
   actions[IActionGRBlock]
     = Action(ICharGR,
@@ -286,7 +348,8 @@ void HAction::init() {
              0,
              0,
              0,
-             0);
+             0,
+             ActionType::DamageReaction);
 
   actions[IActionGRStHP]
     = Action(ICharGR, // character
@@ -294,7 +357,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
+                 Hitbox::make_pair(2, {Box(0.0, 17.0, 22.0, 34.0)})}),
              Hitbox(), // hurtbox
              10, // damage
              0,
@@ -313,7 +376,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 100.0, 150.0, 200.0)})}),
+                 Hitbox::make_pair(2, {Box(0.0, 17.0, 22.0, 34.0)})}),
              Hitbox(), // hurtbox
              5, // damage
              0,
@@ -329,7 +392,7 @@ void HAction::init() {
   actions[IActionGRFJump]
     = Action(ICharGR,
              EAnimation::GRFJump,
-             Hitbox({Box::make_centeredx(50.0, 200.0)}),
+             Hitbox({Box::make_centeredx(11.0, 34.0)}),
              Hitbox(),
              Hitbox(),
              0,
@@ -385,7 +448,7 @@ void HAction::init() {
 
 void HCharacter::init() {
   characters[IChar1]
-    = Character(Hitbox({Box::make_centeredx(100.0, 200.0)}),
+    = Character(Hitbox({Box::make_centeredx(22.0, 34.0)}),
                 HActionIdle,
                 HActionWalkForward,
                 HActionWalkBackward,
@@ -399,10 +462,11 @@ void HCharacter::init() {
                 HActionThrown,
                 HActionThrownGR,
                 HActionKD,
-                HActionDefeat);
+                HActionDefeat,
+                {{Button::QCFP, HActionSpecial}});
 
   characters[ICharGR]
-    = Character(Hitbox({Box::make_centeredx(100.0, 200.0)}),
+    = Character(Hitbox({Box::make_centeredx(22.0, 34.0)}),
                 HActionGRIdle,
                 HActionGRWalkForward,
                 HActionGRWalkBackward,
@@ -416,7 +480,8 @@ void HCharacter::init() {
                 HActionGRThrown,
                 HActionGRIdle,
                 HActionGRKD,
-                HActionGRDefeat);
+                HActionGRDefeat,
+                {});
 }
 
 // set xrange [0:22]
@@ -473,31 +538,31 @@ float jumpHeights[JUMP_LENGTH] = {
 };
 
 float knockdownAirborneHeights[knockdownAirborneLength] = {
-  130.0,
-  130.0,
-  130.0,
-  120.0,
-  110.0,
-  90.0,
-  70.0,
-  50.0,
-  20.0,
+  22.0*0.8,
+  22.0*0.8,
+  22.0*0.8,
+  21.0*0.8,
+  19.0*0.8,
+  17.0*0.8,
+  15.0*0.8,
+  12.0*0.8,
+  8.0*0.8,
   0.0
 };
 
 FVector thrownBoxerPositions[THROWN_BOXER_LENGTH+1] = {
   FVector(0.0, 0.0, 0.0),
-  FVector(0.0, 50.0, 0.0),
-  FVector(0.0, 45.0, 0.0),
-  FVector(0.0, 40.0, 0.0),
-  FVector(0.0, 35.0, 0.0),
-  FVector(0.0, 30.0, 0.0),
-  FVector(0.0, 30.0, 0.0),
-  FVector(0.0, 30.0, 0.0),
-  FVector(0.0, 30.0, 0.0),
-  FVector(0.0, 30.0, 0.0),
-  FVector(0.0, 30.0, 0.0),
-  FVector(0.0, 60.0, 0.0)
+  FVector(0.0, 22.0, 0.0),
+  FVector(0.0, 18.0, 0.0),
+  FVector(0.0, 16.0, 0.0),
+  FVector(0.0, 16.0, 0.0),
+  FVector(0.0, 15.0, 0.0),
+  FVector(0.0, 15.0, 0.0),
+  FVector(0.0, 15.0, 0.0),
+  FVector(0.0, 15.0, 0.0),
+  FVector(0.0, 15.0, 0.0),
+  FVector(0.0, 15.0, 0.0),
+  FVector(0.0, 27.0, 0.0)
 };
 
 // FVector thrownGRPositions[THROWN_GR_LENGTH];

@@ -1,5 +1,35 @@
 #include "Action.h"
 
+HCharacter HAction::character() const {
+  return HCharacter(actions[h].character);
+}
+
+const Hitbox& HAction::collision() const {
+  const std::optional<Hitbox>& b = actions[h].collision;
+  if (b.has_value())
+    return b.value();
+  else
+    return character().collision();
+}
+
+const Box& HAction::collision(int frame) const {
+  const std::optional<Hitbox>& hb = actions[h].collision;
+  const Box *b = nullptr;
+  if (hb.has_value() && hb.value().at(frame))
+    b = &(hb.value().at(frame)->at(0));
+  if (!b)
+    b = &(character().collision().at(frame)->at(0));
+  return *b;
+}
+
+const Hitbox& HAction::hitbox() const {
+  return actions[h].hitbox;
+}
+
+const Hitbox& HAction::hurtbox() const {
+  return actions[h].hurtbox;
+}
+
 int HAction::damage() const {
   return actions[h].damage;
 }
@@ -114,6 +144,10 @@ HAction HCharacter::kd() const {
 
 HAction HCharacter::defeat() const {
   return characters[h].defeat;
+}
+
+const std::map<enum Button, HAction>& HCharacter::specials() const {
+  return characters[h].specials;
 }
 
 bool HCharacter::operator==(const HCharacter& b) const {

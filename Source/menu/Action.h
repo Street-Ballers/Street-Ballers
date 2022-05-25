@@ -7,11 +7,39 @@
 
 UENUM(BlueprintType)
 enum EAnimation {
-  Idle, WalkBackward, WalkForward, FJump, Damaged, Block, StHP, StLP, Grab, Throw, Thrown, ThrownGR, KD, Defeat, Special,
-  GRIdle, GRWalkBackward, GRWalkForward, GRFJump, GRDamaged, GRBlock, GRStHP, GRStLP, GRGrab, GRThrow, GRThrown, GRThrownGR, GRKD, GRDefeat,
+Idle = 0,
+WalkBackward = 1,
+WalkForward = 2,
+FJump = 3,
+Damaged = 4,
+Block = 5,
+StHP = 6,
+StLP = 7,
+Grab = 8,
+Throw = 9,
+Thrown = 10,
+ThrownGR = 11,
+KD = 12,
+Defeat = 13,
+Special = 14,
+TC = 15,
+GRIdle = 16,
+GRWalkBackward = 17,
+GRWalkForward = 18,
+GRFJump = 19,
+GRDamaged = 20,
+GRBlock = 21,
+GRStHP = 22,
+GRStLP = 23,
+GRGrab = 24,
+GRThrow = 25,
+GRThrown = 26,
+GRThrownGR = 27,
+GRKD = 28,
+GRDefeat = 29
 };
 
-enum class ActionType { Idle, Walk, Jump, Grab, Throw, Thrown, KD, Other };
+enum class ActionType { Idle, Walk, Jump, Grab, Throw, Thrown, KD, DamageReaction, Other };
 
 class HAction;
 
@@ -81,6 +109,7 @@ public:
   HCharacter character() const;
   enum EAnimation animation() const;
   const Hitbox& collision() const;
+  const Box& collision(int frame) const;
   const Hitbox& hitbox() const;
   const Hitbox& hurtbox() const;
   int damage() const;
@@ -117,6 +146,7 @@ enum IAction {
   IActionKD,
   IActionDefeat,
   IActionSpecial,
+  IActionTC,
   IActionGRIdle,
   IActionGRWalkForward,
   IActionGRWalkBackward,
@@ -149,6 +179,7 @@ enum IAction {
 #define HActionKD (HAction(IActionKD))
 #define HActionDefeat (HAction(IActionDefeat))
 #define HActionSpecial (HAction(IActionSpecial))
+#define HActionTC (HAction(IActionTC))
 #define HActionGRIdle (HAction(IActionGRIdle))
 #define HActionGRWalkForward (HAction(IActionGRWalkForward))
 #define HActionGRWalkBackward (HAction(IActionGRWalkBackward))
@@ -185,11 +216,12 @@ public:
   HAction thrownGR;
   HAction kd;
   HAction defeat;
+  std::map<enum Button, HAction> specials;
 
-  Character(Hitbox collision, HAction idle, HAction walkForward, HAction walkBackward, HAction fJump, HAction damaged, HAction block, HAction sthp, HAction stlp, HAction grab, HAction throw_, HAction thrown, HAction thrownGR, HAction kd, HAction defeat): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), fJump(fJump), damaged(damaged), block(block), sthp(sthp), stlp(stlp), grab(grab), throw_(throw_), thrown(thrown), thrownGR(thrownGR), kd(kd), defeat(defeat) {};
+  Character(Hitbox collision, HAction idle, HAction walkForward, HAction walkBackward, HAction fJump, HAction damaged, HAction block, HAction sthp, HAction stlp, HAction grab, HAction throw_, HAction thrown, HAction thrownGR, HAction kd, HAction defeat, std::map<enum Button, HAction> specials): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), fJump(fJump), damaged(damaged), block(block), sthp(sthp), stlp(stlp), grab(grab), throw_(throw_), thrown(thrown), thrownGR(thrownGR), kd(kd), defeat(defeat), specials(specials) {};
 
   // don't use this constructor
-  Character(): Character(Hitbox({Box(0, 0, 0, 0)}), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction()) {};
+  Character(): Character(Hitbox({Box(0, 0, 0, 0)}), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), {}) {};
 };
 
 class HCharacter {
@@ -216,6 +248,7 @@ public:
   HAction thrownGR() const;
   HAction kd() const;
   HAction defeat() const;
+  const std::map<enum Button, HAction>& specials() const;
 
   bool operator==(const HCharacter& b) const;
   bool operator!=(const HCharacter& b) const;
