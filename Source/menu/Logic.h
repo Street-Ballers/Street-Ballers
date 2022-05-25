@@ -130,7 +130,7 @@ public:
         ALogic();
 
 private:
-        int maxRollback = 10; // keep around 10 frames or so for rollback
+        int maxRollback;
         RingBuffer frames;
         int frame;
         int rollbackStopFrame; // When starting a new round, we don't

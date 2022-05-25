@@ -116,11 +116,16 @@ enum Button toSingleDirection(std::optional<enum Button> dx, std::optional<enum 
 //   return b == Button::NONE;
 // }
 
+// amount of input we keep for looking back for command inputs
+#define LOOKBEHIND_SIZE 30
+// amount of input we keep to cope with inputs from the future
+#define FUTURE_SIZE maxRollback
+
 void AFightInput::init(int _maxRollback, int _buffer, int _delay) {
   maxRollback = _maxRollback;
   buffer = _buffer;
   delay = _delay;
-  n = maxRollback+buffer+delay+30;
+  n = maxRollback+buffer+delay+LOOKBEHIND_SIZE+FUTURE_SIZE;
   buttonHistory.reserve(n);
   directionHistoryX.reserve(n);
   directionHistoryY.reserve(n);
@@ -227,13 +232,16 @@ void AFightInput::buttons(int8 buttonsPressed, int8 buttonsReleased, int targetF
   // check if a rollback will be needed
   if (targetFrame <= (currentFrame-delay)) {
     needsRollbackToFrame = std::min(needsRollbackToFrame, targetFrame+delay);
-    if // (targetFrame <= currentFrame+1 - delay - maxRollback)
-      ((currentFrame - needsRollbackToFrame) >= maxRollback) {
+    if (needsRollback() && (currentFrame - needsRollbackToFrame) >= maxRollback) {
       return; // there is nothing that this class can do in this
               // situation. We don't have input data going back that
               // far. Let ALogic decide how to reset or quit the
               // match.
     }
+  }
+  if ((targetFrame - currentFrame) > FUTURE_SIZE) {
+    needsRollbackToFrame = -1;
+    return;
   }
 
   ensureFrame(targetFrame);
@@ -458,6 +466,7 @@ HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFram
 }
 
 bool AFightInput::isGuarding(bool isOnLeft, int targetFrame) {
+  ensureFrame(targetFrame);
   int frame = computeIndex(targetFrame);
   return
     directionHistoryX.nthlast(frame).has_value() &&

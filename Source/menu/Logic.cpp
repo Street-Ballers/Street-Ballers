@@ -427,6 +427,7 @@ void ALogic::BeginPlay()
   init_actions();
 
   frames = RingBuffer();
+  maxRollback = 20;
   frames.reserve(maxRollback+1);
 
   const int delay = 1;
@@ -437,7 +438,7 @@ void ALogic::BeginPlay()
   mode = LogicMode::Wait;
   inPreRound = false;
   inEndRound = false;
-  roundEndFrame = -1;
+  roundEndFrame = std::numeric_limits<int>::max();
   frame = 0;
   reset(false);
   acc = acc2 = 0;
@@ -471,11 +472,11 @@ void ALogic::preRound() {
   if (!skipPreRound) {
     setMode(LogicMode::Idle);
     inPreRound = true;
-    roundStartFrame = ((roundEndFrame == -1) ? 0 : roundEndFrame) + ENDROUND_TIME + PREROUND_TIME;
+    roundStartFrame = ((roundEndFrame == std::numeric_limits<int>::max()) ? 0 : roundEndFrame) + ENDROUND_TIME + PREROUND_TIME;
     MYLOG(Display, "preRound %i", roundStartFrame);
   }
   reset(false);
-  roundEndFrame = -1;
+  roundEndFrame = std::numeric_limits<int>::max();
   rollbackStopFrame = frame;
   if (skipPreRound) {
     beginRound();
@@ -545,7 +546,7 @@ void ALogic::computeFrame(int targetFrame) {
     p1.health -= p2.action.damage();
   if ((p2.action.type() == ActionType::Thrown) && ((targetFrame - p2.actionStart) == p2.action.animationLength()))
     p2.health -= p1.action.damage();
-  if (newFrame.hitstop == 0) {
+  if ((targetFrame <= roundEndFrame) && (newFrame.hitstop == 0)) {
     p1.TryStartingNewAction(targetFrame, *p1Input, isP1OnLeft);
     p2.TryStartingNewAction(targetFrame, *p2Input, !isP1OnLeft);
   }
@@ -688,7 +689,7 @@ void ALogic::computeFrame(int targetFrame) {
   }
 
   if (!inEndRound) {
-    if ((roundEndFrame == -1) || (targetFrame <= roundEndFrame)) {
+    if (targetFrame <= roundEndFrame) {
       // if we are not past the end of the round
       if ((p1.health <= 0) || (p2.health <= 0)) {
         if (p1.health <= 0) {
@@ -707,9 +708,9 @@ void ALogic::computeFrame(int targetFrame) {
       }
       else if (roundEndFrame != targetFrame)
         // round did not end on roundEndFrame; unset it
-        roundEndFrame = -1;
+        roundEndFrame = std::numeric_limits<int>::max();
     }
-    if ((roundEndFrame != -1) && p1Input->hasRecievedInputForFrame(roundEndFrame) && p2Input->hasRecievedInputForFrame(roundEndFrame)) {
+    if (p1Input->hasRecievedInputForFrame(roundEndFrame) && p2Input->hasRecievedInputForFrame(roundEndFrame)) {
       endRound(); // don't actually end round until players are synced
                   // up to round end
     }
@@ -731,13 +732,18 @@ void ALogic::FightTick() {
     }
     // rollbackToFrame is the frame of the input new input
     int rollbackToFrame = std::min(p1Input->getNeedsRollbackToFrame(), p2Input->getNeedsRollbackToFrame());
-    if (alwaysRollback) rollbackToFrame = frame - maxRollback + 1;
-    rollbackToFrame = std::max(rollbackStopFrame+1, rollbackToFrame);
-    if ((frame - rollbackToFrame) >= maxRollback) {
+    if (rollbackToFrame != -1) {
+      if (alwaysRollback || (rollbackToFrame == std::numeric_limits<int>::max()))
+        rollbackToFrame = std::max(rollbackToFrame, frame - maxRollback + 1);
+      rollbackToFrame = std::max(rollbackStopFrame+1, rollbackToFrame);
+    }
+    if ((rollbackToFrame == -1) || ((frame - rollbackToFrame) >= maxRollback)) {
       // exceeded maximum rollback. we do not have data old enough to
       // rollback, simulate the fight and guarantee consistency.
       MYLOG(Warning, "MAXIMUM ROLLBACK EXCEEDED!");
       // TODO: quit game or maybe just reset match
+      setMode(LogicMode::Wait);
+      return;
     }
     else {
       // pop off all the frames that occur at or after the input
