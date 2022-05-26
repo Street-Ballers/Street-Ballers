@@ -4,7 +4,8 @@
 #include <algorithm>
 #include <limits>
 
-#define MYLOG(category, message, ...) UE_LOG(LogTemp, category, TEXT("AFightInput (%s %s) " message), *GetActorLabel(false), (GetWorld()->IsNetMode(NM_ListenServer)) ? TEXT("server") : TEXT("client"), ##__VA_ARGS__)
+//#define MYLOG(category, message, ...) UE_LOG(LogTemp, category, TEXT("AFightInput (%s %s) " message), *GetActorLabel(false), (GetWorld()->IsNetMode(NM_ListenServer)) ? TEXT("server") : TEXT("client"), ##__VA_ARGS__)
+#define MYLOG(category, message, ...) UE_LOG(LogTemp, category, TEXT("AFightInput (%s %s) " message), TEXT("<actor label>"), (GetWorld()->IsNetMode(NM_ListenServer)) ? TEXT("server") : TEXT("client"), ##__VA_ARGS__)
 
 #define LATENCY_HISTORY_SIZE 10
 

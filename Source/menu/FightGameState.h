@@ -15,11 +15,19 @@ private:
   bool p0Ready = false;
   bool p1Ready = false;
 
+protected:
+  virtual void PostInitializeComponents() override;
+
 public:
   // LogicPlayerController will call this function when it begins
   // ticking. When both players are ticking and call this function,
   // FightGameState will call ClientPlayersReady() on all clients.
   void ServerPlayerReady(int playerNumber);
+
+  UPROPERTY (Replicated)
+    int p1Char;
+  UPROPERTY (Replicated)
+    int p2Char;
 };
 
 static inline AFightGameState* GetFightGameState(UWorld* world) {
