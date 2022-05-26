@@ -1,8 +1,10 @@
 #include "Logic.h"
 #include "FightInput.h"
+#include "FightGameState.h"
 #include "Hitbox.h"
 #include "Box.h"
 #include "Action.h"
+#include "Kismet/GameplayStatics.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -453,7 +455,13 @@ void ALogic::reset(bool flipSpawns) {
   p1Input->reset();
   p2Input->reset();
   // construct initial frame
-  Frame f (Player(flipSpawns ? rightStart : leftStart, HActionIdle), Player(flipSpawns ? leftStart : rightStart, HActionGRIdle));
+  check(UGameplayStatics::GetGameInstance(GetWorld()) != nullptr);
+  AFightGameState* gs = Cast<AFightGameState>(UGameplayStatics::GetGameState(GetWorld()));
+  check(gs != nullptr);
+  int p1Char = ICharGR, p2Char = ICharGR;
+  p1Char = gs->p1Char;
+  p2Char = gs->p2Char;
+  Frame f (Player(flipSpawns ? rightStart : leftStart, HCharacter(p1Char).idle()), Player(flipSpawns ? leftStart : rightStart, HCharacter(p2Char).idle()));
   f.frameNumber = frame;
   f.p1.isFacingRight = IsP1OnLeft(f);
   f.p2.isFacingRight = !IsP1OnLeft(f);
@@ -808,7 +816,7 @@ void ALogic::Tick(float DeltaSeconds)
     }
     acc2 += DeltaSeconds;
     if (acc2 >= 1.0) {
-      MYLOG(Display, "FPS: %i (frame %i) %f %f %f %s", frame - startFrame_, frame, p1Input->getDesync(), p2Input->getDesync(), desyncAdjustment, (desyncAdjustment == 0.0) ? TEXT("No adj") : TEXT("Yes Adj"));
+      // MYLOG(Display, "FPS: %i (frame %i) %f %f %f %s", frame - startFrame_, frame, p1Input->getDesync(), p2Input->getDesync(), desyncAdjustment, (desyncAdjustment == 0.0) ? TEXT("No adj") : TEXT("Yes Adj"));
       startFrame_ = frame;
       acc2 = 0.0;
     }

@@ -256,7 +256,7 @@ public:
 
 enum ICharacter {
   IChar1 = 0,
-  ICharGR
+  ICharGR = 1
 };
 
 #define HChar1 (HCharacter(IChar1))
