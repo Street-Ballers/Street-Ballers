@@ -8,3 +8,8 @@ void UStreetBrallersGameInstance::OnStart() {
   p2Char = 1;
   isOnline = false;
 }
+
+void UStreetBrallersGameInstance::LoadComplete(const float LoadTime, const FString& MapName) {
+  Super::LoadComplete(LoadTime, MapName);
+  CreateMessagesWidget();
+}

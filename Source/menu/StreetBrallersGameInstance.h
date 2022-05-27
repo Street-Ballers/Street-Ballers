@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "Components/Widget.h"
 #include "StreetBrallersGameInstance.generated.h"
 
 /**
@@ -12,9 +13,9 @@
 UCLASS()
 class MENU_API UStreetBrallersGameInstance : public UGameInstance
 {
-	GENERATED_BODY()
+  GENERATED_BODY()
 	
-  public:
+public:
 
   UPROPERTY(BlueprintReadWrite)
     int p1Char;
@@ -28,4 +29,13 @@ class MENU_API UStreetBrallersGameInstance : public UGameInstance
     bool turn;
 
   void OnStart();
+
+  UFUNCTION (BlueprintImplementableEvent, Category="Menu")
+    void ReturnToMenuWithMessage(const FString& message);
+  UFUNCTION (BlueprintImplementableEvent, Category="Menu")
+    void ReturnToMenu();
+  UFUNCTION (BlueprintImplementableEvent, Category="Menu")
+    void CreateMessagesWidget();
+
+  virtual void LoadComplete(const float LoadTime, const FString& MapName) override;
 };

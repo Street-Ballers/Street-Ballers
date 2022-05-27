@@ -4,6 +4,7 @@
 #include "Hitbox.h"
 #include "Box.h"
 #include "Action.h"
+#include "StreetBrallersGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include <algorithm>
 #include <cmath>
@@ -462,9 +463,10 @@ void ALogic::addPlayerController(ALogicPlayerController* pc) {
 }
 
 static UEngine* ge;
+static UStreetBrallersGameInstance* gi;
 
 void ALogic::reset(bool flipSpawns) {
-  UGameInstance *gi = UGameplayStatics::GetGameInstance(GetWorld());
+  gi = Cast<UStreetBrallersGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
   ge = gi->GetEngine();
   p1Input->reset();
   p2Input->reset();
@@ -780,6 +782,7 @@ void ALogic::FightTick() {
       MYLOG(Warning, "MAXIMUM ROLLBACK EXCEEDED!");
       // TODO: quit game or maybe just reset match
       setMode(LogicMode::Wait);
+      gi->ReturnToMenuWithMessage(FString("Maximum rollback exceeded."));
       return;
     }
     else {
