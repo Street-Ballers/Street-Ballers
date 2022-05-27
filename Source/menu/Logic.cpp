@@ -270,6 +270,7 @@ struct PlayerDamageResult {
   bool grabbed = false;
   int damage = 0;
   float knockdownDistance = -1;
+  float pushbackDistance = 0;
 };
 
 static bool playerIsInvincible(Player& p, Player &q) {
@@ -335,9 +336,13 @@ static void computeDamage(Player& q, Player &p, AFightInput& qInput, const Frame
     else {
       r.hit = true;
       q.actionNumber = p.actionNumber;
-      q.hitstun = p.action.lockedFrames() - (targetFrame-p.actionStart);
+      q.hitstun = p.action.lockedFrames() - (targetFrame-p.actionStart) - 1;
       r.damage = p.action.damage();
-      if ((q.action.type() != ActionType::Jump) && qInput.isGuarding(isOnLeft, targetFrame)){
+      r.pushbackDistance = p.action.pushbackDistance();
+      enum GuardLevel qGuard = qInput.isGuarding(isOnLeft, targetFrame);
+      if ((q.action.type() != ActionType::Jump) &&
+          ((qGuard == GuardLevel::Low) ||
+           (qGuard == GuardLevel::High) && (!q.action.hitsWalkingBack()))) {
         r.blocking = true;
         if (p.action.blockAdvantage() >= 0)
           q.hitstun += p.action.blockAdvantage();
@@ -658,7 +663,7 @@ void ALogic::computeFrame(int targetFrame) {
       }
       else if (p1Damage.hit || p2Damage.hit) {
         newFrame.hitstop = std::max(1, (int) (std::ceil(std::sqrt(std::max(p1Damage.damage, p2Damage.damage))+0.0)));
-        newFrame.pushbackPerFrame = 5.5 / newFrame.hitstop;
+        newFrame.pushbackPerFrame = (p1Damage.pushbackDistance + p2Damage.pushbackDistance) / newFrame.hitstop;
       }
       if ((p1Damage.hit && p2Damage.hit) || (p1Damage.grabbed && p2Damage.grabbed)) {
         newFrame.hitPlayer = 0;

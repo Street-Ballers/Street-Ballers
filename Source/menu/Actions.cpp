@@ -6,6 +6,8 @@ Character HCharacter::characters[N_CHARACTERS];
 
 const float jumpXVel = 2.3;
 
+const float boxerPushback = 7.0;
+
 void HAction::init() {
   actions[IActionIdle]
     = Action(IChar1,
@@ -97,7 +99,9 @@ void HAction::init() {
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
              9, // specialCancelFrames
-             {{Button::QCFP, HActionSpecial}} // chains
+             {{Button::QCFP, HActionSpecial}}, // chains
+             -1.0,
+             boxerPushback + 0.5
              );
 
   actions[IActionStLP]
@@ -112,14 +116,16 @@ void HAction::init() {
                  Hitbox::make_pair(2, {Box(0.0, 17.0, 26.0, 30.0)}),
                  Hitbox::make_pair(5, {Box(0.0, 17.0, 20.0, 30.0)})}),
              6, // damage
-             2,
              1,
+             2,
              6, // lockedFrames (number of frames before player can cancel)
              6, // animationLength
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
              4, // specialCancelFrames
-             {{Button::HP, HActionTC}} // chains
+             {{Button::HP, HActionTC}}, // chains
+             -1.0,
+             boxerPushback
              );
 
   actions[IActionFJump]
@@ -144,7 +150,7 @@ void HAction::init() {
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
                  Hitbox::make_pair(3, {}),
-                 Hitbox::make_pair(4, {Box(0.0, 21.0, 17.0, 29.0)})}),
+                 Hitbox::make_pair(4, {Box(0.0, 21.0, 20.0, 29.0)})}),
              Hitbox({ // hurtbox
                  Hitbox::make_pair(3, {Box(0.0, 17.0, 26.0, 30.0)}),
                  Hitbox::make_pair(9, {Box(0.0, 17.0, 26.0, 30.0)}),
@@ -252,7 +258,9 @@ void HAction::init() {
              FVector(0, 0, 0), // velocity
              0,
              {}, // chains
-             35.0
+             35.0,
+             0.0,
+             true
              );
 
   actions[IActionTC]
@@ -275,7 +283,10 @@ void HAction::init() {
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
              5,
-             HActionStHP.chains() // chains
+             HActionStHP.chains(), // chains
+             -1.0,
+             boxerPushback,
+             true
              );
 
   // Grave robber

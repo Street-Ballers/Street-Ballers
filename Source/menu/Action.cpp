@@ -78,6 +78,14 @@ float HAction::knockdownDistance() const {
   return actions[h].knockdownDistance;
 }
 
+float HAction::pushbackDistance() const {
+  return actions[h].pushbackDistance;
+}
+
+bool HAction::hitsWalkingBack() const {
+  return actions[h].hitsWalkingBack;
+}
+
 bool HAction::operator==(const HAction& b) const {
   return h == b.h;
 }

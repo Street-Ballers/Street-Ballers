@@ -84,9 +84,12 @@ public:
                                          // after specialCancelFrames
                                          // have passed
 
-  float knockdownDistance;
+  float knockdownDistance; // for hard knockdowns only
+  float pushbackDistance; // normal pushback
+  bool hitsWalkingBack; // true if the move can hit players walking
+                        // backward
 
-  Action(int character, enum EAnimation animation, std::optional<Hitbox> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int blockAdvantage, int hitAdvantage, int lockedFrames, int animationLength, enum ActionType type = ActionType::Other, FVector velocity = FVector(0.0, 0.0, 0.0), int specialCancelFrames = 0, std::map<enum Button, HAction> chains = {}, float knockdownDistance = -1): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), blockAdvantage(blockAdvantage), hitAdvantage(hitAdvantage), lockedFrames(lockedFrames), animationLength(animationLength), type(type), velocity(velocity), specialCancelFrames(specialCancelFrames), chains(chains), knockdownDistance(knockdownDistance) {};
+  Action(int character, enum EAnimation animation, std::optional<Hitbox> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int blockAdvantage, int hitAdvantage, int lockedFrames, int animationLength, enum ActionType type = ActionType::Other, FVector velocity = FVector(0.0, 0.0, 0.0), int specialCancelFrames = 0, std::map<enum Button, HAction> chains = {}, float knockdownDistance = -1, float pushbackDistance = 7.0, bool hitsWalkingBack = false): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), blockAdvantage(blockAdvantage), hitAdvantage(hitAdvantage), lockedFrames(lockedFrames), animationLength(animationLength), type(type), velocity(velocity), specialCancelFrames(specialCancelFrames), chains(chains), knockdownDistance(knockdownDistance), pushbackDistance(pushbackDistance), hitsWalkingBack(hitsWalkingBack) {};
 
   // don't use this constructor
   Action(): Action(-1, EAnimation::Idle, Hitbox(), Hitbox(), Hitbox(), 0, 0, 0, 0, 0) {};
@@ -122,6 +125,8 @@ public:
   enum ActionType type() const;
   int specialCancelFrames() const;
   float knockdownDistance() const;
+  float pushbackDistance() const;
+  bool hitsWalkingBack() const;
   const std::map<enum Button, HAction>& chains() const;
 
   bool operator==(const HAction& b) const;
