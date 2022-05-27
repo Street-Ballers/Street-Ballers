@@ -86,6 +86,10 @@ bool HAction::operator!=(const HAction& b) const {
   return !(*this == b);
 }
 
+const char* HCharacter::name() const {
+  return characters[h].name;
+}
+
 const Hitbox& HCharacter::collision() const {
   return characters[h].collision;
 }

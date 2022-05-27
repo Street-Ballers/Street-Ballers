@@ -448,7 +448,8 @@ void HAction::init() {
 
 void HCharacter::init() {
   characters[IChar1]
-    = Character(Hitbox({Box::make_centeredx(22.0, 34.0)}),
+    = Character("Boxer",
+                Hitbox({Box::make_centeredx(22.0, 34.0)}),
                 HActionIdle,
                 HActionWalkForward,
                 HActionWalkBackward,
@@ -466,7 +467,8 @@ void HCharacter::init() {
                 {{Button::QCFP, HActionSpecial}});
 
   characters[ICharGR]
-    = Character(Hitbox({Box::make_centeredx(22.0, 34.0)}),
+    = Character("Grave robber",
+                Hitbox({Box::make_centeredx(22.0, 34.0)}),
                 HActionGRIdle,
                 HActionGRWalkForward,
                 HActionGRWalkBackward,

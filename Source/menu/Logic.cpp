@@ -446,6 +446,10 @@ void ALogic::BeginPlay()
   reset(false);
   acc = acc2 = 0;
   pcs.clear();
+
+  roundNumber = 0;
+  p1Wins = 0;
+  p2Wins = 0;
 }
 
 void ALogic::addPlayerController(ALogicPlayerController* pc) {
@@ -463,10 +467,9 @@ void ALogic::reset(bool flipSpawns) {
   check(UGameplayStatics::GetGameState(GetWorld()) != nullptr);
   AFightGameState* gs = Cast<AFightGameState>(UGameplayStatics::GetGameState(GetWorld()));
   check(gs != nullptr);
-  int p1Char = ICharGR, p2Char = ICharGR;
-  p1Char = gs->p1Char;
-  p2Char = gs->p2Char;
-  Frame f (Player(flipSpawns ? rightStart : leftStart, HCharacter(p1Char).idle()), Player(flipSpawns ? leftStart : rightStart, HCharacter(p2Char).idle()));
+  p1Char = HCharacter(gs->p1Char);
+  p2Char = HCharacter(gs->p2Char);
+  Frame f (Player(flipSpawns ? rightStart : leftStart, p1Char.idle()), Player(flipSpawns ? leftStart : rightStart, p2Char.idle()));
   f.frameNumber = frame;
   f.p1.isFacingRight = IsP1OnLeft(f);
   f.p2.isFacingRight = !IsP1OnLeft(f);
@@ -488,7 +491,8 @@ void ALogic::preRound() {
     roundStartFrame = ((roundEndFrame == std::numeric_limits<int>::max()) ? 0 : roundEndFrame) + ENDROUND_TIME + PREROUND_TIME;
     MYLOG(Display, "preRound %i", roundStartFrame);
   }
-  reset(false);
+  ++roundNumber;
+  reset((roundNumber+1)%2);
   roundEndFrame = std::numeric_limits<int>::max();
   rollbackStopFrame = frame;
   if (skipPreRound) {
@@ -513,6 +517,7 @@ void ALogic::endRound() {
   MYLOG(Display, "endRound %i", roundEndFrame);
   setMode(LogicMode::Idle);
   inEndRound = true;
+  roundTimeTotal = roundEndFrame - roundStartFrame;
   roundStartFrame = roundEndFrame+ENDROUND_TIME;
   rollbackStopFrame = roundEndFrame; // we need this because when we
                                      // set AFightInput to idle, a
@@ -706,11 +711,13 @@ void ALogic::computeFrame(int targetFrame) {
       // if we are not past the end of the round
       if ((p1.health <= 0) || (p2.health <= 0)) {
         if (p1.health <= 0) {
+          p1.health = 0;
           if (p1.action.type() != ActionType::KD)
             p1.knockdownVelocity = 2.3;
           p1.startNewAction(targetFrame, p1.action.character().defeat(), isP1OnLeft);
         }
         if (p2.health <= 0){
+          p2.health = 0;
           if (p2.action.type() != ActionType::KD)
             p2.knockdownVelocity = 2.3;
           p2.startNewAction(targetFrame, p2.action.character().defeat(), !isP1OnLeft);
@@ -724,8 +731,20 @@ void ALogic::computeFrame(int targetFrame) {
         roundEndFrame = std::numeric_limits<int>::max();
     }
     if (p1Input->hasRecievedInputForFrame(roundEndFrame) && p2Input->hasRecievedInputForFrame(roundEndFrame)) {
-      endRound(); // don't actually end round until players are synced
-                  // up to round end
+      // don't actually end round until players are synced up to round
+      // end
+      if (getRoundWinner() == 0)
+        ++p1Wins;
+      else if (getRoundWinner() == 1)
+        ++p2Wins;
+      else { // ties give win to both players
+        ++p1Wins;
+        ++p2Wins;
+      }
+      if ((p1Wins == 2) || (p2Wins == 2))
+        endFight();
+      else
+        endRound();
     }
   }
 
@@ -870,6 +889,45 @@ int ALogic::playerAnimation(int playerNumber) {
 
 int ALogic::playerFrame(int playerNumber) {
   return (frame - getPlayer(playerNumber).actionStart);
+}
+
+int ALogic::getPlayerSide(int playerNumber) {
+  return (playerNumber+roundNumber) % 2;
+}
+
+FString ALogic::getPlayerCharacterName(int playerNumber) {
+  if (playerNumber == 0)
+    return FString(p1Char.name());
+  else
+    return FString(p2Char.name());
+}
+
+int ALogic::getPlayerWins(int playerNumber) {
+  if (playerNumber == 0)
+    return p1Wins;
+  else
+    return p2Wins;
+}
+
+int ALogic::getRoundTime() {
+  if (inPreRound)
+    return 99;
+  if (inEndRound)
+    return roundTimeTotal / 30;
+  return (frame - roundStartFrame) / 30;
+}
+
+int ALogic::getRoundNumber() {
+  return roundNumber;
+}
+
+int ALogic::getRoundWinner() {
+  if (getPlayer(1).health < getPlayer(0).health)
+    return 0;
+  else if (getPlayer(0).health < getPlayer(1).health)
+    return 1;
+  else // if (getPlayer(0).health == getPlayer(1).health)
+    return 2;
 }
 
 int ALogic::getCurrentFrame() {

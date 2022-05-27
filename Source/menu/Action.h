@@ -201,6 +201,7 @@ enum IAction {
 // have to store handles to all these common actions.
 class Character {
 public:
+  const char* name;
   Hitbox collision; // default collision box
   HAction idle;
   HAction walkForward;
@@ -218,10 +219,10 @@ public:
   HAction defeat;
   std::map<enum Button, HAction> specials;
 
-  Character(Hitbox collision, HAction idle, HAction walkForward, HAction walkBackward, HAction fJump, HAction damaged, HAction block, HAction sthp, HAction stlp, HAction grab, HAction throw_, HAction thrown, HAction thrownGR, HAction kd, HAction defeat, std::map<enum Button, HAction> specials): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), fJump(fJump), damaged(damaged), block(block), sthp(sthp), stlp(stlp), grab(grab), throw_(throw_), thrown(thrown), thrownGR(thrownGR), kd(kd), defeat(defeat), specials(specials) {};
+  Character(const char* name, Hitbox collision, HAction idle, HAction walkForward, HAction walkBackward, HAction fJump, HAction damaged, HAction block, HAction sthp, HAction stlp, HAction grab, HAction throw_, HAction thrown, HAction thrownGR, HAction kd, HAction defeat, std::map<enum Button, HAction> specials): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), fJump(fJump), damaged(damaged), block(block), sthp(sthp), stlp(stlp), grab(grab), throw_(throw_), thrown(thrown), thrownGR(thrownGR), kd(kd), defeat(defeat), specials(specials) {};
 
   // don't use this constructor
-  Character(): Character(Hitbox({Box(0, 0, 0, 0)}), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), {}) {};
+  Character(): Character("", Hitbox({Box(0, 0, 0, 0)}), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), {}) {};
 };
 
 class HCharacter {
@@ -232,7 +233,9 @@ private:
 
 public:
   HCharacter(int h): h(h) {};
+  HCharacter(): h(0) {};
   static void init();
+  const char* name() const;
   const Hitbox& collision() const;
   HAction idle() const;
   HAction walkForward() const;
