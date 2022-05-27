@@ -904,7 +904,7 @@ int ALogic::getPlayerSide(int playerNumber) {
 }
 
 int ALogic::getPlayerCurrentSide(int playerNumber) {
-  return (getPlayer(playerNumber) < getPlayer((playerNumber+1)%2)) ? 0 : 1;
+  return (getPlayer(playerNumber).pos.Y < getPlayer((playerNumber+1)%2).pos.Y) ? 0 : 1;
 }
 
 FString ALogic::getPlayerCharacterName(int playerNumber) {

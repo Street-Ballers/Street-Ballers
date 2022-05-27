@@ -220,7 +220,7 @@ public:
         UFUNCTION (BlueprintCallable, Category="Logic")
         int getPlayerSide(int playerNumber);
         UFUNCTION (BlueprintCallable, Category="Logic")
-        int getPlayerCurrentSide(int playerNumber)
+        int getPlayerCurrentSide(int playerNumber);
         UFUNCTION (BlueprintCallable, Category="Logic")
         FString getPlayerCharacterName(int playerNumber);
         UFUNCTION (BlueprintCallable, Category="Logic")
