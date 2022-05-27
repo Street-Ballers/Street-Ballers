@@ -903,6 +903,10 @@ int ALogic::getPlayerSide(int playerNumber) {
   return (playerNumber+roundNumber) % 2;
 }
 
+int ALogic::getPlayerCurrentSide(int playerNumber) {
+  return (getPlayer(playerNumber) < getPlayer((playerNumber+1)%2)) ? 0 : 1;
+}
+
 FString ALogic::getPlayerCharacterName(int playerNumber) {
   if (playerNumber == 0)
     return FString(p1Char.name());
