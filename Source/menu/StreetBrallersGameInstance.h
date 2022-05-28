@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
-#include "Components/Widget.h"
+#include "Kismet/GameplayStatics.h"
 #include "StreetBrallersGameInstance.generated.h"
 
 /**
@@ -39,3 +39,8 @@ public:
 
   virtual void LoadComplete(const float LoadTime, const FString& MapName) override;
 };
+
+inline UStreetBrallersGameInstance* getSBGameInstance(UWorld* w) {
+  check(UGameplayStatics::GetGameInstance(w) != nullptr);
+  return Cast<UStreetBrallersGameInstance>(UGameplayStatics::GetGameInstance(w));
+}

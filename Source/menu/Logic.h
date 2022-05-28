@@ -94,6 +94,8 @@ public:
         UPROPERTY(EditAnywhere)
         bool alwaysRollback;
         UPROPERTY(EditAnywhere)
+        float rollbackAdjust;
+        UPROPERTY(EditAnywhere)
         int framerate = 30;
 
         // Invisible objects at the ends of the stages. We will use

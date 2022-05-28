@@ -466,7 +466,7 @@ static UEngine* ge;
 static UStreetBrallersGameInstance* gi;
 
 void ALogic::reset(bool flipSpawns) {
-  gi = Cast<UStreetBrallersGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
+  gi = getSBGameInstance(GetWorld());
   ge = gi->GetEngine();
   p1Input->reset();
   p2Input->reset();
@@ -475,7 +475,10 @@ void ALogic::reset(bool flipSpawns) {
   AFightGameState* gs = Cast<AFightGameState>(UGameplayStatics::GetGameState(GetWorld()));
   check(gs != nullptr);
   p1Char = HCharacter(gs->p1Char);
-  p2Char = HCharacter(gs->p2Char);
+  if (GetWorld()->IsNetMode(NM_Client))
+    p2Char = HCharacter(gi->p2Char);
+  else
+    p2Char = HCharacter(gs->p2Char);
   Frame f (Player(flipSpawns ? rightStart : leftStart, p1Char.idle()), Player(flipSpawns ? leftStart : rightStart, p2Char.idle()));
   f.frameNumber = frame;
   f.p1.isFacingRight = IsP1OnLeft(f);
@@ -779,8 +782,12 @@ void ALogic::FightTick() {
     if ((rollbackToFrame == -1) || ((frame - rollbackToFrame) >= maxRollback)) {
       // exceeded maximum rollback. we do not have data old enough to
       // rollback, simulate the fight and guarantee consistency.
-      MYLOG(Warning, "MAXIMUM ROLLBACK EXCEEDED!");
-      // TODO: quit game or maybe just reset match
+      if (rollbackToFrame == -1) {
+        MYLOG(Warning, "MAXIMUM FUTURE EXCEEDED!");
+      }
+      else {
+        MYLOG(Warning, "MAXIMUM ROLLBACK EXCEEDED!");
+      }
       setMode(LogicMode::Wait);
       gi->ReturnToMenuWithMessage(FString("Maximum rollback exceeded."));
       return;
@@ -841,7 +848,7 @@ void ALogic::Tick(float DeltaSeconds)
     if (std::abs(desyncAdjustment) <= 1.0)
       desyncAdjustment = 0.0;
     else
-      desyncAdjustment *= -0.002; // 2ms per frame of desync
+      desyncAdjustment *= -1.0 * rollbackAdjust; // 2ms per frame of desync
     if (acc >= ((1.0/framerate) + desyncAdjustment - 0.00001)) {
       for (auto pc: pcs)
         pc->sendButtons();
