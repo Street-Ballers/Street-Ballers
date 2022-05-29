@@ -212,7 +212,7 @@ void ALogicPlayerController::Tick(float deltaSeconds) {
 void ALogicPlayerController::sendButtons() {
   // MYLOG(Display, "sendButtons");
   int targetFrame = l->getCurrentFrame() + 1;
-  if (targetFrame >= lastTick+5) {
+  if ((buttonsPressed != 0) || (buttonsReleased != 0) || (targetFrame >= lastTick+5)) {
     lastTick = targetFrame;
     input->buttons(buttonsPressed, buttonsReleased, targetFrame);
     ServerButtons(buttonsPressed, buttonsReleased, targetFrame, input->getAvgLatency());

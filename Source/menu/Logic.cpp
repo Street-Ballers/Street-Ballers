@@ -342,6 +342,7 @@ static void computeDamage(Player& q, Player &p, AFightInput& qInput, const Frame
       r.pushbackDistance = p.action.pushbackDistance();
       enum GuardLevel qGuard = qInput.isGuarding(isOnLeft, targetFrame);
       if ((q.action.type() != ActionType::Jump) &&
+          (q.action != q.action.character().damaged()) &&
           ((qGuard == GuardLevel::Low) ||
            (qGuard == GuardLevel::High) && (!q.action.hitsWalkingBack()))) {
         r.blocking = true;
@@ -423,6 +424,7 @@ ALogic::ALogic(): frame(0)
   bReplicates = true;
   init_actions();
   framerate = 30;
+  rollbackAdjust = 0.001;
 }
 
 // Called when the game starts or when spawned
@@ -848,7 +850,7 @@ void ALogic::Tick(float DeltaSeconds)
     if (std::abs(desyncAdjustment) <= 1.0)
       desyncAdjustment = 0.0;
     else
-      desyncAdjustment *= -1.0 * rollbackAdjust; // 2ms per frame of desync
+      desyncAdjustment *= -1.0 * rollbackAdjust;
     if (acc >= ((1.0/framerate) + desyncAdjustment - 0.00001)) {
       for (auto pc: pcs)
         pc->sendButtons();
