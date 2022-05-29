@@ -94,6 +94,8 @@ public:
         UPROPERTY(EditAnywhere)
         bool alwaysRollback;
         UPROPERTY(EditAnywhere)
+        float rollbackAdjust;
+        UPROPERTY(EditAnywhere)
         int framerate = 30;
 
         // Invisible objects at the ends of the stages. We will use
@@ -145,6 +147,13 @@ private:
         bool inEndRound;
         int roundStartFrame;
         int roundEndFrame;
+        int roundTimeTotal; // used just for displaying the timer
+
+        int roundNumber;
+        int p1Wins;
+        int p2Wins;
+        HCharacter p1Char;
+        HCharacter p2Char;
 
         std::vector<ALogicPlayerController*> pcs;
         int startFrame_;
@@ -199,16 +208,34 @@ public:
         // These getters are not methods on Player because I don't
         // want to turn Player into a UObject and increase the size of
         // the data we need to save every frame.
-        UFUNCTION (BlueprintCallable, Category="Player")
+        UFUNCTION (BlueprintCallable, Category="Logic")
         FVector playerPos(int playerNumber);
-        UFUNCTION (BlueprintCallable, Category="Player")
+        UFUNCTION (BlueprintCallable, Category="Logic")
         bool playerIsFacingRight(int playerNumber);
-        UFUNCTION (BlueprintCallable, Category="Player")
+        UFUNCTION (BlueprintCallable, Category="Logic")
         int playerHealth(int playerNumber);
-        UFUNCTION (BlueprintCallable, Category="Player")
+        UFUNCTION (BlueprintCallable, Category="Logic")
         int playerAnimation(int playerNumber);
-        UFUNCTION (BlueprintCallable, Category="Player")
+        UFUNCTION (BlueprintCallable, Category="Logic")
         int playerFrame(int playerNumber);
+        // 0 means left side, 1 means right side
+        UFUNCTION (BlueprintCallable, Category="Logic")
+        int getPlayerSide(int playerNumber);
+        UFUNCTION (BlueprintCallable, Category="Logic")
+        int getPlayerCurrentSide(int playerNumber);
+        UFUNCTION (BlueprintCallable, Category="Logic")
+        FString getPlayerCharacterName(int playerNumber);
+        UFUNCTION (BlueprintCallable, Category="Logic")
+        int getPlayerWins(int playerNumber);
+        UFUNCTION (BlueprintCallable, Category="Logic")
+        int getRoundTime();
+        UFUNCTION (BlueprintCallable, Category="Logic")
+        int getRoundNumber();
+        // - 0 means player 1
+        // - 1 means player 2
+        // - 2 means draw
+        UFUNCTION (BlueprintCallable, Category="Logic")
+        int getRoundWinner();
 
         int getCurrentFrame();
 

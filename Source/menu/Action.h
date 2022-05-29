@@ -84,9 +84,12 @@ public:
                                          // after specialCancelFrames
                                          // have passed
 
-  float knockdownDistance;
+  float knockdownDistance; // for hard knockdowns only
+  float pushbackDistance; // normal pushback
+  bool hitsWalkingBack; // true if the move can hit players walking
+                        // backward
 
-  Action(int character, enum EAnimation animation, std::optional<Hitbox> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int blockAdvantage, int hitAdvantage, int lockedFrames, int animationLength, enum ActionType type = ActionType::Other, FVector velocity = FVector(0.0, 0.0, 0.0), int specialCancelFrames = 0, std::map<enum Button, HAction> chains = {}, float knockdownDistance = -1): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), blockAdvantage(blockAdvantage), hitAdvantage(hitAdvantage), lockedFrames(lockedFrames), animationLength(animationLength), type(type), velocity(velocity), specialCancelFrames(specialCancelFrames), chains(chains), knockdownDistance(knockdownDistance) {};
+  Action(int character, enum EAnimation animation, std::optional<Hitbox> collision, Hitbox hitbox, Hitbox hurtbox, int damage, int blockAdvantage, int hitAdvantage, int lockedFrames, int animationLength, enum ActionType type = ActionType::Other, FVector velocity = FVector(0.0, 0.0, 0.0), int specialCancelFrames = 0, std::map<enum Button, HAction> chains = {}, float knockdownDistance = -1, float pushbackDistance = 7.0, bool hitsWalkingBack = false): character(character), animation(animation), collision(collision), hitbox(hitbox), hurtbox(hurtbox), damage(damage), blockAdvantage(blockAdvantage), hitAdvantage(hitAdvantage), lockedFrames(lockedFrames), animationLength(animationLength), type(type), velocity(velocity), specialCancelFrames(specialCancelFrames), chains(chains), knockdownDistance(knockdownDistance), pushbackDistance(pushbackDistance), hitsWalkingBack(hitsWalkingBack) {};
 
   // don't use this constructor
   Action(): Action(-1, EAnimation::Idle, Hitbox(), Hitbox(), Hitbox(), 0, 0, 0, 0, 0) {};
@@ -122,6 +125,8 @@ public:
   enum ActionType type() const;
   int specialCancelFrames() const;
   float knockdownDistance() const;
+  float pushbackDistance() const;
+  bool hitsWalkingBack() const;
   const std::map<enum Button, HAction>& chains() const;
 
   bool operator==(const HAction& b) const;
@@ -201,6 +206,7 @@ enum IAction {
 // have to store handles to all these common actions.
 class Character {
 public:
+  const char* name;
   Hitbox collision; // default collision box
   HAction idle;
   HAction walkForward;
@@ -218,10 +224,10 @@ public:
   HAction defeat;
   std::map<enum Button, HAction> specials;
 
-  Character(Hitbox collision, HAction idle, HAction walkForward, HAction walkBackward, HAction fJump, HAction damaged, HAction block, HAction sthp, HAction stlp, HAction grab, HAction throw_, HAction thrown, HAction thrownGR, HAction kd, HAction defeat, std::map<enum Button, HAction> specials): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), fJump(fJump), damaged(damaged), block(block), sthp(sthp), stlp(stlp), grab(grab), throw_(throw_), thrown(thrown), thrownGR(thrownGR), kd(kd), defeat(defeat), specials(specials) {};
+  Character(const char* name, Hitbox collision, HAction idle, HAction walkForward, HAction walkBackward, HAction fJump, HAction damaged, HAction block, HAction sthp, HAction stlp, HAction grab, HAction throw_, HAction thrown, HAction thrownGR, HAction kd, HAction defeat, std::map<enum Button, HAction> specials): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), fJump(fJump), damaged(damaged), block(block), sthp(sthp), stlp(stlp), grab(grab), throw_(throw_), thrown(thrown), thrownGR(thrownGR), kd(kd), defeat(defeat), specials(specials) {};
 
   // don't use this constructor
-  Character(): Character(Hitbox({Box(0, 0, 0, 0)}), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), {}) {};
+  Character(): Character("", Hitbox({Box(0, 0, 0, 0)}), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), {}) {};
 };
 
 class HCharacter {
@@ -232,7 +238,9 @@ private:
 
 public:
   HCharacter(int h): h(h) {};
+  HCharacter(): h(0) {};
   static void init();
+  const char* name() const;
   const Hitbox& collision() const;
   HAction idle() const;
   HAction walkForward() const;

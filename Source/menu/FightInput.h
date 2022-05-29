@@ -60,6 +60,8 @@ public:
   FString toString();
 };
 
+enum class GuardLevel { High, Low, None };
+
 // This class will decode input sequences and support replaying input
 // in case of rollback. In the case that each move is triggered by a
 // single button press, this is simply mapping the most recent button
@@ -150,7 +152,7 @@ public:
   // guarding might not depend on the action but rather the inputs
   // (holding back or down-back), so we use a new method here. We
   // could also add a `guard' flag to some actions.
-  bool isGuarding(bool isOnLeft, int targetFrame);
+  enum GuardLevel isGuarding(bool isOnLeft, int targetFrame);
 
   int getCurrentFrame();
   bool needsRollback();

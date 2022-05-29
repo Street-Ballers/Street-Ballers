@@ -22,6 +22,7 @@ private:
   ALogic *l;
   int8 buttonsPressed;
   int8 buttonsReleased;
+  int lastTick;
 
 protected:
 	virtual void SetupInputComponent() override;
@@ -36,7 +37,7 @@ public:
   void BeginPlay();
 
   UFUNCTION (Server, Reliable)
-  void ServerReadyUp();
+  void ServerReadyUp(int p2Char);
 
   void Tick(float deltaSeconds);
   void sendButtons();

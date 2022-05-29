@@ -7,7 +7,7 @@
 //#define MYLOG(category, message, ...) UE_LOG(LogTemp, category, TEXT("AFightInput (%s %s) " message), *GetActorLabel(false), (GetWorld()->IsNetMode(NM_ListenServer)) ? TEXT("server") : TEXT("client"), ##__VA_ARGS__)
 #define MYLOG(category, message, ...) UE_LOG(LogTemp, category, TEXT("AFightInput (%s %s) " message), TEXT("<actor label>"), (GetWorld()->IsNetMode(NM_ListenServer)) ? TEXT("server") : TEXT("client"), ##__VA_ARGS__)
 
-#define LATENCY_HISTORY_SIZE 10
+#define LATENCY_HISTORY_SIZE 5
 
 void ButtonRingBuffer::reserve(int size) {
   n = size;
@@ -133,7 +133,7 @@ void AFightInput::init(int _maxRollback, int _buffer, int _delay) {
   mode = LogicMode::Wait;
   lastInputFrame = currentFrame = 0;
   latencyHistory.reserve(LATENCY_HISTORY_SIZE);
-  avgLatency = avgLatency = 0;
+  avgLatency = avgLatencyOther = 0;
   reset();
 }
 
@@ -466,12 +466,19 @@ HAction AFightInput::action(HAction currentAction, bool isOnLeft, int targetFram
   return action.isWalkOrIdle() ? mostRecentAction : action;
 }
 
-bool AFightInput::isGuarding(bool isOnLeft, int targetFrame) {
+enum GuardLevel AFightInput::isGuarding(bool isOnLeft, int targetFrame) {
   ensureFrame(targetFrame);
   int frame = computeIndex(targetFrame);
-  return
-    directionHistoryX.nthlast(frame).has_value() &&
-    (translateDirection(directionHistoryX.nthlast(frame).value(), isOnLeft) == Button::BACK);
+  if (directionHistoryX.nthlast(frame).has_value() &&
+      (translateDirection(directionHistoryX.nthlast(frame).value(), isOnLeft) == Button::BACK)) {
+    if (directionHistoryX.nthlast(frame).has_value() &&
+        directionHistoryX.nthlast(frame).value() == Button::DOWN)
+      return GuardLevel::Low;
+    else
+      return GuardLevel::High;
+  }
+  else
+    return GuardLevel::None;
 }
 
 int AFightInput::getCurrentFrame() {
