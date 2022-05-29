@@ -98,7 +98,7 @@ void HAction::init() {
              16, // animationLength
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
-             9, // specialCancelFrames
+             8, // specialCancelFrames
              {{Button::QCFP, HActionSpecial}}, // chains
              -1.0,
              boxerPushback + 0.5
@@ -117,7 +117,7 @@ void HAction::init() {
                  Hitbox::make_pair(5, {Box(0.0, 17.0, 20.0, 30.0)})}),
              6, // damage
              1,
-             2,
+             3,
              6, // lockedFrames (number of frames before player can cancel)
              6, // animationLength
              ActionType::Other, // ActionType
@@ -277,7 +277,7 @@ void HAction::init() {
                                         Box(-13.0, 25.0, 0.0, 36.0)})}),
              10, // damage
              -10, // blockAdvantage
-             HActionStHP.hitAdvantage(), // hitAdvantage
+             HActionStHP.hitAdvantage()+1, // hitAdvantage
              11, // lockedFrames (number of frames before player can cancel)
              13, // animationLength
              ActionType::Other, // ActionType
