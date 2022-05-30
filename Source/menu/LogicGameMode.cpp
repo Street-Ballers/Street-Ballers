@@ -3,6 +3,8 @@
 #include "LogicGameMode.h"
 #include "Logic.h"
 #include "Action.h"
+#include "Kismet/GameplayStatics.h"
+#include "Misc/DefaultValueHelper.h"
 
 #define MYLOG(category, message, ...) UE_LOG(LogTemp, category, TEXT("ALogicGameMode (%s) " message), (GetWorld()->IsNetMode(NM_ListenServer)) ? TEXT("server") : TEXT("client"), ##__VA_ARGS__)
 
@@ -31,6 +33,13 @@ void ALogicGameMode::PreLogin(const FString& Options,
   }
   else {
     MYLOG(Display, "PRELOGIN SUCEEDED!");
+    FString character = UGameplayStatics::ParseOption(Options, FString("char"));
+    if (!character.IsEmpty()) {
+      int32 c = 0;
+      FDefaultValueHelper::ParseInt(character, c);
+      AFightGameState* gs = Cast<AFightGameState>(UGameplayStatics::GetGameState(GetWorld()));
+      gs->p2Char = c;
+    }
   }
 }
 

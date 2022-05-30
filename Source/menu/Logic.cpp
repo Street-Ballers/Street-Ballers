@@ -4,6 +4,7 @@
 #include "Hitbox.h"
 #include "Box.h"
 #include "Action.h"
+#include "StreetBrallersGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include <algorithm>
 #include <cmath>
@@ -270,6 +271,7 @@ struct PlayerDamageResult {
   bool grabbed = false;
   int damage = 0;
   float knockdownDistance = -1;
+  float pushbackDistance = 0;
 };
 
 static bool playerIsInvincible(Player& p, Player &q) {
@@ -335,9 +337,14 @@ static void computeDamage(Player& q, Player &p, AFightInput& qInput, const Frame
     else {
       r.hit = true;
       q.actionNumber = p.actionNumber;
-      q.hitstun = p.action.lockedFrames() - (targetFrame-p.actionStart);
+      q.hitstun = p.action.lockedFrames() - (targetFrame-p.actionStart) - 1;
       r.damage = p.action.damage();
-      if ((q.action.type() != ActionType::Jump) && qInput.isGuarding(isOnLeft, targetFrame)){
+      r.pushbackDistance = p.action.pushbackDistance();
+      enum GuardLevel qGuard = qInput.isGuarding(isOnLeft, targetFrame);
+      if ((q.action.type() != ActionType::Jump) &&
+          (q.action != q.action.character().damaged()) &&
+          ((qGuard == GuardLevel::Low) ||
+           (qGuard == GuardLevel::High) && (!q.action.hitsWalkingBack()))) {
         r.blocking = true;
         if (p.action.blockAdvantage() >= 0)
           q.hitstun += p.action.blockAdvantage();
@@ -417,6 +424,7 @@ ALogic::ALogic(): frame(0)
   bReplicates = true;
   init_actions();
   framerate = 30;
+  rollbackAdjust = 0.001;
 }
 
 // Called when the game starts or when spawned
@@ -446,6 +454,10 @@ void ALogic::BeginPlay()
   reset(false);
   acc = acc2 = 0;
   pcs.clear();
+
+  roundNumber = 0;
+  p1Wins = 0;
+  p2Wins = 0;
 }
 
 void ALogic::addPlayerController(ALogicPlayerController* pc) {
@@ -453,9 +465,10 @@ void ALogic::addPlayerController(ALogicPlayerController* pc) {
 }
 
 static UEngine* ge;
+static UStreetBrallersGameInstance* gi;
 
 void ALogic::reset(bool flipSpawns) {
-  UGameInstance *gi = UGameplayStatics::GetGameInstance(GetWorld());
+  gi = getSBGameInstance(GetWorld());
   ge = gi->GetEngine();
   p1Input->reset();
   p2Input->reset();
@@ -463,10 +476,12 @@ void ALogic::reset(bool flipSpawns) {
   check(UGameplayStatics::GetGameState(GetWorld()) != nullptr);
   AFightGameState* gs = Cast<AFightGameState>(UGameplayStatics::GetGameState(GetWorld()));
   check(gs != nullptr);
-  int p1Char = ICharGR, p2Char = ICharGR;
-  p1Char = gs->p1Char;
-  p2Char = gs->p2Char;
-  Frame f (Player(flipSpawns ? rightStart : leftStart, HCharacter(p1Char).idle()), Player(flipSpawns ? leftStart : rightStart, HCharacter(p2Char).idle()));
+  p1Char = HCharacter(gs->p1Char);
+  if (GetWorld()->IsNetMode(NM_Client))
+    p2Char = HCharacter(gi->p2Char);
+  else
+    p2Char = HCharacter(gs->p2Char);
+  Frame f (Player(flipSpawns ? rightStart : leftStart, p1Char.idle()), Player(flipSpawns ? leftStart : rightStart, p2Char.idle()));
   f.frameNumber = frame;
   f.p1.isFacingRight = IsP1OnLeft(f);
   f.p2.isFacingRight = !IsP1OnLeft(f);
@@ -488,7 +503,8 @@ void ALogic::preRound() {
     roundStartFrame = ((roundEndFrame == std::numeric_limits<int>::max()) ? 0 : roundEndFrame) + ENDROUND_TIME + PREROUND_TIME;
     MYLOG(Display, "preRound %i", roundStartFrame);
   }
-  reset(false);
+  ++roundNumber;
+  reset(((roundNumber+1)%2) == 1);
   roundEndFrame = std::numeric_limits<int>::max();
   rollbackStopFrame = frame;
   if (skipPreRound) {
@@ -513,6 +529,7 @@ void ALogic::endRound() {
   MYLOG(Display, "endRound %i", roundEndFrame);
   setMode(LogicMode::Idle);
   inEndRound = true;
+  roundTimeTotal = roundEndFrame - roundStartFrame;
   roundStartFrame = roundEndFrame+ENDROUND_TIME;
   rollbackStopFrame = roundEndFrame; // we need this because when we
                                      // set AFightInput to idle, a
@@ -653,7 +670,7 @@ void ALogic::computeFrame(int targetFrame) {
       }
       else if (p1Damage.hit || p2Damage.hit) {
         newFrame.hitstop = std::max(1, (int) (std::ceil(std::sqrt(std::max(p1Damage.damage, p2Damage.damage))+0.0)));
-        newFrame.pushbackPerFrame = 5.5 / newFrame.hitstop;
+        newFrame.pushbackPerFrame = (p1Damage.pushbackDistance + p2Damage.pushbackDistance) / newFrame.hitstop;
       }
       if ((p1Damage.hit && p2Damage.hit) || (p1Damage.grabbed && p2Damage.grabbed)) {
         newFrame.hitPlayer = 0;
@@ -706,11 +723,13 @@ void ALogic::computeFrame(int targetFrame) {
       // if we are not past the end of the round
       if ((p1.health <= 0) || (p2.health <= 0)) {
         if (p1.health <= 0) {
+          p1.health = 0;
           if (p1.action.type() != ActionType::KD)
             p1.knockdownVelocity = 2.3;
           p1.startNewAction(targetFrame, p1.action.character().defeat(), isP1OnLeft);
         }
         if (p2.health <= 0){
+          p2.health = 0;
           if (p2.action.type() != ActionType::KD)
             p2.knockdownVelocity = 2.3;
           p2.startNewAction(targetFrame, p2.action.character().defeat(), !isP1OnLeft);
@@ -724,8 +743,20 @@ void ALogic::computeFrame(int targetFrame) {
         roundEndFrame = std::numeric_limits<int>::max();
     }
     if (p1Input->hasRecievedInputForFrame(roundEndFrame) && p2Input->hasRecievedInputForFrame(roundEndFrame)) {
-      endRound(); // don't actually end round until players are synced
-                  // up to round end
+      // don't actually end round until players are synced up to round
+      // end
+      if (getRoundWinner() == 0)
+        ++p1Wins;
+      else if (getRoundWinner() == 1)
+        ++p2Wins;
+      else { // ties give win to both players
+        ++p1Wins;
+        ++p2Wins;
+      }
+      if ((p1Wins == 2) || (p2Wins == 2))
+        endFight();
+      else
+        endRound();
     }
   }
 
@@ -753,9 +784,14 @@ void ALogic::FightTick() {
     if ((rollbackToFrame == -1) || ((frame - rollbackToFrame) >= maxRollback)) {
       // exceeded maximum rollback. we do not have data old enough to
       // rollback, simulate the fight and guarantee consistency.
-      MYLOG(Warning, "MAXIMUM ROLLBACK EXCEEDED!");
-      // TODO: quit game or maybe just reset match
+      if (rollbackToFrame == -1) {
+        MYLOG(Warning, "MAXIMUM FUTURE EXCEEDED!");
+      }
+      else {
+        MYLOG(Warning, "MAXIMUM ROLLBACK EXCEEDED!");
+      }
       setMode(LogicMode::Wait);
+      gi->ReturnToMenuWithMessage(FString("Maximum rollback exceeded."));
       return;
     }
     else {
@@ -814,7 +850,7 @@ void ALogic::Tick(float DeltaSeconds)
     if (std::abs(desyncAdjustment) <= 1.0)
       desyncAdjustment = 0.0;
     else
-      desyncAdjustment *= -0.002; // 2ms per frame of desync
+      desyncAdjustment *= -1.0 * rollbackAdjust;
     if (acc >= ((1.0/framerate) + desyncAdjustment - 0.00001)) {
       for (auto pc: pcs)
         pc->sendButtons();
@@ -870,6 +906,49 @@ int ALogic::playerAnimation(int playerNumber) {
 
 int ALogic::playerFrame(int playerNumber) {
   return (frame - getPlayer(playerNumber).actionStart);
+}
+
+int ALogic::getPlayerSide(int playerNumber) {
+  return (playerNumber+roundNumber) % 2;
+}
+
+int ALogic::getPlayerCurrentSide(int playerNumber) {
+  return (getPlayer(playerNumber).pos.Y < getPlayer((playerNumber+1)%2).pos.Y) ? 0 : 1;
+}
+
+FString ALogic::getPlayerCharacterName(int playerNumber) {
+  if (playerNumber == 0)
+    return FString(p1Char.name());
+  else
+    return FString(p2Char.name());
+}
+
+int ALogic::getPlayerWins(int playerNumber) {
+  if (playerNumber == 0)
+    return p1Wins;
+  else
+    return p2Wins;
+}
+
+int ALogic::getRoundTime() {
+  if (inPreRound)
+    return 99;
+  if (inEndRound)
+    return roundTimeTotal / 30;
+  return (frame - roundStartFrame) / 30;
+}
+
+int ALogic::getRoundNumber() {
+  return roundNumber;
+}
+
+int ALogic::getRoundWinner() {
+  if (getPlayer(1).health < getPlayer(0).health)
+    return 0;
+  else if (getPlayer(0).health < getPlayer(1).health)
+    return 1;
+  else // if (getPlayer(0).health == getPlayer(1).health)
+    return 2;
 }
 
 int ALogic::getCurrentFrame() {

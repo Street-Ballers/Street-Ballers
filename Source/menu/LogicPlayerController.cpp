@@ -2,10 +2,12 @@
 
 #include "LogicPlayerController.h"
 
+#include <limits>
 #include "Logic.h"
 #include "FightInput.h"
 #include "FightCameraActor.h"
 #include "FightGameState.h"
+#include "StreetBrallersGameInstance.h"
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 
@@ -23,6 +25,7 @@ void ALogicPlayerController::BeginPlay()
   buttonsPressed = 0;
   buttonsReleased = 0;
   addedPC = false;
+  lastTick = std::numeric_limits<int>::min();
 }
 
 void ALogicPlayerController::SetupInputComponent() {
@@ -169,12 +172,14 @@ void ALogicPlayerController::ClientPostLogin_Implementation(int playerNumber_) {
   readiedUp = false;
 }
 
-void ALogicPlayerController::ServerReadyUp_Implementation() {
+void ALogicPlayerController::ServerReadyUp_Implementation(int p2Char) {
   if (!GetFightGameState(GetWorld())) {
     MYLOG(Warning, "ServerReadyUp: FightGameState is NULL");
   }
   else {
-    GetFightGameState(GetWorld())->ServerPlayerReady(playerNumber);
+    auto* gs = GetFightGameState(GetWorld());
+    if (p2Char != -1) gs->p2Char = p2Char;
+    gs->ServerPlayerReady(playerNumber);
   }
 }
 
@@ -189,7 +194,7 @@ void ALogicPlayerController::Tick(float deltaSeconds) {
   if (!readiedUp) {
     if (GetWorld()->HasBegunPlay()) {
       MYLOG(Display, "ReadyUp");
-      ServerReadyUp();
+      ServerReadyUp((playerNumber == 1) ? getSBGameInstance(GetWorld())->p2Char : -1);
       readiedUp = true;
     }
   }
@@ -207,10 +212,13 @@ void ALogicPlayerController::Tick(float deltaSeconds) {
 void ALogicPlayerController::sendButtons() {
   // MYLOG(Display, "sendButtons");
   int targetFrame = l->getCurrentFrame() + 1;
-  input->buttons(buttonsPressed, buttonsReleased, targetFrame);
-  ServerButtons(buttonsPressed, buttonsReleased, targetFrame, input->getAvgLatency());
-  buttonsPressed = 0;
-  buttonsReleased = 0;
+  if ((buttonsPressed != 0) || (buttonsReleased != 0) || (targetFrame >= lastTick+5)) {
+    lastTick = targetFrame;
+    input->buttons(buttonsPressed, buttonsReleased, targetFrame);
+    ServerButtons(buttonsPressed, buttonsReleased, targetFrame, input->getAvgLatency());
+    buttonsPressed = 0;
+    buttonsReleased = 0;
+  }
 }
 
 void ALogicPlayerController::ServerButtons_Implementation(int8 _buttonsPressed, int8 _buttonsReleased, int targetFrame, int avgLatency) {
