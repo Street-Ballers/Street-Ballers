@@ -504,7 +504,7 @@ void ALogic::preRound() {
     MYLOG(Display, "preRound %i", roundStartFrame);
   }
   ++roundNumber;
-  reset((roundNumber+1)%2);
+  reset(bool((roundNumber+1)%2));
   roundEndFrame = std::numeric_limits<int>::max();
   rollbackStopFrame = frame;
   if (skipPreRound) {
