@@ -314,10 +314,10 @@ void HAction::init() {
              0,
              0,
              0,
-             16,
+             8,
              ActionType::Walk,
              FVector(0.0,
-                     -1.0,
+                     (2.0/3.0)-3.5,
                      0.0));
 
   actions[IActionGRWalkForward]
@@ -330,10 +330,10 @@ void HAction::init() {
              0,
              0,
              0,
-             16,
+             8,
              ActionType::Walk,
              FVector(0.0,
-                     1.0,
+                     3.5,
                      0.0));
 
   actions[IActionGRDamaged]
@@ -367,18 +367,25 @@ void HAction::init() {
              EAnimation::GRStHP, // animation
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
-                 Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 17.0, 22.0, 34.0)})}),
-             Hitbox(), // hurtbox
-             10, // damage
+                 Hitbox::make_pair(4, {}),
+                 Hitbox::make_pair(12, {Box(-11.0, 40.0, 36.0, 5.0)}),
+                 Hitbox::make_pair(16, {Box(-9.0, 40.0, -5.0, 34.0)})
+                 }),
+             Hitbox({ // hitbox
+                 Hitbox::make_pair(4, {Box(-2.0, 0.0, 20.0, 31.0)}),
+                 Hitbox::make_pair(12, {Box(-2.0, 0.0, 21.0, 31.0)}),
+                 Hitbox::make_pair(16, {Box(3.0, 30.0, 7.0, 36.0)})
+                 }), // hurtbox
+             3, // damage
              0,
              0,
-             9, // lockedFrames (number of frames before player can cancel)
-             9, // animationLength
+             16, // lockedFrames (number of frames before player can cancel)
+             16, // animationLength
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
              6, // specialCancelFrames
-             {{Button::QCFP, HActionGRFJump}} // chains
+             {{Button::QCFP, HActionGRFJump}}, // chains
+             5
              );
 
   actions[IActionGRStLP]
@@ -386,13 +393,21 @@ void HAction::init() {
              EAnimation::GRStLP, // animation
              {}, // collision box (note that this is an std::optional)
              Hitbox({ // hitbox
-                 Hitbox::make_pair(1, {}),
-                 Hitbox::make_pair(2, {Box(0.0, 17.0, 22.0, 34.0)})}),
-             Hitbox(), // hurtbox
-             5, // damage
+                 Hitbox::make_pair(2, {}),
+                 Hitbox::make_pair(4, {}),
+                 Hitbox::make_pair(6, {Box(6.0, 13.0, 49.0, 26.0)}),
+                 Hitbox::make_pair(8, {})
+                 }),
+             Hitbox({ // hurtbox
+                 Hitbox::make_pair(2, {Box(0.0, 0.0, 15.0, 30.0)}),
+                 Hitbox::make_pair(4, {Box(0.0, 0.0, 6.0, 30.0)}),
+                 Hitbox::make_pair(6, {}),
+                 Hitbox::make_pair(8, {Box(0.0, 0.0, 20.0, 31.0)})
+                 }), 
+             3, // damage
              0,
              3,
-             5, // lockedFrames (number of frames before player can cancel)
+             8, // lockedFrames (number of frames before player can cancel)
              8, // animationLength
              ActionType::Other, // ActionType
              FVector(0, 0, 0), // velocity
@@ -403,7 +418,9 @@ void HAction::init() {
   actions[IActionGRFJump]
     = Action(ICharGR,
              EAnimation::GRFJump,
-             Hitbox({Box::make_centeredx(11.0, 34.0)}),
+             Hitbox({
+                 Hitbox::make_pair(8, {Box(-3.0, 6.0, 5.0, 40.0)}),
+                 Hitbox::make_pair(JUMP_LENGTH-1, {Box(-2.0, 11.0, 7.0, 24.0)})}),
              Hitbox(),
              Hitbox(),
              0,
