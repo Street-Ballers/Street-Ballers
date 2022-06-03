@@ -718,10 +718,16 @@ void ALogic::computeFrame(int targetFrame) {
     --newFrame.hitstop;
   }
 
+#define ROUND_TIME 99
+
   if (!inEndRound) {
     if (targetFrame <= roundEndFrame) {
       // if we are not past the end of the round
-      if ((p1.health <= 0) || (p2.health <= 0)) {
+      if (((targetFrame - roundStartFrame)/30) == 99) {
+        // time out
+        roundEndFrame = targetFrame;
+      }
+      else if ((p1.health <= 0) || (p2.health <= 0)) {
         if (p1.health <= 0) {
           p1.health = 0;
           if (p1.action.type() != ActionType::KD)
@@ -932,7 +938,7 @@ int ALogic::getPlayerWins(int playerNumber) {
 
 int ALogic::getRoundTime() {
   if (inPreRound)
-    return 99;
+    return 0;
   if (inEndRound)
     return roundTimeTotal / 30;
   return (frame - roundStartFrame) / 30;

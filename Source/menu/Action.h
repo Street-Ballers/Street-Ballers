@@ -224,7 +224,7 @@ public:
   HAction defeat;
   std::map<enum Button, HAction> specials;
 
-  Character(const char* name, Hitbox collision, HAction idle, HAction walkForward, HAction walkBackward, HAction fJump, HAction damaged, HAction block, HAction sthp, HAction stlp, HAction grab, HAction throw_, HAction thrown, HAction thrownGR, HAction kd, HAction defeat, std::map<enum Button, HAction> specials): collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), fJump(fJump), damaged(damaged), block(block), sthp(sthp), stlp(stlp), grab(grab), throw_(throw_), thrown(thrown), thrownGR(thrownGR), kd(kd), defeat(defeat), specials(specials) {};
+  Character(const char* name, Hitbox collision, HAction idle, HAction walkForward, HAction walkBackward, HAction fJump, HAction damaged, HAction block, HAction sthp, HAction stlp, HAction grab, HAction throw_, HAction thrown, HAction thrownGR, HAction kd, HAction defeat, std::map<enum Button, HAction> specials): name(name), collision(collision), idle(idle), walkForward(walkForward), walkBackward(walkBackward), fJump(fJump), damaged(damaged), block(block), sthp(sthp), stlp(stlp), grab(grab), throw_(throw_), thrown(thrown), thrownGR(thrownGR), kd(kd), defeat(defeat), specials(specials) {};
 
   // don't use this constructor
   Character(): Character("", Hitbox({Box(0, 0, 0, 0)}), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), HAction(), {}) {};
